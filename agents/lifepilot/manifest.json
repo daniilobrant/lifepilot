@@ -1,0 +1,70 @@
+{
+  "id": "lifepilot",
+  "name": "LifePilot",
+  "version": "0.25.16",
+  "hub": "0.25.16",
+  "standard": "2026-11-05",
+  "schemaVersion": 24,
+  "skill": "alltag",
+  "adapter": "codex-cli-chatgpt",
+  "releaseState": "draft",
+  "description": "Plant Aufgaben, Fristen und Erinnerungen im lokalen LifePilot-Hub.",
+  "permissions": [
+    "memory:read:lifepilot",
+    "result:propose"
+  ],
+  "skills": [
+    {
+      "id": "alltag",
+      "state": "candidate"
+    },
+    {
+      "id": "bestellungstracker",
+      "state": "candidate"
+    },
+    {
+      "id": "mail-tiefenpruefung",
+      "state": "candidate"
+    },
+    {
+      "id": "projektplaner_skill",
+      "state": "candidate"
+    },
+    {
+      "id": "mail-inbox",
+      "state": "candidate"
+    },
+    {
+      "id": "calendar-planning",
+      "state": "candidate"
+    },
+    {
+      "id": "bewerbungsmanager",
+      "state": "candidate"
+    },
+    {
+      "id": "outfit-designer",
+      "state": "candidate"
+    },
+    {
+      "id": "urlaubsplaner",
+      "state": "candidate"
+    },
+    {
+      "id": "paypal-zahlungen",
+      "state": "candidate"
+    },
+    {
+      "id": "finance",
+      "state": "candidate"
+    },
+    {
+      "id": "vorrat_einkauf_manager",
+      "state": "candidate"
+    },
+    {
+      "id": "kochassistent",
+      "state": "candidate"
+    }
+  ]
+}

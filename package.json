@@ -1,0 +1,28 @@
+{
+  "name": "lifepilot",
+  "version": "0.25.16",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24.13 <25"
+  },
+  "scripts": {
+    "build": "tsc --noEmit && esbuild hub/ui/app.tsx --bundle --minify --outfile=dist/app.js && ./scripts/build-outfit-vision.sh && sh scripts/build-application-ocr.sh && sh scripts/build-dictation.sh",
+    "test": "node --test agents/lifepilot/tests/*.test.ts",
+    "start": "./bin/lifepilot start",
+    "stop": "./bin/lifepilot stop",
+    "test:integration": "node --test agents/lifepilot/tests/http.live.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "esbuild": "0.27.0",
+    "typescript": "5.9.3"
+  }
+}

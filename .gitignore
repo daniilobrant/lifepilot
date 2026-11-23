@@ -1,0 +1,14 @@
+/.runtime/
+/node_modules/
+/dist/
+/user-data/
+/.playwright-cli/
+/output/
+.DS_Store
+.env
+.env.*
+*.sqlite*
+*.pem
+*.key
+*client_secret*.json
+*credentials*.json

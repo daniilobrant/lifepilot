@@ -1,0 +1,8 @@
+{
+  "version": 4,
+  "steps": ["validate-input-and-data-class", "snapshot-context", "approve-model-snapshot", "codex-one-turn",
+    "validate-selected-actions", "review-revise-or-answer-in-same-run", "approve-package", "apply-local-transaction", "verify-persisted-result"],
+  "skills": ["life-inbox", "mission-manager", "deadline-guardian", "priority-engine", "personal-memory",
+    "smart-planning", "daily-briefing", "local-reminders"],
+  "stopOn": ["denied", "expired", "cancelled", "permission-denied", "context-conflict", "model-error", "budget-limit", "invalid-result"]
+}

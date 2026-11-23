@@ -1,0 +1,20 @@
+id: lifepilot
+goal: Alltagswünsche in belegte und bestätigbare lokale Aktionen übersetzen
+model: codex-cli-chatgpt
+budgets:
+  input_chars: 6000
+  source_bytes: 8000
+  memory_items: 5
+  context_tasks: 24
+  output_bytes: 65536
+  turns_per_run: 9
+  model_calls_per_approved_turn: 1
+  model_seconds: 90
+permissions:
+  - read:lifepilot-synthetic-memory
+  - read:approved-synthetic-task-snapshot
+  - read:approved-selected-synthetic-text-source
+  - propose:typed-local-actions
+approvals:
+  - send_exact_synthetic_input_memory_context_and_selected_source_to_chatgpt
+  - adopt_exact_local_action_package

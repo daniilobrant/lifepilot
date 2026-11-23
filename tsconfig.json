@@ -1,0 +1,9 @@
+{
+  "compilerOptions": {
+    "target": "es2024", "module": "nodenext", "moduleResolution": "nodenext",
+    "erasableSyntaxOnly": true, "strict": true, "noEmit": true, "allowImportingTsExtensions": true,
+    "jsx": "react-jsx", "esModuleInterop": true, "skipLibCheck": true,
+    "lib": ["es2024", "dom", "dom.iterable"]
+  },
+  "include": ["hub/**/*.ts", "hub/**/*.tsx", "agents/**/*.ts"]
+}
