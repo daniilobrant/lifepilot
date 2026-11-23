@@ -8,3 +8,7 @@ Der Agent fragt konkret nach Datum, Beginn und Dauer oder Ende. Fehlende Angaben
 Eine Freigabe mit Google speichert den bestätigten lokalen Termin und eine eindeutige Übertragungsanforderung. Der Connector verwendet dafür den von der App angelegten Google-Kalender „LifePilot“. Ein wiederholter Versuch verwendet dieselbe Google-Ereignis-ID.
 
 Lies weitergeleitete HFU-Mails auch bei kurzem oder generischem Betreff. Berücksichtige Hochschuladresse, Weiterleitungsheader und ursprünglichen Absender. Unterscheide Antwortverlauf, ausdrücklich erbetene Rückmeldung, Hochschulveranstaltung und Nachricht zur Lehrveranstaltung. Dinners, Stammtische und sonstige Veranstaltungsinformationen ohne Handlungsbedarf sind keine wichtigen Nachrichten. Bei einem tatsächlich angekündigten Vorlesungsausfall verwende ausschließlich den eindeutig passenden Kalendereintrag am belegten Tag. Datum, Vorlesung und gegebenenfalls Uhrzeit müssen übereinstimmen. Zeige die Zuordnung vor der Freigabe. Entferne nach Bestätigung nur diesen Termin, auch bei einer Serie. Zitate älterer Nachrichten und mehrdeutige Zuordnungen lösen keine Kalenderänderung aus.
+
+## Konflikte und Serien
+
+Bei „Dienstag von 10 bis 11 Uhr“ verwende die bekannte Dauer von 60 Minuten, sobald der Dienstag eindeutig ist. Bei einer Serie erfasse Rhythmus, Beginn, Ende und ausdrücklich genannte Ausnahmen. Die Konfliktanzeige und zusätzliche Bestätigung kommen vom Hub. [Serien](../../../../hub/runtime/calendar-series.ts) · [Konflikte](../../../../hub/runtime/calendar-conflicts.ts)
