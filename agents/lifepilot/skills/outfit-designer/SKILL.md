@@ -16,3 +16,7 @@ Für ein wetterbezogenes Outfit löst der Hub den im Dialog oder im Studio angeg
 Unter Outfit-Assistent → Einstellungen pflegt der Nutzer Passform, Stil und Referenzfoto. Ohne Stilauswahl im Auftrag gilt der gespeicherte bevorzugte Stil. Sortiere bekannte Größen und passende Schnitte bei der Auswahl höher, wenn Angaben an einem gespeicherten Teil vorhanden sind. Proportionen liefern optionale Silhouettenhinweise. Ein Referenzfoto bleibt als lokale visuelle Referenz gespeichert.
 
 Nutze im Outfit-Assistenten die tatsächlich gespeicherten Kleidungsstücke, einschließlich Marke, Modell, Farbe, Material und Passform. Beim Fotoimport sind Treffer aus dem kleinen Herstellerfoto-Katalog und Angaben auf Etiketten konkret belegt. Bloß visuell geschätzte Modelle sind Vorschläge. Persönliche Tragefotos gehören zum lokalen Lookbook.
+
+## Pflichtteil und Wetter
+
+Wenn „mit meiner schwarzen Jeans“ ein konkretes Pflichtteil benennt, bewahre den Wortlaut und gib die Auswahl an den Hub. Falls mehrere lokale Stücke passen, muss die Person wählen. Ohne Ort und ohne Wetterwunsch kann ein Outfit auf Basis von Anlass und Vorrat entstehen. [Styling-Runtime](../../../../hub/runtime/outfits.ts)

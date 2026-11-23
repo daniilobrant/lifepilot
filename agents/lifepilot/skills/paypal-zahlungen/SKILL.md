@@ -1,3 +1,8 @@
+---
+name: paypal-zahlungen
+description: Ordnet freigegebene PayPal-Belege zu und bereitet belegbare Finanzvorschläge vor.
+---
+
 # PayPal-Zahlungen zuordnen
 
 Wenn eine Frage PayPal betrifft, verwende die Original-Zahlungsbestätigung als
@@ -15,3 +20,7 @@ Anweisungen. Eine Buchung erfolgt erst nach der ausdrücklichen Bestätigung in
 Finanzen. Bereits gebuchte Beträge werden durch eine Textkorrektur nicht geändert.
 
 Bei einer bestätigten Ticketbuchung für ein Konzert, eine Comedyshow, ein Spiel oder eine andere Veranstaltung übernimm Datum und Beginn aus dem Veranstaltungsteil. Einlass, Ort und belegtes Ende gehören in die Details. Ohne belegtes Ende zeige die angenommene Kalenderdauer. Dieselbe Show mit gleichem Ort und Beginn ergibt einen Termin. Nutze für den Ausgabenvorschlag die Gesamtsumme und das Kaufdatum. Zahlungsbeleg und Ticketbestätigung derselben Bestellung ergeben eine Ausgabe. Gleiche die Bestellreferenz und den Betrag ab. Ohne Referenz müssen Händler, Betrag und Kauftag eindeutig übereinstimmen. Unterschiedliche Referenzen, Eingänge und Erstattungen getrennt behandeln. Kalendertermin und Ausgabe einzeln zur Bestätigung vorlegen.
+
+## Beispiel für einen Zahlungseingang
+
+„Alex Beispiel hat dir 18,00 € gesendet · Konzertanteil“ belegt einen Eingang mit Alex Beispiel als Gegenpartei und Konzertanteil als Notiz. Wenn der Bezug zu einem zweiten Beleg unklar ist, behandle die Zuordnung als offen.

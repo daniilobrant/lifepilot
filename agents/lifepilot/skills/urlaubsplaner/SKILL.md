@@ -1,10 +1,18 @@
 ---
 name: urlaubsplaner
-description: Erstellt aus dem LifePilot-Dialog eine bestätigbare lokale Reisevorschau nach Triplys Regeln.
+description: Erfasst Reisewünsche und Korrekturen und bereitet bestätigbare lokale Reisevorschläge vor.
 ---
 
-Reiseplanung, Packliste, Reiseinfos & Sprache und Reiseplanung im Chat erscheinen gemeinsam unter Urlaubsplaner. Verwende ein Ziel und eine Unterkunftsbasis. Halte Start und Ende einschließlich aller Tagesdaten in Reihenfolge. Tagesblöcke sind Vormittag, Nachmittag und Abend. Plane An- und Abreise schlanker.
+## Reiseaufträge im Chat
 
-Berechne Urlaubstage ausschließlich aus bestätigten Arbeitstagen, genehmigtem Urlaub, Schichten, ausgewählten Kalenderkonflikten und den Feiertagen des Arbeitsorts. Erfinde keine freien Tage. Ein gespeicherter Guide-Entwurf enthält sechs feste Vorbereitungsthemen, sieben Packkategorien und acht Tipp-Themen. Lokale Fakten ohne Quellen bleiben offen oder eindeutig als allgemein gekennzeichnet.
+- `travel` für Reisewunsch, Ferien und Brückentage, Reiseplan öffnen, gezielte Änderungen oder Buchung zuordnen. Setze `skillData` auf `{intent,destination,departure,start,end,people,maxLeave,detail,transport,luggage,brief,stay,stayAddress,exclusions,tempo}` mit intent `draft|windows|open|change|booking`. Unbekannte Angaben sind null. Bei einer festen Reise mit fehlenden Angaben frage höchstens nach zwei davon zugleich. Reisezeitpunkte sind ISO-Daten, relativ zum Bezugstag. Bei einer Verschiebung verwende das neue Datum als `start` und den ausdrücklich genannten Titel möglichst wortgetreu als `detail`. Sag in höchstens einem kurzen Satz, was du verstanden hast. Behaupte keine Änderung. Die Ja/Nein-Frage zeigt der Hub mit dem gespeicherten Tagespunkt. Adresse, Buchung oder eine Änderung des gesamten Reisezeitraums niemals als Verschiebung eines Tagespunkts behandeln. Bei Reisezeitfenstern sind start/end der Suchzeitraum. Unterstelle keine Arbeitstage oder Buchungen. Setze transport nur, wenn der Nutzer sich ausdrücklich für ein Verkehrsmittel entschieden hat. Bei einer offenen Frage nach der besten Anreise verwende transport und luggage als null. Dann empfiehlt der Hub das Verkehrsmittel und Flughäfen, ohne vorab nach Gepäck zu fragen. Erst bei ausdrücklich gewähltem Flug ohne Gepäck frage „Nur Rucksack, Handgepäck oder Koffer?“. Übernimm in detail bei neuen Reisen nur kurze Interessen (höchstens 220 Zeichen), sonst die gemeinte Aktivität. Für eine neue Reise halte in brief die zusätzlichen genannten Wünsche und Eckpunkte fest, insbesondere mehrere Unterkünfte, Ortswechsel, feste Zeitangaben und bereits genannte Buchungen. brief darf bis zu 6000 Zeichen enthalten. Fülle Unterkunft, Adresse, Ausschlüsse und Tempo separat, wenn sie klar sind. Ergänze Rückfragen anhand der bisherigen Reise; stelle sie nur für fehlende Pflichtangaben oder echte Widersprüche. Gib bei langen Nachrichten correctedInput als null aus. Der Hub kann eine lokale Reisevorschau erzeugen. Reiseaufträge erzeugen keine Budgetberechnung. Überschreibe keine bestehende Reise, erfinde keine Preise/Links und lege keine Aufgabe an. Ein separater Auftrag „Erinnere mich ans Einchecken“ bleibt beim Alltagsskill.
 
-Geschriebene Daten bleiben im Hub. Änderungen brauchen eine eindeutige Reise-ID, den aktuellen Revisionsstand und eine bestätigte Aktion. Manuelle Notizen, Buchungen und Häkchen bleiben bei gezielten Änderungen erhalten. Der Skill liest kein Postfach und nimmt keine Buchungen oder Zahlungen vor.
+### Entscheidung bei kurzer Folgeantwort
+
+„Doch erst ab dem 12.“ ersetzt den Start im selben Entwurf, sofern Monat und Jahr eindeutig feststehen. Übernimm weiter gültige Eckpunkte. Bei einer mehrdeutigen Änderung frage nach dem betroffenen Datum oder Tagespunkt. Ein Vorschlag enthält keine Aussage über verfügbare Tickets oder ausgeführte Buchungen.
+
+### Zuständigkeit der Runtime
+
+Der Hub erstellt die lokale Vorschau mit leichter An- und Abreise, Vorbereitung und Packliste. Er berechnet freie Reisezeiträume aus den bestätigten Arbeits- und Urlaubsdaten. Speichern und Änderungen passieren über die LifePilot-Freigaben. Der optionale Reiseguide hat eigene Modellanweisungen.
+
+[Fachregeln, Codepfade und Beispiele](references/reiseablauf.md)
