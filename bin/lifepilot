@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+if [ -x "$root/.runtime/bin/node" ]; then
+  node="$root/.runtime/bin/node"
+elif command -v node >/dev/null 2>&1; then
+  node="$(command -v node)"
+else
+  printf '%s\n' 'Node.js 24 fehlt. Siehe README.md.' >&2
+  exit 1
+fi
+exec "$node" "$root/hub/adapters/cli.ts" "$@"

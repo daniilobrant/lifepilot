@@ -1,0 +1,8 @@
+{
+  "id": "trinity-probe",
+  "purpose": "Internal deterministic acceptance specialist for memory isolation",
+  "profile": "trinity-audit",
+  "capabilities": ["memory:read:self"],
+  "model": null,
+  "visibleInProduct": false
+}

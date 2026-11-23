@@ -1,0 +1,2141 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "tasks",
+    "questions",
+    "actions",
+    "advice",
+    "summary",
+    "correctedInput"
+  ],
+  "properties": {
+    "tasks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "title",
+          "doneWhen",
+          "evidence",
+          "kind",
+          "date",
+          "steps",
+          "blocks"
+        ],
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "doneWhen": {
+            "type": "string"
+          },
+          "evidence": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "task",
+              "appointment"
+            ]
+          },
+          "date": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "category": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "work",
+              "university",
+              "leisure",
+              null
+            ]
+          },
+          "steps": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "blocks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "start",
+                "minutes",
+                "weeks"
+              ],
+              "properties": {
+                "start": {
+                  "type": "string"
+                },
+                "minutes": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "weeks": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "priority": {
+            "enum": [
+              "high",
+              "normal",
+              "low",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      }
+    },
+    "questions": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "actions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "kind",
+          "target",
+          "value",
+          "duration",
+          "reason",
+          "tags"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "enum": [
+              "deadline",
+              "priority",
+              "complete",
+              "plan",
+              "reschedule",
+              "reminder",
+              "remember",
+              "correct_memory",
+              "rename",
+              "description",
+              "category",
+              "archive"
+            ]
+          },
+          "target": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {
+            "type": "string"
+          },
+          "duration": {
+            "type": [
+              "integer",
+              "null"
+            ]
+          },
+          "reason": {
+            "type": "string"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "advice": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "target",
+          "reason"
+        ],
+        "properties": {
+          "target": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "correctedInput": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "skill": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "inbox_refresh",
+        "appointment",
+        "deadline_guardian",
+        "smart_planning",
+        "applications",
+        "outfit",
+        "travel",
+        "finance",
+        null,
+        "grocery",
+        "orders",
+        "calendar_series",
+        "projects"
+      ]
+    },
+    "skillData": {
+      "anyOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "date",
+            "days",
+            "minutes",
+            "start",
+            "end"
+          ],
+          "properties": {
+            "date": {
+              "type": "string"
+            },
+            "days": {
+              "type": "integer"
+            },
+            "minutes": {
+              "type": "integer"
+            },
+            "start": {
+              "type": "string"
+            },
+            "end": {
+              "type": "string"
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "fragrances"
+          ],
+          "properties": {
+            "fragrances": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "place",
+            "date",
+            "occasion"
+          ],
+          "properties": {
+            "anchorStep": {
+              "enum": [
+                "decision",
+                "name",
+                "ready"
+              ]
+            },
+            "anchor": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "daypart": {
+              "enum": [
+                "Morgens",
+                "Mittags",
+                "Abends",
+                null
+              ]
+            },
+            "place": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "occasion": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "intent",
+            "destination",
+            "departure",
+            "start",
+            "end",
+            "people",
+            "maxLeave",
+            "detail",
+            "transport",
+            "luggage"
+          ],
+          "properties": {
+            "intent": {
+              "enum": [
+                "draft",
+                "windows",
+                "open",
+                "change",
+                "booking"
+              ],
+              "type": "string"
+            },
+            "destination": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "departure": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "start": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "end": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "detail": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "people": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "maxLeave": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "transport": {
+              "enum": [
+                "open",
+                "rail",
+                "flight",
+                "car",
+                "bus",
+                null
+              ],
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "luggage": {
+              "enum": [
+                "open",
+                "backpack",
+                "cabin",
+                "checked",
+                null
+              ],
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "brief": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stay": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "stayAddress": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "exclusions": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "tempo": {
+              "enum": [
+                "relaxed",
+                "balanced",
+                "active",
+                null
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "groceryIntent",
+            "title",
+            "items",
+            "steps",
+            "totalCents"
+          ],
+          "properties": {
+            "groceryIntent": {
+              "type": "string",
+              "enum": [
+                "stock_read",
+                "list_read",
+                "shop_add",
+                "shop_remove",
+                "stock_add",
+                "recipe",
+                "ideas",
+                "receipt"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "quantity",
+                  "status"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "status": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "stocked",
+                      "low",
+                      "empty",
+                      null
+                    ]
+                  }
+                }
+              }
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "totalCents": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "onHand": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "name",
+                  "quantity",
+                  "save"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "quantity": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "save": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "financeBatch"
+          ],
+          "properties": {
+            "financeBatch": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "financeIntent",
+                  "month",
+                  "kind",
+                  "title",
+                  "cents",
+                  "category",
+                  "date",
+                  "cycle",
+                  "target"
+                ],
+                "properties": {
+                  "financeIntent": {
+                    "type": "string",
+                    "enum": [
+                      "add",
+                      "edit"
+                    ]
+                  },
+                  "month": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "kind": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "income",
+                      "fixed",
+                      "subscription",
+                      "expense",
+                      null
+                    ]
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "cents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "category": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "cycle": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "monthly",
+                      "yearly",
+                      null
+                    ]
+                  },
+                  "target": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "financeIntent",
+            "month",
+            "kind",
+            "title",
+            "cents",
+            "category",
+            "date",
+            "cycle",
+            "target"
+          ],
+          "properties": {
+            "financeIntent": {
+              "type": "string",
+              "enum": [
+                "budget",
+                "investment",
+                "subscriptions",
+                "add",
+                "edit"
+              ]
+            },
+            "month": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "kind": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "income",
+                "fixed",
+                "subscription",
+                "expense",
+                null
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cents": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "category": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "cycle": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "monthly",
+                "yearly",
+                null
+              ]
+            },
+            "target": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "seriesIntent": {
+              "type": "string",
+              "enum": [
+                "create",
+                "delete"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "seriesKind": {
+              "enum": [
+                "appointment",
+                "reminder",
+                null
+              ]
+            },
+            "weekdays": {
+              "type": "array",
+              "items": {
+                "type": "integer"
+              }
+            },
+            "startDate": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "endDate": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "startTime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "endTime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "category": {
+              "enum": [
+                "work",
+                "university",
+                "leisure",
+                null
+              ]
+            },
+            "excludeHolidays": {
+              "type": "boolean"
+            },
+            "region": {
+              "enum": [
+                "BW",
+                "BY",
+                "BE",
+                "BB",
+                "HB",
+                "HH",
+                "HE",
+                "MV",
+                "NI",
+                "NW",
+                "RP",
+                "SL",
+                "SN",
+                "ST",
+                "SH",
+                "TH",
+                null
+              ]
+            }
+          },
+          "required": [
+            "seriesIntent",
+            "title",
+            "seriesKind",
+            "weekdays",
+            "startDate",
+            "endDate",
+            "startTime",
+            "endTime",
+            "category",
+            "excludeHolidays",
+            "region"
+          ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "projectIntent": {
+              "enum": [
+                "create",
+                "update",
+                "add_step",
+                "update_step",
+                "move_step",
+                "complete",
+                "delete",
+                "check"
+              ],
+              "type": "string"
+            },
+            "project": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "step": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "title": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "area": {
+              "enum": [
+                "uni",
+                "privat",
+                "arbeit",
+                null
+              ],
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "description": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "priority": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "high",
+                "medium",
+                "low",
+                "inherit",
+                null
+              ]
+            },
+            "scheduleMode": {
+              "type": [
+                "string",
+                "null"
+              ],
+              "enum": [
+                "none",
+                "deadline",
+                "checkpoint",
+                null
+              ]
+            },
+            "date": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "approxLabel": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "completed": {
+              "type": [
+                "boolean",
+                "null"
+              ]
+            },
+            "position": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "steps": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "title": {
+                    "type": "string"
+                  },
+                  "priority": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "high",
+                      "medium",
+                      "low",
+                      "inherit",
+                      null
+                    ]
+                  },
+                  "scheduleMode": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "none",
+                      "deadline",
+                      "checkpoint",
+                      null
+                    ]
+                  },
+                  "date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "approxLabel": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "completed": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "phase": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "startDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "notes": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "title",
+                  "priority",
+                  "scheduleMode",
+                  "date",
+                  "approxLabel",
+                  "completed",
+                  "phase",
+                  "startDate",
+                  "notes"
+                ]
+              }
+            },
+            "phase": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "startDate": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "notes": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "projectIntent",
+            "project",
+            "step",
+            "title",
+            "area",
+            "description",
+            "priority",
+            "scheduleMode",
+            "date",
+            "approxLabel",
+            "completed",
+            "position",
+            "steps",
+            "phase",
+            "startDate",
+            "notes"
+          ]
+        }
+      ]
+    },
+    "parts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "tasks",
+          "questions",
+          "actions",
+          "advice",
+          "summary",
+          "correctedInput",
+          "skill",
+          "skillData"
+        ],
+        "properties": {
+          "tasks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "title",
+                "doneWhen",
+                "evidence",
+                "kind",
+                "date",
+                "steps",
+                "blocks"
+              ],
+              "properties": {
+                "title": {
+                  "type": "string"
+                },
+                "doneWhen": {
+                  "type": "string"
+                },
+                "evidence": {
+                  "type": "string"
+                },
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "task",
+                    "appointment"
+                  ]
+                },
+                "date": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "category": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "enum": [
+                    "work",
+                    "university",
+                    "leisure",
+                    null
+                  ]
+                },
+                "steps": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "blocks": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "start",
+                      "minutes",
+                      "weeks"
+                    ],
+                    "properties": {
+                      "start": {
+                        "type": "string"
+                      },
+                      "minutes": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "weeks": {
+                        "type": "integer"
+                      }
+                    }
+                  }
+                },
+                "priority": {
+                  "enum": [
+                    "high",
+                    "normal",
+                    "low",
+                    null
+                  ],
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              }
+            }
+          },
+          "questions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "kind",
+                "target",
+                "value",
+                "duration",
+                "reason",
+                "tags"
+              ],
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "deadline",
+                    "priority",
+                    "complete",
+                    "plan",
+                    "reschedule",
+                    "reminder",
+                    "remember",
+                    "correct_memory",
+                    "rename",
+                    "description",
+                    "category",
+                    "archive"
+                  ]
+                },
+                "target": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "value": {
+                  "type": "string"
+                },
+                "duration": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "reason": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          },
+          "advice": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "target",
+                "reason"
+              ],
+              "properties": {
+                "target": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "summary": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "correctedInput": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "skill": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "inbox_refresh",
+              "appointment",
+              "deadline_guardian",
+              "smart_planning",
+              "applications",
+              "outfit",
+              "travel",
+              "finance",
+              null,
+              "grocery",
+              "orders",
+              "calendar_series",
+              "projects"
+            ]
+          },
+          "skillData": {
+            "anyOf": [
+              {
+                "type": "null"
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "date",
+                  "days",
+                  "minutes",
+                  "start",
+                  "end"
+                ],
+                "properties": {
+                  "date": {
+                    "type": "string"
+                  },
+                  "days": {
+                    "type": "integer"
+                  },
+                  "minutes": {
+                    "type": "integer"
+                  },
+                  "start": {
+                    "type": "string"
+                  },
+                  "end": {
+                    "type": "string"
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "fragrances"
+                ],
+                "properties": {
+                  "fragrances": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "place",
+                  "date",
+                  "occasion"
+                ],
+                "properties": {
+                  "anchorStep": {
+                    "enum": [
+                      "decision",
+                      "name",
+                      "ready"
+                    ]
+                  },
+                  "anchor": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "daypart": {
+                    "enum": [
+                      "Morgens",
+                      "Mittags",
+                      "Abends",
+                      null
+                    ]
+                  },
+                  "place": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "occasion": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "intent",
+                  "destination",
+                  "departure",
+                  "start",
+                  "end",
+                  "people",
+                  "maxLeave",
+                  "detail",
+                  "transport",
+                  "luggage"
+                ],
+                "properties": {
+                  "intent": {
+                    "enum": [
+                      "draft",
+                      "windows",
+                      "open",
+                      "change",
+                      "booking"
+                    ],
+                    "type": "string"
+                  },
+                  "destination": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "departure": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "start": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "end": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "detail": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "people": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "maxLeave": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "transport": {
+                    "enum": [
+                      "open",
+                      "rail",
+                      "flight",
+                      "car",
+                      "bus",
+                      null
+                    ],
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "luggage": {
+                    "enum": [
+                      "open",
+                      "backpack",
+                      "cabin",
+                      "checked",
+                      null
+                    ],
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "brief": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "stay": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "stayAddress": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "exclusions": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "tempo": {
+                    "enum": [
+                      "relaxed",
+                      "balanced",
+                      "active",
+                      null
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "groceryIntent",
+                  "title",
+                  "items",
+                  "steps",
+                  "totalCents"
+                ],
+                "properties": {
+                  "groceryIntent": {
+                    "type": "string",
+                    "enum": [
+                      "stock_read",
+                      "list_read",
+                      "shop_add",
+                      "shop_remove",
+                      "stock_add",
+                      "recipe",
+                      "ideas",
+                      "receipt"
+                    ]
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "items": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "name",
+                        "quantity",
+                        "status"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "status": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "stocked",
+                            "low",
+                            "empty",
+                            null
+                          ]
+                        }
+                      }
+                    }
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "totalCents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "onHand": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "name",
+                        "quantity",
+                        "save"
+                      ],
+                      "properties": {
+                        "name": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "save": {
+                          "type": "boolean"
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "financeBatch"
+                ],
+                "properties": {
+                  "financeBatch": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "financeIntent",
+                        "month",
+                        "kind",
+                        "title",
+                        "cents",
+                        "category",
+                        "date",
+                        "cycle",
+                        "target"
+                      ],
+                      "properties": {
+                        "financeIntent": {
+                          "type": "string",
+                          "enum": [
+                            "add",
+                            "edit"
+                          ]
+                        },
+                        "month": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "kind": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "income",
+                            "fixed",
+                            "subscription",
+                            "expense",
+                            null
+                          ]
+                        },
+                        "title": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "cents": {
+                          "type": [
+                            "integer",
+                            "null"
+                          ]
+                        },
+                        "category": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "date": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "cycle": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "monthly",
+                            "yearly",
+                            null
+                          ]
+                        },
+                        "target": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "financeIntent",
+                  "month",
+                  "kind",
+                  "title",
+                  "cents",
+                  "category",
+                  "date",
+                  "cycle",
+                  "target"
+                ],
+                "properties": {
+                  "financeIntent": {
+                    "type": "string",
+                    "enum": [
+                      "budget",
+                      "investment",
+                      "subscriptions",
+                      "add",
+                      "edit"
+                    ]
+                  },
+                  "month": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "kind": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "income",
+                      "fixed",
+                      "subscription",
+                      "expense",
+                      null
+                    ]
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "cents": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "category": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "cycle": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "monthly",
+                      "yearly",
+                      null
+                    ]
+                  },
+                  "target": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "seriesIntent": {
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "delete"
+                    ]
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "seriesKind": {
+                    "enum": [
+                      "appointment",
+                      "reminder",
+                      null
+                    ]
+                  },
+                  "weekdays": {
+                    "type": "array",
+                    "items": {
+                      "type": "integer"
+                    }
+                  },
+                  "startDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "endDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "startTime": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "endTime": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "category": {
+                    "enum": [
+                      "work",
+                      "university",
+                      "leisure",
+                      null
+                    ]
+                  },
+                  "excludeHolidays": {
+                    "type": "boolean"
+                  },
+                  "region": {
+                    "enum": [
+                      "BW",
+                      "BY",
+                      "BE",
+                      "BB",
+                      "HB",
+                      "HH",
+                      "HE",
+                      "MV",
+                      "NI",
+                      "NW",
+                      "RP",
+                      "SL",
+                      "SN",
+                      "ST",
+                      "SH",
+                      "TH",
+                      null
+                    ]
+                  }
+                },
+                "required": [
+                  "seriesIntent",
+                  "title",
+                  "seriesKind",
+                  "weekdays",
+                  "startDate",
+                  "endDate",
+                  "startTime",
+                  "endTime",
+                  "category",
+                  "excludeHolidays",
+                  "region"
+                ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "properties": {
+                  "projectIntent": {
+                    "enum": [
+                      "create",
+                      "update",
+                      "add_step",
+                      "update_step",
+                      "move_step",
+                      "complete",
+                      "delete",
+                      "check"
+                    ],
+                    "type": "string"
+                  },
+                  "project": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "step": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "title": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "area": {
+                    "enum": [
+                      "uni",
+                      "privat",
+                      "arbeit",
+                      null
+                    ],
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "description": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "priority": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "high",
+                      "medium",
+                      "low",
+                      "inherit",
+                      null
+                    ]
+                  },
+                  "scheduleMode": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "enum": [
+                      "none",
+                      "deadline",
+                      "checkpoint",
+                      null
+                    ]
+                  },
+                  "date": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "approxLabel": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "completed": {
+                    "type": [
+                      "boolean",
+                      "null"
+                    ]
+                  },
+                  "position": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "steps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "properties": {
+                        "title": {
+                          "type": "string"
+                        },
+                        "priority": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "high",
+                            "medium",
+                            "low",
+                            "inherit",
+                            null
+                          ]
+                        },
+                        "scheduleMode": {
+                          "type": [
+                            "string",
+                            "null"
+                          ],
+                          "enum": [
+                            "none",
+                            "deadline",
+                            "checkpoint",
+                            null
+                          ]
+                        },
+                        "date": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "approxLabel": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "completed": {
+                          "type": [
+                            "boolean",
+                            "null"
+                          ]
+                        },
+                        "phase": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "startDate": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "notes": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        }
+                      },
+                      "required": [
+                        "title",
+                        "priority",
+                        "scheduleMode",
+                        "date",
+                        "approxLabel",
+                        "completed",
+                        "phase",
+                        "startDate",
+                        "notes"
+                      ]
+                    }
+                  },
+                  "phase": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "startDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "notes": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                },
+                "required": [
+                  "projectIntent",
+                  "project",
+                  "step",
+                  "title",
+                  "area",
+                  "description",
+                  "priority",
+                  "scheduleMode",
+                  "date",
+                  "approxLabel",
+                  "completed",
+                  "position",
+                  "steps",
+                  "phase",
+                  "startDate",
+                  "notes"
+                ]
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

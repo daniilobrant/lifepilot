@@ -1,0 +1,44 @@
+[
+  {
+    "brand": "Dr. Martens",
+    "model": "1460",
+    "name": "Dr. Martens 1460 Schnürstiefel",
+    "color": "Schwarz",
+    "category": "shoes",
+    "material": "Leder (Obermaterial)",
+    "source": "https://www.drmartens.com/uk/en_gb/1460-smooth-leather-lace-up-boots-black/p/11822006",
+    "fingerprints": [
+      "AAAAAAAAAAAAAAQAjADIAJgAmAEYAxgmDHhEwMThJBkAAAAAAAAAAAAAAAAEAHQAQADAAIABAAAAHwAA/v/8Hw==",
+      "YABgAGAAcAhwCGAIYABgAWABYABgEGACQAtAC8ACwAQAAWADYAcABgAEAAQAAMAFAA3ADyAQAACAB4AfABIAAA==",
+      "OAFYA1QDuAYsBtkMmQ2bGSMTVCasbHnRQ5ODGI44TDgAAAgAAAEYAAACZAIEBMgEARgDEwYgHAQ4weGAgwwE/A=="
+    ]
+  },
+  {
+    "brand": "Dr. Martens",
+    "model": "1461",
+    "name": "Dr. Martens 1461 Halbschuhe",
+    "color": "Schwarz",
+    "category": "shoes",
+    "material": "Leder (Obermaterial)",
+    "source": "https://www.drmartens.com/uk/en_gb/1461-smooth-leather-oxford-shoes-black/p/11838002",
+    "fingerprints": [
+      "AAAAAAAAAAAAAAAAAAAAAAAAAAAIAwAuCHxEzMzgCAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAA+AEAHgAA/v/8Dw==",
+      "wATAAOABYBJgEmAScBIwAOAA4ABgAWABYAFgAWAJMAEABsAPwA1ACGAMYAAAEAADAA9ABEAEQALAA7ADYAAAAA==",
+      "AwAOHpjxCMYZGARhJMNoBkgEgAkQEyAnACcIBwAPAB8BAAMClBj/41+PgD20eQjzaMJgDAAIMAAQAAgB4ADgAA=="
+    ]
+  },
+  {
+    "brand": "Dr. Martens",
+    "model": "2976",
+    "name": "Dr. Martens 2976 Chelsea-Boots",
+    "color": "Schwarz",
+    "category": "shoes",
+    "material": "Leder (Obermaterial)",
+    "source": "https://www.drmartens.com/uk/en_gb/2976-stitch-smooth-leather-chelsea-boots-black/p/22227001",
+    "fingerprints": [
+      "AAAAAAAAAAAAAAAADAAMANgAiACIAwgvDHxMxMThAAEAAAAAAAAAAAAAAAAAAAQATABwAAAAAACAHw6A/v/gAw==",
+      "YBHgAOAAwEjACMAgwBDgAGAQYBBgEGABQAlAAXAB8AAAHwA4ADAAAIAIgATAAMAMwAxgCgAQAACAB+AHAAAAAA==",
+      "AAAGAAw7DDkoNQEhoSEhYYFhAc4B2AGSATIhFiEUNxAAAAAABwD/Gx8eSBPgEWAhACAAYOBPwP7Au6AbAAcgnA=="
+    ]
+  }
+]

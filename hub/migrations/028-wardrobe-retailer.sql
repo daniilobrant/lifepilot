@@ -1,0 +1,1 @@
+ALTER TABLE wardrobe_items ADD COLUMN retailer TEXT NOT NULL DEFAULT '';
