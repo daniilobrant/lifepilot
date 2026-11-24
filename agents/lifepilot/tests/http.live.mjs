@@ -159,3 +159,35 @@ test('Order views are available without invoking the confirmed photo operation',
   await request(primary, '/clothing-orders/photos', 404, local)
   await request(primary, '/clothing-orders/photos', 403, local, { order: randomUUID() })
 })
+
+test('A synthetic chat approval cannot invoke a cloud model', async () => {
+  const cli = bearer('acceptance')
+  const state = await (await request(trial, '/state', 200, cli)).json()
+  assert.equal(state.cloudModel, false)
+  const run = await (await request(trial, '/runs', 201, cli, {
+    agent: 'lifepilot', input: 'Erkläre die Farbe Grün in einem Satz.', synthetic: true, key: randomUUID(),
+  })).json()
+  const route = '/runs/' + run.id
+  await request(trial, route + '/decision', 200, cli, { approval: run.approvals[0].id, decision: 'approve' })
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const current = await (await request(trial, route, 200, cli)).json()
+    if (current.state === 'failed') {
+      assert.match(current.error, /Im Testprofil sind externe Modelle gesperrt/)
+      assert.equal(current.metrics.model, null)
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.fail('Der synthetische Auftrag wurde nicht mit der lokalen Sperre beendet.')
+})
+
+test('Synthetic travel proposals can be saved without the external guide', async () => {
+  const cli = bearer('acceptance')
+  const draft = { destination: 'Lissabon', departure: 'Hamburg', start: '2090-05-04', end: '2090-05-06',
+    people: 2, interests: 'Museen', transport: 'open', luggage: 'open', stay: '' }
+  const preview = await (await request(trial, '/trips/preview', 200, cli, { draft, confirm: true })).json()
+  assert.equal(preview.plan.days.length, 3)
+  await request(trial, '/trips/guide', 423, cli, { preview: preview.id, confirm: true })
+  const saved = await (await request(trial, '/trips/save', 200, cli, { preview: preview.id, confirm: true })).json()
+  assert.equal(saved.draft.destination, draft.destination)
+})

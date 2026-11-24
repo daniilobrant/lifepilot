@@ -11,13 +11,13 @@ const payload: ModelPayload = {
 
 test('Oversized transport payload is rejected before invoking Codex', async () => {
   const oversized = { ...payload, messages: [{ ...payload.messages[0], input: 'ä'.repeat(MAX_CHAT_INPUT+1) }] }
-  const result = await runCodex(oversized, new AbortController().signal)
+  const result = await runCodex({ ...oversized, mode: 'personal' }, new AbortController().signal)
   assert.equal(result.result, null)
   assert.match(result.error ?? '', /Analysekontext ist zu groß/)
 })
 
 test('Aborted transport is rejected before invoking Codex', async () => {
-  const result = await runCodex(payload, AbortSignal.abort())
+  const result = await runCodex({ ...payload, mode: 'personal' }, AbortSignal.abort())
   assert.equal(result.result, null)
   assert.match(result.error ?? '', /abgebrochen/)
 })
@@ -35,4 +35,11 @@ test('Travel intake instructions are sent as system guidance by the local chat a
   assert.match(systemPrompt ?? '', /Unterstelle keine Arbeitstage oder Buchungen/)
   assert.doesNotMatch(systemPrompt ?? '', /Synthetische Testnotiz/)
   assert.match(userMessage ?? '', /Synthetische Testnotiz/)
+})
+
+test('Codex rejects synthetic payloads before processing the prompt', async () => {
+  const result = await runCodex(payload, new AbortController().signal)
+  assert.equal(result.result, null)
+  assert.equal(result.metrics.model, null)
+  assert.match(result.error ?? '', /synthetische Aufträge gesperrt/)
 })
