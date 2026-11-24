@@ -1,3 +1,4 @@
+import {hasRecipeQuantity,validRecipeServings} from '../../../hub/runtime/recipe-portions.ts'
 import type {ProjectPlan} from '../../../hub/runtime/project-types.ts'
 import type {SeriesPlan} from '../../../hub/runtime/calendar-series-types.ts'
 import {normalizeTripIntake,tripIntakeQuestions} from '../../../hub/runtime/trip-intake.ts'
@@ -151,6 +152,10 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
     candidate.summary=null
     if (!candidate.questions.length) candidate.questions=['Möchtest du in den Vorrat schauen, etwas einkaufen oder ein Gericht planen?']
   } else if (plan && 'groceryIntent' in plan) {
+    if(requireCurrent&&plan.groceryIntent==='recipe'&&(!validRecipeServings(plan.servings)||!plan.steps.length||
+      plan.items.some(item=>!hasRecipeQuantity(item.quantity??undefined)))) {
+      throw new Error('Das Rezept benötigt die Portionszahl, Zubereitungsschritte und messbare Mengen pro Zutat. Verwende nur für Gewürze nach Geschmack oder optionale Zutaten einen entsprechenden Hinweis.')
+    }
     if (candidate.skill!=='grocery' || plan.items.length>30 || plan.steps.length>12 ||
         plan.title!==null&&!bounded(plan.title,120) ||
         plan.items.some(item=>!bounded(item.name,90)||item.quantity!==null&&!bounded(item.quantity,50)) ||
