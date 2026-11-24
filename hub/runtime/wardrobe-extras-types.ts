@@ -11,6 +11,6 @@ export type FragranceDraft = {
 export type Fragrance = FragranceDraft & {id:string}
 export type ScentChoice = {id:string,name:string,brand:string,reason:string,pairing?:string}
 export type ResaleDraft = {
-  id:string,name:string,state:'selling'|'sold'|'sorted',condition:string,flaws:string,originalPrice:number|null,
+  id:string,name:string,state:'selling'|'sold'|'sorted',condition:string,flaws:string,originalPrice:number|null,askingPriceCents:number|null,
   created:string,sold:string|null,hasPhoto:boolean, hasOwnPhoto:boolean,listing:{title:string,description:string,minimum:number,maximum:number,start:number},
 }
