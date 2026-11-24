@@ -4,7 +4,7 @@ import { Resolver } from 'node:dns/promises'
 import { request } from 'node:https'
 import { isIP } from 'node:net'
 import type { IncomingMessage } from 'node:http'
-import { outfitFields } from '../runtime/outfit-fields.ts'
+import { productWardrobeFields, textProductColor } from '../runtime/outfit-fields.ts'
 import { Problem } from '../runtime/settings.ts'
 
 const execute = promisify(execFile)
@@ -201,7 +201,9 @@ export function completeProductMetadata(html: string, url: URL, selectedColor = 
   const exactColors = unique(exact.map(variant=>variant.color))
   const linkedColor = paramOption(colors,['color','colour','farbe','colordisplaycode']) ||
     (exactColors.length===1 ? exactColors[0] : '') || rootColor
-  const color = selectedColor || linkedColor || (colors.length===1 ? colors[0] : '')
+  const titleColor=textProductColor(textField(root?.name,120)||og.name)
+  const matchingColors=colors.filter(value=>textProductColor(value)===titleColor && Boolean(titleColor))
+  const color = selectedColor || linkedColor || (matchingColors.length===1 ? matchingColors[0] : '') || (colors.length===1 ? colors[0] : '')
   const byColor = variants.filter(variant=>!color || variant.color===color)
   const rootSize = !color || !rootColor || color===rootColor ? productSize(root?.size ?? meta.get('product:size')) : ''
   const sizes = unique([...byColor.map(variant=>variant.size),rootSize])
@@ -219,10 +221,9 @@ export function completeProductMetadata(html: string, url: URL, selectedColor = 
     return textField(html.slice(marker.index+marker[0].length,marker.index+marker[0].length+260)
       .replace(/^[\s]*(?:<[^>]*>\s*)*/u,'').split('<',1)[0],100)
   }
+  const reportedColor = color || propertyLabel('Farbe')
   const material = textField(product?.material ?? root?.material,120) || propertyLabel('Hauptmaterial')
   const fit = textField(product?.fit ?? root?.fit,70) || propertyLabel('Passform').slice(0,70)
-  const semantic = [name,textField(product?.category,100),textField(product?.description,1400)].join(' ')
-  const attributes = outfitFields(semantic,[],color,true)
   const images: string[] = []
   const variantsToShow = color ? byColor.map(variant=>variant.product.image) : []
   const pageImages = !color || color===linkedColor || colors.length===1 ? [root?.image,og.image] : []
@@ -231,7 +232,7 @@ export function completeProductMetadata(html: string, url: URL, selectedColor = 
     const address = productVariantAddress(photo,url)
     if (address && !images.includes(address)) images.push(address)
   }
-  const description=textField(product?.description,1400)||textField(meta.get('description')??meta.get('og:description'),1400)
+  const description=textField(product?.description,1400)||textField(root?.description,1400)||textField(meta.get('description')??meta.get('og:description'),1400)
   const fragranceHeading=/<h[2-4]\b[^>]*>\s*(?:Duftnoten|Fragrance Notes)\s*<\/h[2-4]>/iu.exec(html)
   const fragranceNotes=fragranceHeading ? textField(html.slice(fragranceHeading.index+fragranceHeading[0].length,
     fragranceHeading.index+fragranceHeading[0].length+6000).split(/<h[2-4]\b/iu,1)[0],600) : ''
@@ -239,8 +240,10 @@ export function completeProductMetadata(html: string, url: URL, selectedColor = 
   const brand=textField(typeof brandValue==='object' && brandValue ? Reflect.get(brandValue,'name') : brandValue,70)
   const retailer=textField(meta.get('og:site_name'),100) || url.hostname.replace(/^www\./iu,'').slice(0,100)
   return { name, image:images[0] ?? null, images, colors, sizes, description, fragranceNotes, brand, structured:Boolean(root), source:og.source,
-    draft: { ...attributes, ...(name && {name}), ...(material && {material}), ...(fit && {fit}),
-      ...(brand && {brand}), ...(size && {size}), retailer, source:og.source } }
+    draft: productWardrobeFields(name,description,'',{
+      ...(reportedColor && {color:reportedColor}), ...(material && {material}), ...(fit && {fit}), ...(brand && {brand}),
+      ...(size && {size}), retailer, source:og.source,
+    }) }
 }
 
 async function downloadWithCurl(url:URL,max:number,allowed:RegExp,signal:AbortSignal):Promise<Buffer|URL> {
