@@ -48,7 +48,7 @@ Der korrigierte Bestellpfad belässt bestehende ausdrückliche Fotoaktionen und 
 ## 4. Wiederholbarkeit und Grenzen
 
 - Ausgangsstand und korrigierter Stand: **174 Unit-Tests bestanden**. Korrigierter Stand: **5 HTTP-Integrationstests** und **Trinity-Memory-Trennung** bestanden. TypeScript und Browser-Bundle waren erfolgreich.
-- Die HTTP-Tests verwendeten drei isolierte Loopback-Dienste. Google-Connector-Unit-Tests verwenden simulierte Antworten. Im Audit wurde kein Live-Modell gestartet und kein Google-Konto verbunden. Visuelle Bedienung, native macOS-Helfer, private Laufzeitfreigabe und öffentliche Bestellsysteme wurden nicht live geprüft.
+- Die HTTP-Tests verwendeten drei isolierte Loopback-Dienste. Google-Connector-Unit-Tests verwenden simulierte Antworten. Im Audit wurde kein Live-Modell gestartet und kein Google-Konto verbunden. Chromium hat den Bestellungstracker geladen und die Aktualisierung mit fiktiven Bestellmails erfolgreich ausgeführt. Andere visuelle Abläufe, native macOS-Helfer, die private Laufzeitfreigabe und öffentliche Bestellsysteme wurden nicht live geprüft.
 - Der separate Restore-Harness erwartet ein lokales `SHA256SUMS`, das im öffentlichen Quellstand nicht enthalten ist. Er wurde nicht ausgeführt. Vorhandene Restore-Logik in der Unit-Suite wurde mitgeprüft.
 - Der neue lokale Befehl ist `npm run security:check`. Gitleaks und Semgrep müssen im PATH liegen oder über `LIFEPILOT_GITLEAKS` und `LIFEPILOT_SEMGREP` angegeben werden. Der PR-Workflow verwendet denselben Befehl, feste Action-Referenzen und Leserechte. [Lokaler Check](scripts/security-check.mjs) · [PR-Workflow](.github/workflows/security.yml)
 

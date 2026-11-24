@@ -8,3 +8,7 @@ LifePilot bindet an 127.0.0.1. Die CLI öffnet den Browser mit einem einmaligen 
 - **Integrität.** Die interne Freigabe prüft einen Satz von Quelldateien und das UI-Bundle. Der öffentliche Quellrelease bescheinigt weder die Integrität aller nativen Helfer und Abhängigkeiten noch die wirksame Sandbox einer konkreten Installation.
 
 Für eine lokale Sicherung verwende **./bin/lifepilot backup --confirm**. Der CLI-Hilfetext erklärt Status und Wiederherstellung. Prüfe Wiederherstellungen mit einer Testkopie.
+
+## Wiederkehrende Prüfung
+
+Mit Gitleaks und Semgrep im PATH führt `npm run security:check` den Quellcode-, Historien- und npm-Audit aus. Die Prüfungen laufen auch bei Pull Requests. [Auditbericht](../SECURITY_REPORT.md)
