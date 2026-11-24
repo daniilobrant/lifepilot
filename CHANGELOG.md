@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.2 · 24. November 2026
+
+- Der private Pilot-Chat verwendet die lokale, versionsgebundene Freigabe mit Prüfsummen. Eine separate Release-Signatur und ein systemweit installierter Prüfschlüssel entfallen.
+
 ## v1.0.1 · 24. November 2026
 
 - Der Kleiderschrank gruppiert aktive Teile nach Kategorien und zeigt leere Abschnitte an.
