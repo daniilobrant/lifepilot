@@ -74,7 +74,8 @@ function detailsFrom(input:string,day:string){
   const times=[...input.matchAll(timeRange)].filter(match=>match[3]||/^von\s/iu.test(match[0])||match[1].includes(':')||match[2].includes(':')).at(-1)
   const single=singleTime.exec(input)
   const text=times?input.replace(times[0],' '):input
-  const bound=(prefix:string)=>[...text.matchAll(new RegExp(String.raw`${prefix}\s*(${dateToken})(?![\p{L}\d:-]|\.\d)`,'giu'))].filter(match=>!/\bstatt\s*$/iu.test(text.slice(0,match.index))).at(-1)
+  // Both prefixes and dateToken are constants.
+  const bound=(prefix:string)=>[...text.matchAll(new RegExp(String.raw`${prefix}\s*(${dateToken})(?![\p{L}\d:-]|\.\d)`,'giu'))].filter(match=>!/\bstatt\s*$/iu.test(text.slice(0,match.index))).at(-1) // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   const from=bound(String.raw`\b(?:ab|vom|von)\s+(?:(?:dem|den)\s+)?`)
   const stop=bound(String.raw`\b(?:bis(?:\s+(?:zum|einschließlich|spätestens))?|vor)\s+`)
   const before=!!stop&&/^vor\b/iu.test(stop[0])
@@ -84,7 +85,8 @@ function detailsFrom(input:string,day:string){
   const end=until?dateInText(until[1],begin??day,before):null
   return {begin,end,mentionedStart:!!from||coming.test(text),mentionedEnd:!!until||/\b(?:bis|vor)\s+\S/iu.test(text),
     startTime:time(times?.[1]??single?.[1]),endTime:time(times?.[2]),
-    weekdays:weekdayNames.flatMap((name,index)=>new RegExp('\\b'+name+'s?\\b','iu').test(text)?[index]:[])}
+    // Weekday names come from a fixed table.
+    weekdays:weekdayNames.flatMap((name,index)=>new RegExp('\\b'+name+'s?\\b','iu').test(text)?[index]:[])} // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
 }
 
 export function seriesFromChat(payload:ModelPayload):Result|undefined{

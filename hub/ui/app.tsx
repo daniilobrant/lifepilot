@@ -1350,7 +1350,8 @@ function App() {
         const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
         const current=dateInBerlin().slice(0,7)
         const explicit=run.input.match(/\b20\d{2}-(?:0[1-9]|1[0-2])\b/u)?.[0]
-        const named=months.findIndex(month=>new RegExp('\\b'+month+'\\b','iu').test(run.input))
+        // Months come from the fixed month table.
+        const named=months.findIndex(month=>new RegExp('\\b'+month+'\\b','iu').test(run.input)) // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
         const numbered=named<0 ? undefined : String(named+1).padStart(2,'0')
         const year=run.input.match(/\b20\d{2}\b/u)?.[0] ??
           String(Number(current.slice(0,4))-(numbered && numbered>current.slice(5) ? 1:0))
@@ -1794,7 +1795,7 @@ function App() {
               {entry.destination} · {formatDate(entry.start)}</button>)}</div>
           </> : <p>{currentTripChange.message}</p>}
         </div> : null}
-        {focus?.result?.skill==='grocery' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Vorrat & Einkauf')}}>Vorrat & Einkauf öffnen</button> : null}
+        {focus?.result?.skill==='grocery' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Vorrat & Einkauf')}}>Vorrat &amp; Einkauf öffnen</button> : null}
         {focus?.state==='accepted'&&focus.groceryChange?.write==='receipt'&&focus.groceryChange.totalCents ? <button className="quiet" type="button"
           onClick={()=>{setReplyTo(null);setNewConversation(true);setInput('Erfasse den bestätigten Bonbetrag '+money(focus.groceryChange!.totalCents!)+' als variable Ausgabe Supermarkteinkauf in Finanzen.')}}>Bonbetrag für Finanzen vorbereiten</button>:null}
         {focus?.result?.skill==='orders' && skillResult?.orders ? <p role="status">{skillResult.orders.checked} Bestellmails geprüft.
@@ -1802,7 +1803,7 @@ function App() {
         {focus?.result?.skill==='orders' ? <button className="quiet" type="button" disabled={skillBusy}
           onClick={()=>skillResult?.orders ? openFromPilot('Bestellungstracker') : void executeChatSkill(focus)}>
           {skillResult?.orders ? 'Bestellungstracker öffnen' : 'Bestellungen prüfen'}</button> : null}
-        {focus?.result?.skill==='finance' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Finanzen & Abos')}}>Finanzen & Abos öffnen</button> : null}
+        {focus?.result?.skill==='finance' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Finanzen & Abos')}}>Finanzen &amp; Abos öffnen</button> : null}
         {focus && ['review','accepted'].includes(focus.state) && focus.result?.skill==='travel' && !focus.result.questions.length &&
           !(focus.result.skillData && 'intent' in focus.result.skillData && focus.result.skillData.intent==='change') ? <button type="button"
           disabled={skillBusy} onClick={()=>void executeChatSkill(focus)}>{focus.result.skillData && 'intent' in focus.result.skillData &&

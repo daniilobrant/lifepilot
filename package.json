@@ -11,7 +11,8 @@
     "test": "node --test agents/lifepilot/tests/*.test.ts",
     "start": "./bin/lifepilot start",
     "stop": "./bin/lifepilot stop",
-    "test:integration": "node --test agents/lifepilot/tests/http.live.mjs"
+    "test:integration": "node --test agents/lifepilot/tests/http.live.mjs",
+    "security:check": "node scripts/security-check.mjs"
   },
   "dependencies": {
     "ajv": "8.20.0",
