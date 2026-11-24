@@ -1,3 +1,5 @@
-„Fristen & Abgaben“ auf der Startseite zeigt Fristen und Checkpoints von heute bis einschließlich sieben Tage im Voraus. Erledigte Einträge bleiben in diesem Zeitraum sichtbar und stehen unter den offenen.
+Aussortierte Teile bleiben im Abschnitt „Aussortierte Sachen“. Laufende und abgeschlossene Verkäufe stehen im Tab „Verkaufen“ unter „Wird verkauft“ beziehungsweise „Verkauft“.
 
-[Installation](https://github.com/daniilobrant/lifepilot/blob/v1.0.5/README.md#installation) · [Versionsverlauf](https://github.com/daniilobrant/lifepilot/blob/v1.0.5/CHANGELOG.md)
+Unter „Persönlich“ stehen Finanzen & Abos und Vorrat & Einkauf vor Outfit-Assistent und Bestellungstracker.
+
+[Installation](https://github.com/daniilobrant/lifepilot/blob/v1.0.6/README.md#installation) · [Versionsverlauf](https://github.com/daniilobrant/lifepilot/blob/v1.0.6/CHANGELOG.md)

@@ -63,7 +63,7 @@ const openStates = new Set<State>(['permission', 'queued', 'running', 'review'])
 const navigation = [
   { title: 'Übersicht', links: [['Start', 'home'], ['Kalender', 'calendar'], ['Aufgaben & Fristen','listtodo'], ['Posteingang', 'inbox']] },
   { title: 'Planen', links: [['Projekte','folder'], ['Bewerbungen', 'briefcase'], ['Urlaubsplaner', 'plane']] },
-  { title: 'Persönlich', links: [['Outfit-Assistent', 'shirt'], ['Bestellungstracker', 'basket'], ['Finanzen & Abos','wallet'], ['Vorrat & Einkauf','basket']] },
+  { title: 'Persönlich', links: [['Finanzen & Abos','wallet'], ['Vorrat & Einkauf','basket'], ['Outfit-Assistent', 'shirt'], ['Bestellungstracker', 'basket']] },
   { title: 'Werkzeuge', links: [['Skills', 'wand']] },
 ] as const
 type Page = typeof navigation[number]['links'][number][0] | 'Einstellungen'
