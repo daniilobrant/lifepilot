@@ -460,6 +460,7 @@
             "totalCents"
           ],
           "properties": {
+            "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
             "groceryIntent": {
               "type": "string",
               "enum": [
@@ -1530,6 +1531,7 @@
                   "totalCents"
                 ],
                 "properties": {
+                  "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
                   "groceryIntent": {
                     "type": "string",
                     "enum": [

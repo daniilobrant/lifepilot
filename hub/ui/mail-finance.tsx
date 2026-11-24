@@ -1,3 +1,4 @@
+import {BulkApproval} from './bulk-approval.tsx'
 import {displayIdentity} from './presentation.tsx'
 import {DateInput} from './presentation.tsx'
 import {useEffect,useState,type FormEvent} from 'react'
@@ -49,6 +50,7 @@ export function MailFinance({api,refreshKey,onUpdate,compact,onOpen}:{
 }){
   const [entries,setEntries]=useState<MailFinanceProposal[]>([])
   const [error,setError]=useState('')
+  const [submitted,setSubmitted]=useState(false)
   useEffect(()=>{
     let active=true
     void api<MailFinanceProposal[]>('/inbox/finance').then(value=>{
@@ -61,12 +63,27 @@ export function MailFinance({api,refreshKey,onUpdate,compact,onOpen}:{
     setEntries(current=>current.filter(item=>item.id!==id))
     onUpdate()
   }
-  if(!entries.length && !error) return null
+  async function approveAll(items:readonly MailFinanceProposal[]){
+    const {accepted,failed}=await api<{accepted:string[],failed:{id:string,reason:string}[]}>('/inbox/finance/bulk',{
+      proposals:items.map(({id,...draft})=>({id,expected:JSON.stringify(draft)})),confirm:true,
+    },30000)
+    setSubmitted(true)
+    const resolved=new Set(accepted)
+    setEntries(current=>current.filter(item=>!resolved.has(item.id)))
+    if(accepted.length)onUpdate()
+    try{setEntries(await api<MailFinanceProposal[]>('/inbox/finance'))}
+    catch(cause){setError(cause instanceof Error?cause.message:'Finanzvorschläge konnten nicht aktualisiert werden.')}
+    return {approved:accepted.length,failures:failed.map(item=>({...item,title:items.find(entry=>entry.id===item.id)?.title??'Finanzvorschlag'}))}
+  }
+  if(!entries.length && !error && !submitted) return null
   return <details className="card settings mail-finance disclosure" aria-label="Finanzvorschläge aus Gmail">
     <summary><strong>Finanzvorschläge</strong><span className="count-badge">{entries.length} offen</span></summary>
     {error ? <p role="alert">{error}</p>:null}
     {compact && entries.length ? <><p>{entries.length===1?'Eine Buchung wartet auf deine Entscheidung.':entries.length+' Buchungen warten auf deine Entscheidung.'}</p>
       <button type="button" onClick={onOpen}>Vorschläge prüfen</button></>:null}
-    {!compact ? entries.map(proposal=><Proposal key={proposal.id+proposal.title} proposal={proposal} decide={decide}/>) : null}
+    {!compact ? <>
+      {entries.map(proposal=><Proposal key={proposal.id+proposal.title} proposal={proposal} decide={decide}/>)}
+      <BulkApproval items={entries} approve={approveAll} description="LifePilot übernimmt die angezeigten Einnahmen, Ausgaben und Abos mit den vorgeschlagenen Beträgen und Daten."/>
+    </> : null}
   </details>
 }

@@ -74,46 +74,6 @@ export function FinanceForm({draft,save,cancel,label='Speichern'}: {
   </form>
 }
 
-function FinanceSettings({view,save}:{view:FinanceOverview,save:(settings:object)=>Promise<unknown>}) {
-  const [error,setError]=useState('')
-  const [busy,setBusy]=useState(false)
-  const [notice,setNotice]=useState('')
-  const {settings}=view
-  async function submit(event:FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    if(busy) return
-    const form=new FormData(event.currentTarget)
-    setBusy(true);setError('');setNotice('')
-    try {
-      await save({location:String(form.get('location')??''),variablePlan:asCents(form.get('variablePlan')),
-        buffer:asCents(form.get('buffer')),target:asCents(form.get('target'))})
-      setNotice('Einstellungen gespeichert.')
-    } catch(reason){setError(errorText(reason))}
-    finally{setBusy(false)}
-  }
-  return <section className="card settings finance-settings">
-    <h2>Finanzeinstellungen</h2>
-    <form className="finance-form" onSubmit={submit}>
-      <fieldset disabled={busy}>
-        <label>Gewünschter Restbetrag am Monatsende (€)
-          <input name="target" inputMode="decimal" defaultValue={asAmount(settings.target)}/>
-        </label>
-        <details>
-          <summary>Weitere Finanzeinstellungen</summary>
-          <div className="finance-form-grid">
-            <label>Variable Ausgaben pro Monat (€)<input name="variablePlan" inputMode="decimal" defaultValue={asAmount(settings.variablePlan)}/></label>
-            <label>Monatlicher Puffer und Rücklagen (€)<input name="buffer" inputMode="decimal" defaultValue={asAmount(settings.buffer)}/></label>
-            <label>Stadt oder PLZ für Abo-Suche<input name="location" maxLength={100} defaultValue={settings.location}/></label>
-          </div>
-        </details>
-        <div className="actions"><button type="submit" className="primary">Einstellungen speichern</button></div>
-      </fieldset>
-    </form>
-    {error?<p role="alert">{error}</p>:null}
-    {notice?<p role="status">{notice}</p>:null}
-  </section>
-}
-
 function BudgetChart({view}:{view:FinanceOverview}) {
   const totals=new Map<string,number>()
   for(const entry of view.entries) {
@@ -212,7 +172,6 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
   const [editor,setEditor]=useState<Editor>()
   const [filter,setFilter]=useState('')
   const [review,setReview]=useState(false)
-  const [settingsOpen,setSettingsOpen]=useState(false)
   const [removing,setRemoving]=useState('')
   const url='/finance?'+new URLSearchParams({month})
   useEffect(()=>{
@@ -262,11 +221,7 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
       </select>
       <button type="button" aria-label="Nächster Monat" onClick={()=>selectMonth(shiftMonth(month,1))}>›</button>
     </div>
-      <button type="button" className="finance-settings-button" aria-expanded={settingsOpen} onClick={()=>setSettingsOpen(value=>!value)}>Einstellungen</button>
     </header>
-    {settingsOpen && isCurrent && view && <FinanceSettings key={view.settings.revision} view={view} save={async settings=>{
-      await api('/finance/settings',{settings,revision:view.settings.revision,confirm:true});setSettingsOpen(false);reload()
-    }}/>}
     {error?<p role="alert">{error}</p>:null}
     {!isCurrent||!view?<p role="status">Monatsübersicht wird geladen …</p>:<>
       <div className="finance-metrics">

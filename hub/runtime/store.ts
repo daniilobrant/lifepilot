@@ -5,8 +5,8 @@ import {CalendarConfirmations,type CalendarWindow,type ExternalConflicts} from '
 import {adoptSeries,prepareSeries} from './calendar-series.ts'
 import type {SeriesChange} from './calendar-series-types.ts'
 import { refreshLegacyGroceryCatalog } from './grocery.ts'
-import { adoptGrocery, groceryAnswer } from './grocery.ts'
-import { receiptTotal, type GroceryAnswer } from './grocery-types.ts'
+import { adoptGrocery, applyRecipeChoice, groceryAnswer } from './grocery.ts'
+import { receiptTotal, type GroceryAnswer, type RecipeChoice } from './grocery-types.ts'
 import { financeChatResult, financeDraft, prepareFinanceChange, sameRecurringFinance, saveFinance } from './finance.ts'
 import type { FinanceChange } from './finance-types.ts'
 import { mkdirSync, readFileSync } from 'node:fs'
@@ -198,6 +198,24 @@ export class Store {
       throw new Problem(409,'In diesem Vorgang gibt es kein speicherbares Rezept.')
     }
     return result
+  }
+
+  decideRecipe(id:string,turn:number,choice:RecipeChoice,channel:Channel) {
+    const row=this.run(id)
+    if(turn!==this.followups(id).length)throw new Problem(409,'Das Rezept wurde inzwischen geändert.')
+    const prior=this.groceryChange(id,turn)?.recipeDecision
+    if(prior&&this.permits(row))return prior
+    const answer=this.recipeFromRun(id)
+    const apply=()=>{
+      const outcome=applyRecipeChoice(this,answer,choice)
+      this.db.prepare('UPDATE grocery_chat SET data=? WHERE run_id=? AND turn=?')
+        .run(JSON.stringify({...answer,recipeDecision:outcome}),id,turn)
+      return outcome
+    }
+    if(row.state==='accepted')return this.transaction(apply)
+    const approval=this.db.prepare("SELECT id FROM approvals WHERE run_id=? AND action='adopt' AND state='pending'").get(id)
+    if(!approval)throw new Problem(409,'Die Rezeptfreigabe ist nicht mehr offen.')
+    return this.decide(id,String(approval.id),choice.cancelled?'deny':'approve',channel,false,undefined,undefined,apply).groceryChange?.recipeDecision
   }
 
   private financeChanges(runId:string,turn:number): FinanceChange[] {
@@ -460,7 +478,7 @@ export class Store {
   }
 
   decide(id: string, approvalId: string, decision: 'approve' | 'deny', channel: Channel, syncGoogle = false,
-    overlapToken?:unknown, external?:ExternalConflicts) {
+    overlapToken?:unknown, external?:ExternalConflicts, applyRecipe?:()=>unknown) {
     this.expire()
     return this.transaction(() => {
       const row = this.run(id)
@@ -479,7 +497,7 @@ export class Store {
         const windows=this.calendarWindows(id,approvalId)
         const calendarConfirmation=this.calendarConfirmations.check(confirmationKey,windows,overlapToken,external)
         if(calendarConfirmation)return {...this.present(row),calendarConfirmation}
-        this.adopt(row,channel,windows.length>0)
+        if(!applyRecipe)this.adopt(row,channel,windows.length>0)
       }
       if (syncGoogle) {
         const slots = this.db.prepare(`SELECT schedule.id, title, at, ends_at FROM schedule JOIN tasks ON tasks.id=schedule.task_id
@@ -489,6 +507,7 @@ export class Store {
         this.db.prepare('INSERT INTO google_appointment_sync (run_id,slot_id,title,starts_at,ends_at,event_id) VALUES (?,?,?,?,?,NULL)')
           .run(id, slot.id, slot.title, slot.at, slot.ends_at)
       }
+      if(applyRecipe)applyRecipe()
       const newState = decision === 'deny' ? 'denied' : approval.action === 'model' ? 'queued' : 'accepted'
       this.db.prepare('UPDATE approvals SET state=?, decided_at=?, decided_via=? WHERE id=?')
         .run(decision === 'deny' ? 'denied' : 'approved', at, channel, approvalId)
