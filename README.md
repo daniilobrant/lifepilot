@@ -40,7 +40,7 @@ Fehlen die Xcode Command Line Tools, installiere sie mit **xcode-select --instal
     ./bin/lifepilot --acceptance start
     ./bin/lifepilot --acceptance open
 
-Öffne **Projekte**, lege ein fiktives Projekt mit Unterpunkten an und setze für einen Punkt eine Frist. Die Frist erscheint in **Aufgaben & Fristen**. Probiere danach eine erfundene Frage als Pilot-Entwurf aus. Die Galerie verwendet keinen Modellaufruf. Das Testprofil trennt die Daten lokal und sperrt externe Modellaufrufe und den Cloud-Reiseguide. Lokale Planung und gespeicherte Reisevorschauen bleiben verfügbar. Einzelne andere Funktionen können weiterhin externe Dienste nutzen. Verwende im Testprofil ausschließlich fiktive Daten.
+Öffne **Projekte**, lege ein fiktives Projekt mit Unterpunkten an und setze für einen Punkt eine Frist. Die Frist erscheint in **Aufgaben & Fristen**. Probiere danach eine erfundene Frage als Pilot-Entwurf aus. Die Galerie verwendet keinen Modellaufruf. Das Testprofil trennt die Daten lokal. Der hier dokumentierte Audit-Stand sperrt externe Modellaufrufe und den Cloud-Reiseguide. Der getaggte Stand v1.0.0 aus dem Installationsbeispiel stammt von vor dieser Änderung. Lokale Planung und Reisevorschauen sind in beiden Ständen verfügbar. Einzelne andere Funktionen können weiterhin externe Dienste nutzen. Verwende im Testprofil ausschließlich fiktive Daten.
 
     ./bin/lifepilot --acceptance stop
 
