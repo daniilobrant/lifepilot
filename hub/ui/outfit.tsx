@@ -612,6 +612,11 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
   const [editor,setEditor] = useState<WardrobeItem | null>()
   const [packingItem,setPackingItem]=useState<string>()
   const [resaleItem,setResaleItem]=useState<WardrobeItem>()
+  const [wardrobeRemoval,setWardrobeRemoval] = useState<WardrobeItem>()
+  const wardrobeRemovalDialog=useRef<HTMLDialogElement>(null)
+  useEffect(()=>{
+    if(wardrobeRemoval && !wardrobeRemovalDialog.current?.open) wardrobeRemovalDialog.current?.showModal()
+  },[wardrobeRemoval])
   const [removing,setRemoving] = useState('')
   const [editLook,setEditLook] = useState<string>()
   const [lookFilter,setLookFilter] = useState('')
@@ -642,7 +647,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
       setChoice(result); setSaved(false); setQuery(current=>({...current,variant:next.variant}))
     }).finally(()=>setGenerating(false))
   }
-  function remove(target: 'look', item: string) {
+  function remove(target: 'item' | 'look', item: string) {
     void perform(async () => {
       await api('/outfits/remove',{target,item,confirm:true})
       setRemoving('')
@@ -665,6 +670,8 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
             await api('/outfits/resale',{item:item.id,action:'sorted',confirm:true})
             await reload();setNotice('Teil aussortiert. Im Bereich Verkaufen kannst du es wiederherstellen.')
           })}>Aussortieren</button>
+          <button type="button" className="wardrobe-remove-action" disabled={busy || Boolean(item.orderState)}
+            onClick={()=>setWardrobeRemoval(item)}>Entfernen</button>
         </WardrobeMenu>
       </div>
     ))}</div>
@@ -770,6 +777,18 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
           </section> : null
         })}
       </> : null}
+      {wardrobeRemoval ? <dialog ref={wardrobeRemovalDialog} className="task-dialog card wardrobe-remove-dialog"
+        aria-labelledby="wardrobe-remove-title" onCancel={event=>{event.preventDefault();setWardrobeRemoval(undefined)}}>
+        <h2 id="wardrobe-remove-title">Kleidungsstück wirklich entfernen?</h2>
+        <p>„{wardrobeRemoval.name}“ wird dauerhaft aus dem Kleiderschrank gelöscht.</p>
+        <div className="outfit-actions">
+          <button type="button" autoFocus onClick={()=>setWardrobeRemoval(undefined)}>Nein</button>
+          <button type="button" className="wardrobe-remove-action" onClick={()=>{
+            setWardrobeRemoval(undefined)
+            remove('item',wardrobeRemoval.id)
+          }}>Ja, entfernen</button>
+        </div>
+      </dialog> : null}
       {overview && tab==='Einstellungen' ? <FitEditor api={api} overview={overview} imageVersion={imageVersion} reload={reload} /> : null}
       {overview && tab==='Meine Looks' ? <>
         <details className="outfit-saved"><summary>Eigenen Look als Foto speichern</summary><LookPhotos reload={reload}/></details>

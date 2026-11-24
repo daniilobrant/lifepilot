@@ -2,6 +2,13 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.1 · 24. November 2026
+
+- Der Kleiderschrank gruppiert aktive Teile nach Kategorien und zeigt leere Abschnitte an.
+- „Teile hinzufügen“ bündelt Foto, Produktlink und Namenssuche. Ausgewählte Suchtreffer können mit Produktbild gespeichert werden.
+- Aktionen am Kleidungsstück speichern Packlisten- und Verkaufsstatus. Für dauerhaftes Entfernen fragt LifePilot vorher nach.
+- Die Werkzeuge im Pilot-Chat haben getrennte Klickflächen. Spracheingabe ist auch zum Vorbereiten der nächsten Nachricht verfügbar.
+
 ## v1.0 · 24. November 2026
 
 - Google-Kalender-Schreibzugriff wird an das bestätigte Google-Konto gebunden. Private Starts prüfen die Release-Signatur und das Dateimanifest.
