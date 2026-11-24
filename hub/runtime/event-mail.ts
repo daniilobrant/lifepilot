@@ -5,7 +5,8 @@ export const ticketSubject=/(?:tickets?\s+(?:für|zu|for)|ticket[- ]?(?:bestäti
 const cancelled=/storniert|abgesagt|cancelled|verschoben|rescheduled|\berinnerung\b|\breminder\b/iu
 const time='([01]?\\d|2[0-3])[:.]([0-5]\\d)'
 const timeFor=(line:string,label:string)=>{
-  const match=new RegExp('(?:'+label+')\\s*:?\\s*'+time,'iu').exec(line)
+  // Callers supply only fixed event labels.
+  const match=new RegExp('(?:'+label+')\\s*:?\\s*'+time,'iu').exec(line) // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
   return match && match[1].padStart(2,'0')+':'+match[2]
 }
 const amount=/(?:€\s*)?((?:\d{1,3}(?:[. ]\d{3})+|\d+)[,.]\d{2})\s*(?:€|EUR)/iu

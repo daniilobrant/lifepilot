@@ -366,8 +366,8 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
   </div>
 }
 
-export function TravelPlanner({ api, plan, handoff, initialId, onSelect }: {
-  api:Api, plan?:TripChatPlan,handoff?:string, initialId?:string, onSelect:(id:string|undefined)=>void,
+export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSelect }: {
+  api:Api, plan?:TripChatPlan,handoff?:string, initialId?:string, cloudGuide:boolean, onSelect:(id:string|undefined)=>void,
 }) {
   const [startId]=useState(initialId)
   const [view,setView]=useState<'list'|'new'|'windows'|'trip'|'preview'>(plan?.intent==='windows'?'windows':plan?.intent==='draft'?'new':initialId?'trip':'list')
@@ -482,7 +482,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, onSelect }: {
         showPreview(await api<TripPreview>('/trips/preview',{draft,confirm:true}))
       })} />:null}
     {view==='preview' && preview ? <>
-      {!preview.plan.guide ? <section className="card travel-guide-status" aria-live="polite">
+      {cloudGuide && !preview.plan.guide ? <section className="card travel-guide-status" aria-live="polite">
         {busy || preview.generating ? <div className="loading" role="status"><span>Reiseguide wird erstellt …</span><progress aria-label="Reiseguide wird erstellt" /></div> : <>
           <h2>Reisevorschau für {preview.plan.draft.destination}</h2>
           <p>{showDay(preview.plan.draft.start)} – {showDay(preview.plan.draft.end)} · ab {preview.plan.draft.departure} · {preview.plan.draft.people} {preview.plan.draft.people===1?'Person':'Personen'}</p>

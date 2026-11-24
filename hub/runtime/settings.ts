@@ -18,6 +18,7 @@ export const fixtures = JSON.parse(readFileSync(new URL('../templates/acceptance
 export const version = '0.25.16'
 export const chatMode: ChatMode = acceptance ? 'synthetic' :
   hasPrivateChatRelease(root, join(data, 'private-chat-release.json'), version) ? 'private' : 'disabled'
+export const cloudModel = chatMode === 'private'
 export const schemaVersion = 36
 export const MAX_INPUT = 6000
 export const APPROVAL_MS = 30 * 60 * 1000
