@@ -5,7 +5,7 @@ import {CalendarConfirmations,type CalendarWindow,type ExternalConflicts} from '
 import {adoptSeries,prepareSeries} from './calendar-series.ts'
 import type {SeriesChange} from './calendar-series-types.ts'
 import { refreshLegacyGroceryCatalog } from './grocery.ts'
-import { adoptGrocery, applyRecipeChoice, groceryAnswer } from './grocery.ts'
+import { adoptGrocery, applyRecipeChoice, groceryAnswer, normalizeRecipeAnswer } from './grocery.ts'
 import { receiptTotal, type GroceryAnswer, type RecipeChoice } from './grocery-types.ts'
 import { financeChatResult, financeDraft, prepareFinanceChange, sameRecurringFinance, saveFinance } from './finance.ts'
 import type { FinanceChange } from './finance-types.ts'
@@ -197,7 +197,7 @@ export class Store {
     if(!this.permits(row)||!['review','accepted'].includes(row.state)||!result?.ingredients?.length||!result.steps.length) {
       throw new Problem(409,'In diesem Vorgang gibt es kein speicherbares Rezept.')
     }
-    return result
+    return normalizeRecipeAnswer(result)
   }
 
   decideRecipe(id:string,turn:number,choice:RecipeChoice,channel:Channel) {
@@ -245,7 +245,8 @@ export class Store {
     const googleSync = synced ? synced.pending_op ? 'pending' as const : synced.removed ? 'removed' as const :
       synced.event_id ? 'saved' as const : 'pending' as const : null
     const { memory_snapshot, context_snapshot, conversation_context: _conversation, result, metrics, source_note, idempotency_key: _key, ...view } = row
-    return { ...view, googleSync, followups, seriesChange:this.seriesChange(row.id,followups.length),projectChange:this.projectChange(row.id,followups.length),turn: followups.length, financeChange:financeChanges[0], financeChanges, groceryChange:this.groceryChange(row.id,followups.length), result: result ? JSON.parse(result) as Result : null,
+    const grocery=this.groceryChange(row.id,followups.length)
+    return { ...view, googleSync, followups, seriesChange:this.seriesChange(row.id,followups.length),projectChange:this.projectChange(row.id,followups.length),turn: followups.length, financeChange:financeChanges[0], financeChanges, groceryChange:grocery?normalizeRecipeAnswer(grocery):undefined, result: result ? JSON.parse(result) as Result : null,
       sourceName: source_note ? (JSON.parse(source_note) as SourceNote).name : null,
       context: JSON.parse(context_snapshot) as TaskContext[], memory: JSON.parse(memory_snapshot) as Memory[], metrics: metrics ? JSON.parse(metrics) as ModelMetrics : null, approvals }
   }

@@ -82,7 +82,7 @@ test('One confirmed recipe saves the recipe, requested stock and missing ingredi
     const plan:GroceryPlan={groceryIntent:'recipe',title:'Mie-Nudeln',totalCents:null,steps:['Alles in der Pfanne braten.'],
       items:[{name:'Karotte',quantity:'1 Stück',status:null},{name:'Knoblauch',quantity:'2 Zehen',status:null},
         {name:'Mie-Nudeln',quantity:'200 g',status:null}],
-      onHand:[{name:'Möhren',quantity:null,save:true},{name:'Knoblauch',quantity:null,save:false}]}
+      onHand:[{name:'Möhren',quantity:'1 Stück',save:true},{name:'Knoblauch',quantity:'2 Zehen',save:false}]}
     store.finish(run.id,{tasks:[],questions:[],skill:'grocery',skillData:plan},null,{wallMs:0,model:null,usage:null,cost:null})
     const proposal=store.present(store.run(run.id))
     assert.deepEqual(proposal.groceryChange?.available,['Karotte','Knoblauch'])
