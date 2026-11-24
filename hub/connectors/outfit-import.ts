@@ -282,6 +282,11 @@ async function boundedDownload(url: URL, max: number, type: RegExp, partial = fa
   } finally { remoteJobs-- }
 }
 
+export async function publicRecipeHtml(address:string){
+  const result=await boundedDownload(productAddress(address),3*1024*1024,/^text\/html\b/iu,false,true)
+  return {html:result.bytes.toString('utf8'),url:result.address}
+}
+
 export async function inspectProduct(raw: unknown, color?:string,useCurl=false) {
   const url = productAddress(raw)
   if (url.href.length > 500) throw new Problem(400,'Der Produktlink ist zu lang.')
