@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.4 · 24. November 2026
+
+- Die Kleidungsstücksuche übernimmt Farbe, Marke, Passform und Material aus Produktseiten und Suchtext. Bildfarben dienen als letzte Rückfallebene.
+- Das einheitliche Neun-Felder-Formular verwendet passende Profilgrößen und erlaubt Änderungen an allen Vorschlägen.
+- „Einsortieren“ ist direkt im Menü aussortierter Kleidungsstücke verfügbar.
+
 ## v1.0.3 · 24. November 2026
 
 - Die Urlaubsgarderobe öffnet sich beim Packlisten-Klick mit dem ausgewählten Teil. Bei mehreren Reisen wählst du die gewünschte Packliste.

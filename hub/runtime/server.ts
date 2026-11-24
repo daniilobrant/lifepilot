@@ -28,7 +28,7 @@ import { travelWindows } from './trip-windows.ts'
 import { tripCalendarTitle } from './trip-types.ts'
 import {searchTripPlaces} from '../connectors/trip-places.ts'
 import { fetchOutfitWeather, outfitLocation } from '../connectors/outfit-weather.ts'
-import { outfitGarment } from './outfit-fields.ts'
+import { outfitGarment, productWardrobeFields, textProductColor } from './outfit-fields.ts'
 import { matchProductPhoto } from './outfit-catalog.ts'
 import { analyzeOutfitPhoto, prepareFullOutfitPhoto } from '../connectors/outfit-vision.ts'
 import { OutfitStudio, outfitOverview, saveWardrobe, saveStyle, attachOutfitPhoto, outfitPhoto, removeOutfitData, lookPhoto, saveLookPhoto, removeLookPhoto, assignLookPieces } from './outfits.ts'
@@ -912,19 +912,32 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       }
       const ranked=(pictures.status==='fulfilled'?pictures.value:[]).map(row=>({...row,score:score(row.name)}))
         .filter(row=>row.score>0).sort((a,b)=>b.score-a.score)
-      for (const picture of ranked.slice(0,8)) {
+      const pictureMatches=ranked.slice(0,8)
+      const pages=web.status==='fulfilled'?web.value.slice(0,6):[]
+      const addresses=[...new Set([...pictureMatches.map(picture=>picture.source),...pages])]
+      const products=new Map(await Promise.all(addresses.map(async address=>[address,
+        await inspectProduct(address,undefined,true).catch(()=>undefined)] as const)))
+      for (const picture of pictureMatches) {
         if (Date.now()>=deadline || candidates.length>=3) break
-        const image=await prepareProductImage([picture.image],deadline,true)
+        const product=products.get(picture.source)
+        const matching=product?.name && score(product.name) ? product : undefined
+        const title=matching?.name || picture.name
+        const image=await prepareProductImage([...(matching?.images ?? []),picture.image],deadline,true)
         if (!image) continue
-        candidates.push({name:picture.name,source:picture.source,draft:image.draft,photoToken:stageOutfitPhoto(image.photo,'web')})
+        const metadata:Partial<WardrobeDraft>={...matching?.draft}
+        if (matching && !textProductColor(matching.name) && !metadata.color) metadata.color=textProductColor(picture.name)
+        candidates.push({name:title,source:picture.source,colors:matching?.colors,sizes:matching?.sizes,
+          draft:productWardrobeFields(title,matching?.description,text,metadata,image.draft.color),
+          photoToken:stageOutfitPhoto(image.photo,'web')})
       }
-      for (const address of web.status==='fulfilled'?web.value:[]) {
+      for (const address of pages) {
         if (Date.now()>=deadline || candidates.length>=3) break
         if (candidates.some(candidate=>candidate.source===address)) continue
-        const product = await inspectProduct(address,undefined,true).catch(()=>undefined)
-        if (!product?.structured || !product.name || !score(product.name)) continue
+        const product = products.get(address)
+        if (!product || !product.name || !score(product.name)) continue
         const image = await prepareProductImage(product.images,deadline,true)
-        if (image) candidates.push({name:product.name,source:product.source,draft:product.draft,
+        if (image) candidates.push({name:product.name,source:product.source,colors:product.colors,sizes:product.sizes,
+          draft:productWardrobeFields(product.name,product.description,text,product.draft,image.draft.color),
           photoToken:stageOutfitPhoto(image.photo,'web')})
       }
       return reply(res,200,{candidates})
@@ -934,11 +947,11 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       confirmLocalChange(confirm)
       if (prepareImage !== undefined && typeof prepareImage !== 'boolean') throw new Problem(400,'Ungültige Bildauswahl.')
       const product = await inspectProduct(address,color===undefined ? undefined : field(color,100))
-      let note = product.name ? '' : 'Die Produktseite liefert keine Angaben. Ergänze den Namen unter Produktdetails.'
+      let note = product.name ? '' : 'Die Produktseite liefert keine Angaben. Ergänze den Namen im Formular.'
       const waitingForColor = product.colors.length>1 && !('color' in product.draft && product.draft.color)
       if (prepareImage && !waitingForColor && product.name) {
         const image = await prepareProductImage(product.images,Date.now()+17_000,false,true)
-        if (image) return reply(res,200,{...product,draft:{...image.draft,...product.draft},
+        if (image) return reply(res,200,{...product,draft:productWardrobeFields(product.name,product.description,'',product.draft,image.draft.color),
           photoToken:stageOutfitPhoto(image.photo,'web'),note})
         note = 'Für diese Auswahl ließ sich kein Produktbild laden.'
       }
