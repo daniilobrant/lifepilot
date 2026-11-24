@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'
 import { constants, lstatSync, readFileSync, realpathSync } from 'node:fs'
 import { openSync, closeSync, fstatSync } from 'node:fs'
@@ -38,20 +37,5 @@ export function hasPrivateChatRelease(root: string, marker: string, version: str
     }
     return ['hub/runtime/server.ts', 'hub/runtime/store.ts', 'hub/adapters/codex.ts',
       'agents/lifepilot/skills/alltag/SKILL.md', 'package-lock.json'].every(path => paths.has(path))
-  } catch { return false }
-}
-
-/** The verifier and public key are provisioned outside the release by an administrator. */
-export function hasVerifiedPrivateRelease(root: string) {
-  const trust = '/Library/Application Support/LifePilot'
-  const verifier = join(trust, 'verify-release')
-  const key = join(trust, 'release-public.pem')
-  try {
-    for (const [path, directory] of [[trust, true], [verifier, false], [key, false]] as const) {
-      const file = lstatSync(path)
-      if (realpathSync(path) !== path || file.uid !== 0 || (file.mode & 0o022) !== 0 ||
-          !(directory ? file.isDirectory() : file.isFile())) return false
-    }
-    return spawnSync(verifier, [root, key, '--require-admin-owned'], { stdio: 'ignore', timeout: 60_000, env: { PATH: '/usr/bin:/bin' } }).status === 0
   } catch { return false }
 }
