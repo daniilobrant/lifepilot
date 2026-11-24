@@ -1,5 +1,6 @@
 import {mergeTripIntake} from '../runtime/trip-intake.ts'
-import { spawn } from 'node:child_process'
+import { spawn, execFile } from 'node:child_process'
+import { promisify } from 'node:util'
 import { mkdtemp, open, readFile, writeFile, rm } from 'node:fs/promises'
 import { constants } from 'node:fs'
 import { join } from 'node:path'
@@ -9,7 +10,9 @@ import { cloudModel, MODEL_MS } from '../runtime/settings.ts'
 import { MAX_CHAT_INPUT, MAX_CHAT_APPROVAL_BYTES, MAX_MODEL_PAYLOAD_BYTES, splitLongInput, modelDialogue, dialogueOrderInstruction, type ModelPayload } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
 
-const codex = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app/Contents/MacOS/codex'
+const codexBundle = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app'
+const codex = codexBundle + '/Contents/MacOS/codex'
+const execute = promisify(execFile)
 const skill = await readFile(new URL('../../agents/lifepilot/skills/alltag/SKILL.md', import.meta.url), 'utf8')
 const travelSkill = await readFile(new URL('../../agents/lifepilot/skills/urlaubsplaner/SKILL.md', import.meta.url), 'utf8')
 const projectSkill=await readFile(new URL('../../agents/lifepilot/skills/projektplaner_skill/SKILL.md',import.meta.url),'utf8')
@@ -143,7 +146,7 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   return runStructuredCodex(prompt+'\nBeantworte den Outfit-Auftrag einzeln mit passenden Outfit-Feldern und ohne Zeitplanung.',contract,signal,validate)
 }
 
-export async function runStructuredCodex<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value:unknown)=>T) {
+export async function runStructuredCodex<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value:unknown)=>T, image?: { photo: Buffer, format: 'png' | 'jpeg' }) {
   const started = performance.now()
   const metrics: ModelMetrics = { wallMs: 0, model: null, usage: null, cost: null }
   if (signal.aborted) return { result: null, error: 'Vorgang abgebrochen.', metrics }
@@ -157,14 +160,26 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
     const contractPath = join(directory, 'response-schema.json')
     await writeFile(contractPath, JSON.stringify(contract), { mode: 0o600 })
     if (signal.aborted) throw new Error('Vorgang abgebrochen.')
+    const imagePath = image ? join(directory, 'attachment.' + image.format) : undefined
+    if (image && imagePath) {
+      if (image.photo.length > 4 * 1024 * 1024) throw new Error('Das aufbereitete Bild ist zu groß.')
+      await writeFile(imagePath, image.photo, { mode: 0o600 })
+    }
     const args = [
       '--disable', 'shell_tool', '--disable', 'unified_exec',
       '--disable', 'hooks', '--disable', 'apps', '--disable', 'multi_agent_v2', '--disable', 'skill_mcp_dependency_install',
       '-c', 'web_search="disabled"', '-c', 'model_provider="openai"', '-c', 'project_doc_max_bytes=0',
       '-a', 'never', 'exec', '--ignore-user-config', '--ignore-rules', '--sandbox', 'read-only',
       '--skip-git-repo-check', '--ephemeral', '--json', '--color', 'never', '--cd', directory,
-      '--output-schema', contractPath, '--output-last-message', resultPath, '-',
+      '--output-schema', contractPath, '--output-last-message', resultPath,
+      ...(imagePath ? ['--image', imagePath] : []), '--', '-',
     ]
+    try {
+      await execute('/usr/bin/codesign', ['--verify', '--strict',
+        '-R=anchor apple generic and identifier "codex" and certificate leaf[subject.OU] = "2DC432GLL2"', codexBundle],
+      { timeout:8000, maxBuffer:8192, signal })
+    } catch { throw new Error('Die Signatur der installierten Codex CLI konnte nicht bestätigt werden.') }
+    if (signal.aborted) throw new Error('Vorgang abgebrochen.')
     const command = spawn(codex, args, {
       cwd: directory, env: { HOME: process.env.HOME, PATH: '/usr/bin:/bin', TMPDIR: directory },
       detached: true, stdio: ['pipe', 'pipe', 'pipe'],

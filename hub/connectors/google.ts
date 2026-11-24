@@ -9,7 +9,7 @@ import { isDate } from '../runtime/values.ts'
 
 export const googleScopes = {
   calendar: 'https://www.googleapis.com/auth/calendar.events.owned.readonly',
-  'calendar-write':'https://www.googleapis.com/auth/calendar.events.owned',
+  'calendar-write':'https://www.googleapis.com/auth/calendar.events.owned openid email',
   gmail: 'https://www.googleapis.com/auth/gmail.metadata',
   'gmail-content': 'https://www.googleapis.com/auth/gmail.readonly',
   'calendar-test': 'https://www.googleapis.com/auth/calendar.app.created',
@@ -30,10 +30,18 @@ const mailQueries: Record<MailCategory, string> = {
 }
 const validMessageId = (id: unknown): id is string => typeof id === 'string' && /^[a-zA-Z0-9_-]{1,128}$/.test(id)
 type Client = { client_id: string, client_secret: string }
-type Grant = { token: string, refresh: string, expiresAt: number, scope: string }
-type OAuthAttempt = { service: GoogleService, verifier: string, expiresAt: number, epoch: number }
+type GoogleIdentity = { subject: string, email: string }
+type Grant = { token: string, refresh: string, expiresAt: number, scope: string, identity?: GoogleIdentity }
+type OAuthAttempt = { service: GoogleService, verifier: string, expiresAt: number, epoch: number, expectedEmail?: string }
 
 const tokenEndpoint = 'https://oauth2.googleapis.com/token'
+const identityEndpoint = 'https://openidconnect.googleapis.com/v1/userinfo'
+const accountEmail = (value: unknown) => typeof value === 'string' && value.length <= 320 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/u.test(value.trim())
+  ? value.trim().toLowerCase() : undefined
+function canonicalScopes(scope: string) {
+  return [...new Set(scope.trim().split(/\s+/u).map(value =>
+    value === 'https://www.googleapis.com/auth/userinfo.email' ? 'email' : value))].sort().join(' ')
+}
 const calendarEndpoint = 'https://www.googleapis.com/calendar/v3/calendars/primary/events'
 const gmailEndpoint = 'https://gmail.googleapis.com/gmail/v1/users/me/messages'
 const maxResponse = 1_048_576
@@ -93,11 +101,21 @@ export class GoogleConnector {
     return this.read<Client>(service, 'client') ?? (service === 'gmail-content' ? this.read<Client>('gmail', 'client') : service==='calendar-write'?this.read<Client>('calendar','client'):undefined)
   }
 
+  private calendarWriteGrant(): (Grant & { identity: GoogleIdentity }) | undefined {
+    let grant: Grant | undefined
+    try { grant = this.read<Grant>('calendar-write', 'grant') }
+    catch { return undefined }
+    if (grant?.scope === googleScopes['calendar-write'] && grant.identity &&
+        credential(grant.identity.subject, 255) && accountEmail(grant.identity.email) === grant.identity.email) {
+      return { ...grant, identity: grant.identity }
+    }
+  }
+
   status(): GoogleStatus[] {
     return (Object.keys(googleScopes) as GoogleService[]).map(service => ({
       service, configured: existsSync(this.path(service, 'client')) ||
         (service === 'gmail-content' && existsSync(this.path('gmail', 'client'))) ||
-        (service==='calendar-write'&&existsSync(this.path('calendar','client'))), connected: existsSync(this.path(service, 'grant')),
+        (service==='calendar-write'&&existsSync(this.path('calendar','client'))), connected: service === 'calendar-write' ? Boolean(this.calendarWriteGrant()) : existsSync(this.path(service, 'grant')),
     }))
   }
 
@@ -126,20 +144,23 @@ export class GoogleConnector {
   begin(service: GoogleService, account?:string|null) {
     const client = this.client(service)
     if (!client) throw new Problem(409, 'Hinterlege zuerst die OAuth-Datei für diesen Dienst.')
-    if (existsSync(this.path(service, 'grant'))) throw new Problem(409, 'Trenne zuerst die vorhandene Verbindung.')
+    const expectedEmail = service === 'calendar-write' ? accountEmail(account) : undefined
+    if (service === 'calendar-write' && !expectedEmail) throw new Problem(409, 'Verbinde zuerst das Gmail-Hauptkonto.')
+    const connected = service === 'calendar-write' ? this.calendarWriteGrant() : existsSync(this.path(service, 'grant'))
+    if (connected) throw new Problem(409, 'Trenne zuerst die vorhandene Verbindung.')
     for (const [state, attempt] of this.attempts) {
       if (attempt.expiresAt <= Date.now() || attempt.service === service) this.attempts.delete(state)
     }
     const verifier = nonce()
     const state = nonce()
-    this.attempts.set(state, { service, verifier, expiresAt: Date.now() + 5 * 60_000, epoch: ++this.epochs[service] })
+    this.attempts.set(state, { service, verifier, expiresAt: Date.now() + 5 * 60_000, epoch: ++this.epochs[service], expectedEmail })
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth')
     url.search = new URLSearchParams({
       client_id: client.client_id, redirect_uri: this.redirectUri, response_type: 'code', scope: googleScopes[service],
       state, code_challenge_method: 'S256', code_challenge: createHash('sha256').update(verifier).digest('base64url'),
       access_type: 'offline', prompt: 'consent select_account', include_granted_scopes: 'false',
     }).toString()
-    if(service==='calendar-write'&&account)url.searchParams.set('login_hint',account)
+    if (expectedEmail) url.searchParams.set('login_hint', expectedEmail)
     return { url: url.href }
   }
 
@@ -193,13 +214,23 @@ export class GoogleConnector {
     })
     const scope = response.scope ?? existing?.scope
     const refresh = response.refresh_token ?? existing?.refresh
-    if (scope !== googleScopes[service] || !credential(response.access_token, 4096) ||
+    if (typeof scope !== 'string' || canonicalScopes(scope) !== canonicalScopes(googleScopes[service]) || !credential(response.access_token, 4096) ||
         !credential(refresh, 4096) || typeof response.expires_in !== 'number' ||
         !Number.isSafeInteger(response.expires_in) || response.expires_in <= 0 || response.expires_in > 86400 ||
         typeof response.token_type !== 'string' || response.token_type.toLowerCase() !== 'bearer') {
-      throw new Problem(409, 'Google hat die erwartete einzelne Leseberechtigung nicht bestätigt.')
+      throw new Problem(409, 'Google hat die erwarteten Berechtigungen nicht bestätigt.')
     }
     return { token: response.access_token, refresh, scope: googleScopes[service], expiresAt: Date.now() + response.expires_in * 1000 }
+  }
+
+  private async verifyCalendarIdentity(grant: Grant, expectedEmail: string | undefined, expectedSubject?: string) {
+    const identity = await this.json(identityEndpoint, { headers: { Authorization: 'Bearer ' + grant.token } })
+    const email = accountEmail(identity.email)
+    if (!expectedEmail || email !== expectedEmail || identity.email_verified !== true ||
+        !credential(identity.sub, 255) || (expectedSubject !== undefined && identity.sub !== expectedSubject)) {
+      throw new Problem(403, 'Der Google-Schreibzugriff muss zum verifizierten Gmail-Hauptkonto gehören.')
+    }
+    grant.identity = { email, subject: identity.sub }
   }
 
   async complete(params: URLSearchParams) {
@@ -219,6 +250,10 @@ export class GoogleConnector {
       grant_type: 'authorization_code', code: codes[0], code_verifier: attempt.verifier, redirect_uri: this.redirectUri,
     })
     this.ensureEpoch(attempt.service, attempt.epoch)
+    if (attempt.service === 'calendar-write') {
+      await this.verifyCalendarIdentity(grant, attempt.expectedEmail)
+      this.ensureEpoch(attempt.service, attempt.epoch)
+    }
     this.save(attempt.service, 'grant', grant)
     return true
   }
@@ -228,15 +263,19 @@ export class GoogleConnector {
   }
 
   private async access(service: GoogleService) {
-    const grant = this.read<Grant>(service, 'grant')
+    const grant = service === 'calendar-write' ? this.calendarWriteGrant() : this.read<Grant>(service, 'grant')
     if (!grant || grant.scope !== googleScopes[service]) throw new Problem(409, 'Verbinde diesen Google-Dienst zuerst.')
     if (grant.expiresAt > Date.now() + 30_000) return grant.token
     const active = this.refreshing.get(service)
     if (active) return active
     const epoch = this.epochs[service]
     const pending = this.exchange(service, { grant_type: 'refresh_token', refresh_token: grant.refresh }, grant)
-      .then(updated => {
+      .then(async updated => {
         this.ensureEpoch(service, epoch)
+        if (service === 'calendar-write' && grant.identity) {
+          await this.verifyCalendarIdentity(updated, grant.identity.email, grant.identity.subject)
+          this.ensureEpoch(service, epoch)
+        }
         this.save(service, 'grant', updated)
         return updated.token
       }).finally(() => { if (this.refreshing.get(service) === pending) this.refreshing.delete(service) })
@@ -393,6 +432,9 @@ export class GoogleConnector {
 
   async changeAppointment(calendar: string, eventId: string, previous: { title: string, start: string, end: string },
     next: { title: string, start: string, end: string } | null, service:'calendar-test'|'calendar-write'='calendar-test') {
+    if (service === 'calendar-write' && (!accountEmail(calendar) || this.calendarWriteGrant()?.identity.email !== accountEmail(calendar))) {
+      throw new Problem(403, 'Der Kalender gehört nicht zum verifizierten Google-Schreibkonto.')
+    }
     const request = await this.writeRequest(service)
     const collection='https://www.googleapis.com/calendar/v3/calendars/'+encodeURIComponent(calendar)+'/events'
     if(service==='calendar-write'){

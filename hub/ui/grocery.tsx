@@ -1,3 +1,4 @@
+import { confirmImageTransfer } from './image-consent.ts'
 import {DateInput} from './presentation.tsx'
 import { GroceryIcon } from './grocery-icon.tsx'
 import { canonicalGroceryName, groceryCategory, grocerySuggestions } from '../runtime/grocery-catalog.ts'
@@ -13,11 +14,11 @@ const formats='image/jpeg,image/png,image/webp,image/heic,.heic,.heif'
 const empty:GroceryOverview={stock:[],shopping:[],recent:[]}
 const euro=new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'})
 
-export async function scanGroceryFile(file:File, receipt=false, item=false):Promise<PhotoScan> {
+export async function scanGroceryFile(file:File, receipt=false, item=false,codex=false):Promise<PhotoScan> {
   if(file.size>16*1024*1024) throw Error('Das Foto darf höchstens 16 MB groß sein.')
   const response=await fetch('/api/grocery/scan'+(receipt?'?kind=receipt':item?'?kind=item':''),{
-    method:'POST',headers:{'Content-Type':'application/octet-stream','X-LifePilot-Confirm':'image'},
-    body:file,signal:AbortSignal.timeout(62_000),
+    method:'POST',headers:{'Content-Type':'application/octet-stream','X-LifePilot-Confirm':codex?'codex-image':'image'},
+    body:file,signal:AbortSignal.timeout(codex?105_000:62_000),
   })
   const data=await response.json()
   if(!response.ok) throw Error(data.error)
@@ -77,7 +78,7 @@ function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:Gro
   </form>
 }
 
-function ScanForm({busy,commit,initialKind}:{busy:boolean,commit:(value:object)=>Promise<void>,initialKind:'stock'|'receipt'}) {
+function ScanForm({busy,commit,initialKind,cloudImages}:{busy:boolean,commit:(value:object)=>Promise<void>,initialKind:'stock'|'receipt',cloudImages:boolean}) {
   const kind=initialKind
   const [scanning,setScanning]=useState(false)
   const [rows,setRows]=useState<(GroceryInput&{selected:boolean})[]>([])
@@ -92,9 +93,10 @@ function ScanForm({busy,commit,initialKind}:{busy:boolean,commit:(value:object)=
     setScanning(true);setRows([]);setNotice('');setAmount(null);setScanned(false);setReceiptDay(dateInBerlin());setOperation('')
     const found=new Map<string,GroceryInput>()
     let failed=0
+    const codex=cloudImages && confirmImageTransfer(files.length)
     for(const file of files) {
       try {
-        const scan=await scanGroceryFile(file,kind==='receipt')
+        const scan=await scanGroceryFile(file,kind==='receipt',false,codex)
         for(const row of scan.rows) found.set(row.name.toLocaleLowerCase('de-DE'),row)
         if(kind==='receipt'){
           setAmount(scan.totalCents);setReceiptDay(scan.date??dateInBerlin())
@@ -110,7 +112,7 @@ function ScanForm({busy,commit,initialKind}:{busy:boolean,commit:(value:object)=
   return <section className="grocery-scan">
     <label>{kind==='stock'?'Vorratsfotos auswählen':'Kassenbon auswählen'} <input type="file" accept={formats} multiple={kind==='stock'}
       disabled={scanning||busy} onChange={event=>void read(Array.from(event.currentTarget.files??[]))}/></label>
-    {scanning&&<div role="status">Foto wird auf dem Mac geprüft … <progress aria-label="Fotoanalyse"/></div>}
+    {scanning&&<div role="status">Foto wird geprüft … <progress aria-label="Fotoanalyse"/></div>}
     {notice&&<p role="status">{notice}</p>}
     {(rows.length>0||scanned)&&<>
       <ul className="grocery-scanned">{rows.map((row,index)=><li key={index}>
@@ -208,7 +210,7 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey}:{api:Api,onAsk:()=>v
   </section>
 }
 
-export function GroceryPanel({api,refreshKey,onAsk,recipeVersion}:{api:Api,refreshKey:string,onAsk:()=>void,recipeVersion:number}) {
+export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{api:Api,refreshKey:string,onAsk:()=>void,recipeVersion:number,cloudImages:boolean}) {
   const [tab,setTab]=useState<GroceryTab>('Einkaufsliste')
   const [view,setView]=useState(empty)
   const [loading,setLoading]=useState(true)
@@ -252,7 +254,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion}:{api:Api,refre
   async function photo(file:File) {
     setPhotowait(true);setError('');setPhotoRows([])
     try {
-      const result=await scanGroceryFile(file,false,true)
+      const result=await scanGroceryFile(file,false,true,cloudImages && confirmImageTransfer())
       if(result.rows.length>1)setPhotoRows(result.rows)
       else {
         beginEdit(result.rows[0]??{name:'',expiry:result.expiry})
@@ -304,7 +306,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion}:{api:Api,refre
         <small>{view.shopping.length-cart.length} offen{cart.length?' · '+cart.length+' im Wagen':''}</small>
 
       </div>
-        {showScan&&<ScanForm busy={busy} commit={act} initialKind="receipt"/>}
+        {showScan&&<ScanForm cloudImages={cloudImages} busy={busy} commit={act} initialKind="receipt"/>}
         <form className="grocery-quick" onSubmit={event=>{
           event.preventDefault()
           if(!quick.trim()||busy)return
@@ -379,7 +381,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion}:{api:Api,refre
         <div className="grocery-stock-head"><small>{view.stock.filter(item=>item.status!=='empty').length} vorrätig{soon.length?' · '+soon.length+' mit nahem oder vergangenem MHD':''}</small>
           <button type="button" className="quiet" aria-expanded={showScan} onClick={()=>{setShowScan(value=>!value);setChoosing(false)}}>Vorrat scannen</button>
         </div>
-        {showScan&&<ScanForm busy={busy} commit={act} initialKind="stock"/>}
+        {showScan&&<ScanForm cloudImages={cloudImages} busy={busy} commit={act} initialKind="stock"/>}
         <div className="actions grocery-filters" aria-label="Lagerort und Bestand filtern">{[['','Alle'],...Object.entries(locations),['low','Knapp & leer']].map(([key,title])=>
           <button type="button" key={key} aria-pressed={filter===key} onClick={()=>setFilter(key)}>{title}</button>)}</div>
         {!visible.length&&<p>Hier sind keine passenden Artikel.</p>}

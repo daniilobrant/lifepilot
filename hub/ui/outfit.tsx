@@ -1,3 +1,4 @@
+import { confirmImageTransfer } from './image-consent.ts'
 import {outfitCalendarContext} from '../runtime/outfit-calendar.ts'
 import type {Week} from '../runtime/workspace.ts'
 import type {GoogleEvent} from '../connectors/google.ts'
@@ -113,17 +114,17 @@ const preparedPath = (token:string) => '/api/outfits/prepared-photo?token='+enco
 
 const importFormats = 'image/png,image/jpeg,image/webp,image/heic,image/heif,.heic,.heif'
 
-async function sendOutfitImage<T>(path: string, file: File): Promise<T> {
+async function sendOutfitImage<T>(path: string, file: File, codex=false): Promise<T> {
   if (file.size > 16 * 1024 * 1024) throw Error('Das Foto darf höchstens 16 MB groß sein.')
   const response = await fetch(path, {
-    method:'POST', headers:{ 'Content-Type':'application/octet-stream','X-LifePilot-Confirm':'image' },
-    body:file, signal:AbortSignal.timeout(50000),
+    method:'POST', headers:{ 'Content-Type':'application/octet-stream','X-LifePilot-Confirm':codex?'codex-image':'image' },
+    body:file, signal:AbortSignal.timeout(codex?105000:50000),
   })
   const value = await response.json()
   if (!response.ok) throw Error(value.error)
   return value
 }
-function analyzePhoto(file: File) { return sendOutfitImage<PreparedPiece>('/api/outfits/analyze-photo',file) }
+function analyzePhoto(file: File, codex: boolean) { return sendOutfitImage<PreparedPiece>('/api/outfits/analyze-photo',file,codex) }
 const lookPhotoPath = (id: string) => '/api/outfits/look-photo?photo='+encodeURIComponent(id)
 
 function LookPhotos({look,reload}:{look?:Overview['looks'][number],reload:()=>Promise<void>}) {
@@ -154,8 +155,8 @@ function LookPhotos({look,reload}:{look?:Overview['looks'][number],reload:()=>Pr
   </form>
 }
 
-function LookPieces({look,wardrobe,api,reload}:{
-  look:Overview['looks'][number],wardrobe:WardrobeItem[],api:Api,reload:()=>Promise<void>
+function LookPieces({look,wardrobe,api,reload,cloudImages}:{
+  look:Overview['looks'][number],wardrobe:WardrobeItem[],api:Api,reload:()=>Promise<void>,cloudImages:boolean
 }) {
   const [picked,setPicked]=useState(look.itemIds)
   const [suggested,setSuggested]=useState<string[]>([])
@@ -167,7 +168,7 @@ function LookPieces({look,wardrobe,api,reload}:{
   }
   return <div className="outfit-form">
     {look.photoIds[0] && <button type="button" disabled={busy} onClick={()=>void perform(async()=>{
-      const result=await api<{pieces:{name:string,suggestions:string[]}[]}>('/outfits/look-analyze',{photo:look.photoIds[0],confirm:true},34000)
+      const result=await api<{pieces:{name:string,suggestions:string[]}[]}>('/outfits/look-analyze',{photo:look.photoIds[0],confirm:true,codex:cloudImages && confirmImageTransfer()},105000)
       setSuggested(result.pieces.flatMap(piece=>piece.suggestions))
       setFeedback(result.pieces.some(piece=>piece.suggestions.length)?'Passende Teile sind in der Auswahl markiert.':'Keine passenden Teile erkannt. Wähle sie unten aus.')
     })}>Teilvorschläge aus dem Foto</button>}
@@ -196,8 +197,8 @@ function LookPieces({look,wardrobe,api,reload}:{
   </div>
 }
 
-function WardrobeEditor({ api, item, initialMode='photo', onDone }: {
-  api:Api, item:WardrobeItem|null, initialMode?:'photo'|'link', onDone:()=>Promise<void>,
+function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }: {
+  api:Api, item:WardrobeItem|null, initialMode?:'photo'|'link', onDone:()=>Promise<void>, cloudImages:boolean,
 }) {
   const [draft,setDraft] = useState<WardrobeDraft>(item ?? emptyWardrobe)
   const [mode,setMode] = useState<'photo'|'link'|'basic'>(initialMode)
@@ -245,7 +246,7 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone }: {
     void perform(()=>findProducts(queryFor(draft)))
   }
   async function prepareNext(file:File,search:boolean) {
-    const result=await analyzePhoto(file)
+    const result=await analyzePhoto(file,cloudImages && confirmImageTransfer())
     const inputs=Object.fromEntries(Object.entries(hints).filter(([,value])=>value.trim()).map(([key,value])=>[key,value.trim()]))
     const recognized={...(item??emptyWardrobe),...result.draft,...outfitGarment(hints.name??''),...inputs}
     setDraft(recognized)
@@ -513,8 +514,8 @@ function FitEditor({ api, overview, imageVersion, reload }: { api: Api, overview
   </section>
 }
 
-export function OutfitAssistant({ api, initialPlan, initialChoice, initialError, fragranceNames, initialRequired, onOrders }: {
-  api:Api, initialPlan?:OutfitChatPlan, initialChoice?:OutfitChoice, onOrders?:()=>void, initialError?:string, fragranceNames?:string[], initialRequired?:string[],
+export function OutfitAssistant({ api, initialPlan, initialChoice, initialError, fragranceNames, initialRequired, onOrders, cloudImages }: {
+  api:Api, initialPlan?:OutfitChatPlan, initialChoice?:OutfitChoice, onOrders?:()=>void, initialError?:string, fragranceNames?:string[], initialRequired?:string[], cloudImages:boolean,
 }) {
   const [tab,setTab] = useState<Tab>(fragranceNames?.length?'Parfüm':'Styling-Studio')
   const [overview,setOverview] = useState<Overview>()
@@ -688,7 +689,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
             <option value="">Alle Teile</option>{availableCategories.map(([key,label])=><option key={key} value={key}>{label}</option>)}
           </select></label> : null}
         </div>
-        {editor !== undefined ? <WardrobeEditor key={editor==='link' ? 'link' : editor?.id ?? 'new'} api={api}
+        {editor !== undefined ? <WardrobeEditor cloudImages={cloudImages} key={editor==='link' ? 'link' : editor?.id ?? 'new'} api={api}
           item={editor==='link' ? null : editor} initialMode={editor==='link' ? 'link' : 'photo'} onDone={async()=>{await reload();setEditor(undefined)}} /> : null}
         {visible.length ? ([
           [undefined, ''], ['selling','Wird verkauft'], ['sorted','Aussortierte Sachen']
@@ -727,7 +728,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
           {looks.filter(look=>look.id===editLook).map(look=><div key={look.id}>
             <div className="outfit-actions"><h3>{look.title}</h3><button type="button" onClick={()=>setEditLook(undefined)}>Schließen</button></div>
             <LookPhotos look={look} reload={reload}/>
-            <LookPieces look={look} wardrobe={overview.wardrobe.filter(item=>!item.orderState&&!item.saleState)} api={api} reload={reload}/>
+            <LookPieces cloudImages={cloudImages} look={look} wardrobe={overview.wardrobe.filter(item=>!item.orderState&&!item.saleState)} api={api} reload={reload}/>
             <div className="outfit-actions">{removing===look.id ?
               <><button type="button" disabled={busy} onClick={()=>{remove('look',look.id);setEditLook(undefined)}}>Look endgültig löschen</button>
                 <button type="button" onClick={()=>setRemoving('')}>Abbrechen</button></> :
