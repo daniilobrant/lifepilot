@@ -7,7 +7,7 @@ import {DateInput} from './presentation.tsx'
 import { outfitGarment } from '../runtime/outfit-fields.ts'
 import { FragrancePanel, ResalePanel, TravelOutfits, scentPhotoPath } from './wardrobe-extras.tsx'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { bodyProportions, bodyShapes, emptyWardrobe, outfitDayparts, outfitStyles, preferredCuts, wardrobeCategories, wardrobeTypes, type Outfit, type OutfitChoice, type OutfitOverview,
   type OutfitChatPlan, type OutfitQuery, type StyleProfile, type WardrobeDraft, type WardrobeItem } from '../runtime/outfit-types.ts'
 
@@ -59,18 +59,29 @@ function Piece({ item, imageVersion }: { item: WardrobeItem, imageVersion: numbe
 }
 
 function WardrobeMenu({title,children}:{title:string,children:ReactNode}){
-  return <details className="wardrobe-menu" name="wardrobe-actions" onKeyDown={event=>{
-    if(event.key!=='Escape'||!event.currentTarget.open)return
-    event.preventDefault()
-    event.currentTarget.open=false
-    event.currentTarget.querySelector('summary')?.focus()
-  }} onBlur={event=>{
-    if(event.relatedTarget instanceof Node&&!event.currentTarget.contains(event.relatedTarget))event.currentTarget.open=false
-  }}>
+  const menu=useRef<HTMLDetailsElement>(null)
+  const [open,setOpen]=useState(false)
+  useEffect(()=>{
+    if(!open)return
+    function dismiss(event:PointerEvent){
+      const details=menu.current
+      if(details && event.target instanceof Node && !details.contains(event.target)) details.open=false
+    }
+    document.addEventListener('pointerdown',dismiss,true)
+    return ()=>document.removeEventListener('pointerdown',dismiss,true)
+  },[open])
+  return <details ref={menu} className="wardrobe-menu" name="wardrobe-actions"
+    onToggle={event=>setOpen(event.currentTarget.open)}
+    onKeyDown={event=>{
+      if(event.key!=='Escape'||!event.currentTarget.open)return
+      event.preventDefault()
+      event.currentTarget.open=false
+      event.currentTarget.querySelector('summary')?.focus()
+    }}>
     <summary className="icon-button" aria-label={'Aktionen für '+title}><span aria-hidden="true">⋯</span></summary>
     <div className="wardrobe-menu-actions" onClick={event=>{
-      if(event.target instanceof HTMLElement&&event.target.closest('button[data-close]')){
-        const details=event.currentTarget.closest('details')
+      if(event.target instanceof HTMLElement && event.target.closest('button')){
+        const details=menu.current
         if(details){details.open=false;details.querySelector('summary')?.focus()}
       }
     }}>{children}</div>
@@ -392,7 +403,7 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
       </> : <>
         {preview ? <div className="outfit-preview"><img src={preview} alt="Vorschau des Kleidungsstücks" /></div> : null}
         <div className="outfit-form-grid">
-          <label>Name<input required maxLength={120} value={draft.name} onChange={event => change('name',event.target.value)} /></label>
+          <label>Name<input autoFocus={Boolean(item)} required maxLength={120} value={draft.name} onChange={event => change('name',event.target.value)} /></label>
           <label>Kategorie<select value={draft.category} onChange={event => change('category',event.target.value as WardrobeDraft['category'])}>
             {Object.entries(wardrobeCategories).map(([value,label]) => <option value={value} key={value}>{label}</option>)}
           </select></label>
@@ -405,13 +416,19 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
         <div className="outfit-form-grid">
           <label>Größe<input maxLength={40} value={draft.size??''} onChange={event=>change('size',event.target.value)}/></label>
           <label>Marke<input maxLength={70} value={draft.brand??''} onChange={event=>change('brand',event.target.value)}/></label>
-          {item?.retailer ? <label>Händler<input maxLength={100} value={draft.retailer??''} onChange={event=>change('retailer',event.target.value)}/></label> : null}
+          <label>Händler<input maxLength={100} value={draft.retailer??''} onChange={event=>change('retailer',event.target.value)}/></label>
           <label>Passform<input maxLength={70} value={draft.fit} onChange={event=>change('fit',event.target.value)}/></label>
           <label>Material<input maxLength={120} value={draft.material} onChange={event=>change('material',event.target.value)}/></label>
           <label>Saison<input list="wardrobe-seasons" maxLength={70} value={draft.season} onChange={event=>change('season',event.target.value)}/>
             <datalist id="wardrobe-seasons">{['Ganzjährig','Frühling','Sommer','Herbst','Winter','Frühling, Sommer','Herbst, Winter'].map(season=><option key={season} value={season}/>)}</datalist>
           </label>
         </div>
+        {item ? <div className="outfit-form-grid">
+          <label>Modell<input maxLength={90} value={draft.model??''} onChange={event=>change('model',event.target.value)}/></label>
+          <label>Stichwörter<input maxLength={180} value={draft.tags} onChange={event=>change('tags',event.target.value)}/></label>
+          <label>Gespeicherter Produktlink<input type="url" maxLength={500} value={draft.source}
+            onChange={event=>{change('source',event.target.value);setAddress(event.target.value)}}/></label>
+        </div> : null}
         {searchOpen ? <section className="outfit-product-search">
           <div className="outfit-form-grid">
             <label>Zusätzliche Angaben für die Produktsuche
@@ -514,8 +531,8 @@ function FitEditor({ api, overview, imageVersion, reload }: { api: Api, overview
   </section>
 }
 
-export function OutfitAssistant({ api, initialPlan, initialChoice, initialError, fragranceNames, initialRequired, onOrders, cloudImages }: {
-  api:Api, initialPlan?:OutfitChatPlan, initialChoice?:OutfitChoice, onOrders?:()=>void, initialError?:string, fragranceNames?:string[], initialRequired?:string[], cloudImages:boolean,
+export function OutfitAssistant({ api, initialPlan, initialChoice, initialError, fragranceNames, initialRequired, cloudImages }: {
+  api:Api, initialPlan?:OutfitChatPlan, initialChoice?:OutfitChoice, initialError?:string, fragranceNames?:string[], initialRequired?:string[], cloudImages:boolean,
 }) {
   const [tab,setTab] = useState<Tab>(fragranceNames?.length?'Parfüm':'Styling-Studio')
   const [overview,setOverview] = useState<Overview>()
@@ -700,19 +717,17 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
             <div className="outfit-wardrobe-grid">{items.map(item=><div key={item.id} className={state?'outfit-inventory wardrobe-inactive':'outfit-inventory'}>
           <Piece item={item} imageVersion={imageVersion} />
           <WardrobeMenu title={productDisplayName(item.name)}>
-            <button type="button" data-close onClick={()=>setEditor(item)}>Bearbeiten</button>
-            {item.orderState ? <button type="button" data-close onClick={onOrders}>Bestellung ansehen</button> : <>
-              <button type="button" data-close disabled={Boolean(item.saleState)} onClick={()=>{setPackingItem(item.id);setTab('Urlaubsgarderobe')}}>Zur Urlaubspackliste hinzufügen</button>
-              <button type="button" data-close onClick={()=>void perform(async()=>{
-                await api('/outfits/resale',{item:item.id,action:'start',confirm:true})
-                await reload();setResaleItem(item);setTab('Verkaufen')
-              })}>Verkaufen</button>
-              <button type="button" data-close disabled={busy} onClick={()=>void perform(async()=>{
-                await api('/outfits/resale',{item:item.id,action:'sorted',confirm:true})
-                await reload();setNotice('Teil aussortiert. Im Bereich Verkaufen kannst du es wiederherstellen.')
-              })}>Aussortieren</button>
-
-            </>}
+            <button type="button" onClick={()=>setEditor(item)}>Bearbeiten</button>
+            <button type="button" disabled={busy || Boolean(item.orderState || item.saleState)}
+              onClick={()=>{setPackingItem(item.id);setTab('Urlaubsgarderobe')}}>Zur Urlaubspackliste hinzufügen</button>
+            <button type="button" disabled={busy || Boolean(item.orderState)} onClick={()=>void perform(async()=>{
+              await api('/outfits/resale',{item:item.id,action:'start',confirm:true})
+              await reload();setResaleItem(item);setTab('Verkaufen')
+            })}>Verkaufen</button>
+            <button type="button" disabled={busy || Boolean(item.orderState) || item.saleState==='sorted'} onClick={()=>void perform(async()=>{
+              await api('/outfits/resale',{item:item.id,action:'sorted',confirm:true})
+              await reload();setNotice('Teil aussortiert. Im Bereich Verkaufen kannst du es wiederherstellen.')
+            })}>Aussortieren</button>
           </WardrobeMenu>
         </div>)}</div></section> : null
         }) : <p>{overview.wardrobe.length?'In dieser Kategorie sind keine Teile gespeichert.':'Dein Kleiderschrank ist leer.'}</p>}
