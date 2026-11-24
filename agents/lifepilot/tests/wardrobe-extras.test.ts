@@ -39,7 +39,7 @@ test('Resale summarizes observed attributes, differentiates photo provenance and
     assert.equal(outfitOverview(store).wardrobe.length,0)
     store.transaction(()=>changeResale(store,id,'restore',null))
     assert.equal(outfitOverview(store).wardrobe.length,1)
-    assert.equal(store.transaction(()=>changeResale(store,id,'sorted',null))[0].state,'sorted')
+    assert.deepEqual(store.transaction(()=>changeResale(store,id,'sorted',null)),[])
     assert.equal(outfitOverview(store).wardrobe[0].saleState,'sorted')
     assert.throws(()=>new OutfitStudio().generate(store,{style:'Schlicht',mode:'anchor',required:[id],variant:0}),{status:409})
     assert.equal(changeResale(store,id,'start',null)[0].state,'selling')

@@ -1,8 +1,8 @@
-# LifePilot 1.0.5
+# LifePilot 1.0.6
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
-[Aktueller Release](https://github.com/daniilobrant/lifepilot/releases/tag/v1.0.5) · [Installation](#installation) · [Screenshots](#lifepilot-im-einsatz) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](#roadmap-von-01-bis-10)
+[Aktueller Release](https://github.com/daniilobrant/lifepilot/releases/tag/v1.0.6) · [Installation](#installation) · [Screenshots](#lifepilot-im-einsatz) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](#roadmap-von-01-bis-10)
 
 ## LifePilot im Einsatz
 
@@ -78,7 +78,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 
 Vorausgesetzt sind macOS, Node.js 24 ab 24.13, npm, Git und die Xcode Command Line Tools. Dieser Stand wurde auf einem Mac mit Apple Silicon geprüft. Der Download enthält Quellcode, aus dem auch die nativen Helfer gebaut werden.
 
-    git clone --branch v1.0.5 https://github.com/daniilobrant/lifepilot.git
+    git clone --branch v1.0.6 https://github.com/daniilobrant/lifepilot.git
     cd lifepilot
     xcode-select -p
     node --version

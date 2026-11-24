@@ -81,23 +81,7 @@ export function ResalePanel({api,item,wardrobe,onDone}:{api:Api,item?:WardrobeIt
       </div>
     </form>
   }
-  return <section ref={panel} className="resale-panel">
-    <header className="outfit-actions wardrobe-extra-header"><h2>Verkaufen</h2>
-      <button type="button" className="icon-button" aria-label="Teil zum Verkauf hinzufügen" aria-expanded={adding}
-        onClick={()=>setAdding(!adding)}>+</button>
-    </header>
-    {adding ? <div className="outfit-actions resale-chooser">
-      <label>Kleidungsstück<select value={selectedItem} onChange={event=>setSelectedItem(event.currentTarget.value)}>
-        <option value="">Teil auswählen</option>{wardrobe.filter(piece=>!piece.orderState&&!piece.saleState).map(piece=>
-          <option value={piece.id} key={piece.id}>{piece.name}</option>)}
-      </select></label>
-      <button type="button" className="outfit-primary" disabled={busy||!selectedItem} onClick={()=>startSale(selectedItem)}>Übernehmen</button>
-    </div> : null}
-    {error ? <p role="alert">{error}</p> : null}
-    {notice ? <p role="status">{notice}</p> : null}
-    {!rows && !error ? <p role="status">Verkaufsartikel werden geladen …</p> : null}
-    {rows?.length===0 ? <p>Wähle ein Kleidungsstück für den Verkauf aus.</p> : null}
-    <div className="resale-grid">{rows?.map(row=>{
+  function card(row:ResaleDraft) {
       const price=euros.format(row.askingPriceCents===null?row.listing.start:row.askingPriceCents/100)
       const preparing=row.state==='selling' && (editing===row.id || !row.condition)
       const photo='/api/outfits/photo?item='+encodeURIComponent(row.id)
@@ -105,7 +89,7 @@ export function ResalePanel({api,item,wardrobe,onDone}:{api:Api,item?:WardrobeIt
         {row.hasPhoto?<img className="resale-photo" src={photo+'&v='+photoChoice} alt={row.name} loading="lazy"/>:
           <div className="outfit-piece-placeholder resale-photo">Kleidungsstück</div>}
         <header><h3>{row.name}</h3>
-          <small>{row.state==='sold'?'Verkauft am '+formatDay(row.sold??row.created):row.state==='sorted'?'Aussortiert':'Zum Verkauf seit '+formatDay(row.created)}</small>
+          <small>{row.state==='sold'?'Verkauft am '+formatDay(row.sold??row.created):'Zum Verkauf seit '+formatDay(row.created)}</small>
         </header>
         {row.state==='selling' ? <>
           {preparing ? editor(row) : <>
@@ -142,10 +126,32 @@ export function ResalePanel({api,item,wardrobe,onDone}:{api:Api,item?:WardrobeIt
           <button type="button" disabled={busy} onClick={()=>void perform(()=>change(row.id,'restore'))}>
             {row.state==='selling'?'Verkauf stoppen':'Zurück in den Kleiderschrank'}
           </button>
-          {row.state==='sorted'?<button type="button" disabled={busy} onClick={()=>startSale(row.id)}>Über Kleinanzeigen verkaufen</button>:null}
         </div>
       </article>
-    })}</div>
+  }
+  return <section ref={panel} className="resale-panel">
+    <header className="outfit-actions wardrobe-extra-header"><h2>Verkaufen</h2>
+      <button type="button" className="icon-button" aria-label="Teil zum Verkauf hinzufügen" aria-expanded={adding}
+        onClick={()=>setAdding(!adding)}>+</button>
+    </header>
+    {adding ? <div className="outfit-actions resale-chooser">
+      <label>Kleidungsstück<select value={selectedItem} onChange={event=>setSelectedItem(event.currentTarget.value)}>
+        <option value="">Teil auswählen</option>{wardrobe.filter(piece=>!piece.orderState&&!piece.saleState).map(piece=>
+          <option value={piece.id} key={piece.id}>{piece.name}</option>)}
+      </select></label>
+      <button type="button" className="outfit-primary" disabled={busy||!selectedItem} onClick={()=>startSale(selectedItem)}>Übernehmen</button>
+    </div> : null}
+    {error ? <p role="alert">{error}</p> : null}
+    {notice ? <p role="status">{notice}</p> : null}
+    {!rows && !error ? <p role="status">Verkaufsartikel werden geladen …</p> : null}
+    {rows?.length===0 ? <p>Wähle ein Kleidungsstück für den Verkauf aus.</p> : null}
+    {([['selling','Wird verkauft'],['sold','Verkauft']] as const).map(([state,title])=>{
+      const items=rows?.filter(row=>row.state===state)
+      return items?.length ? <section key={state} className="wardrobe-section">
+        <h3>{title}</h3>
+        <div className="resale-grid">{items.map(card)}</div>
+      </section> : null
+    })}
   </section>
 }
 
