@@ -1,5 +1,5 @@
-Aussortierte Teile bleiben im Abschnitt „Aussortierte Sachen“. Laufende und abgeschlossene Verkäufe stehen im Tab „Verkaufen“ unter „Wird verkauft“ beziehungsweise „Verkauft“.
+LifePilot 1.0.7 ergänzt die Sammelbestätigung für offene Vorschläge in Finanzen, Posteingang, Projekten, Bewerbungen und Pilot. Der Finanzbereich zeigt keine eigenen Einstellungen mehr.
 
-Unter „Persönlich“ stehen Finanzen & Abos und Vorrat & Einkauf vor Outfit-Assistent und Bestellungstracker.
+Im Kochassistenten sind vorhandene Zutaten automatisch angehakt. Die Zutatenmengen lassen sich nach Portionen umrechnen. Im Pilot-Chat kannst du das Rezept und die fehlenden Einkaufsartikel getrennt übernehmen oder den Vorgang abbrechen.
 
-[Installation](https://github.com/daniilobrant/lifepilot/blob/v1.0.6/README.md#installation) · [Versionsverlauf](https://github.com/daniilobrant/lifepilot/blob/v1.0.6/CHANGELOG.md)
+[Installation](https://github.com/daniilobrant/lifepilot/blob/v1.0.7/README.md#installation) · [Versionsverlauf](https://github.com/daniilobrant/lifepilot/blob/v1.0.7/CHANGELOG.md)

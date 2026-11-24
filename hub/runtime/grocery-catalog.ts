@@ -17,6 +17,13 @@ export function grocerySearchKey(name:string) {
     .replace(/[^\p{L}\p{N}]+/gu,' ').trim()
 }
 
+const aliases = new Map(Object.entries({
+  eier:'ei',aepfel:'apfel',apfel:'apfel',bananen:'banane',tomaten:'tomate',zwiebeln:'zwiebel',kartoffeln:'kartoffel',
+  krapsel:'rapsol',rapsoel:'rapsol',sojasosse:'sojasauce','soja sauce':'sojasauce','soja sosse':'sojasauce','frischer ingwer':'ingwer',mohren:'karotte',mohre:'karotte',karotten:'karotte',gurken:'gurke',zitronen:'zitrone',hafermilch:'haferdrink',
+  'schwarzer pfeffer':'pfeffer', 'tomaten passiert':'passierte tomaten','passierte tomate':'passierte tomaten',
+}))
+export function groceryKey(name:string) { const key=grocerySearchKey(name);return aliases.get(key)??key }
+
 const alternatives=new Map([
   ['chilis','Chili'],['thai chilis','Chili'],['thai chili','Chili'],['thaichilis','Chili'],['thaichili','Chili'],
   ['soja sosse','Sojasoße'],['soja sauce','Sojasoße'],['sojasauce','Sojasoße'],
