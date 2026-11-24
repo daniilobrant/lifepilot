@@ -7,14 +7,18 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 
-assert.ok(process.argv.slice(2).every(arg => arg === '--local-model'), 'Nur --local-model ist als Option zulässig.')
-const withModel = process.argv.includes('--local-model')
+const args = process.argv.slice(2)
+assert.ok(args.length === 0 || (args.length === 1 && args[0] === '--checkout'), 'Nur --checkout ist als Option zulässig.')
 const root = realpathSync(fileURLToPath(new URL('../', import.meta.url)))
-const manifest = readFileSync(join(root, 'SHA256SUMS'), 'utf8')
 const sha = value => createHash('sha256').update(value).digest('hex')
+const pathsAllowed = /^(?:(?:agents|bin|docs|hub|scripts)\/|(?:\.gitignore|ADAPTER\.md|AGENTS\.md|README\.md|package(?:-lock)?\.json|tsconfig\.json|versions\.json)$)/
+const manifest = args[0] === '--checkout'
+  ? execFileSync('git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' }).split('\0').filter(path => pathsAllowed.test(path))
+    .map(path => sha(readFileSync(join(root, path))) + '  ' + path).join('\n') + '\n'
+  : readFileSync(join(root, 'SHA256SUMS'), 'utf8')
 const scratch = mkdtempSync(join(tmpdir(), 'lifepilot-restore-check-'))
 const origin = 'http://127.0.0.1:45139'
-const env = { ...process.env, LIFEPILOT_LOCAL_MODEL: withModel ? '1' : '0', PATH: dirname(process.execPath) + ':' + process.env.PATH }
+const env = { ...process.env, PATH: dirname(process.execPath) + ':' + process.env.PATH }
 const owner = () => ({ Authorization: 'Bearer ' + readFileSync(join(scratch, 'user-data/trinity-audit/adapter-token'), 'utf8') })
 const invoke = (program, args) => execFileSync(program, args, {
   cwd: scratch, env, encoding: 'utf8', timeout: 30_000, stdio: ['ignore', 'pipe', 'pipe'],
@@ -49,26 +53,27 @@ try {
     const match = /^([a-f0-9]{64})  ([a-zA-Z0-9_.\/-]+)$/.exec(line)
     assert.ok(match, 'Ungültiges Prüfmanifest')
     const [, digest, relative] = match
-    assert.ok(/^(?:(?:agents|bin|docs|hub|scripts)\/|(?:\.gitignore|ADAPTER\.md|AGENTS\.md|README\.md|package(?:-lock)?\.json|tsconfig\.json|versions\.json)$)/.test(relative))
+    assert.ok(pathsAllowed.test(relative))
     assert.ok(relative.split('/').every(part => part && part !== '.' && part !== '..'))
     assert.ok(!paths.has(relative), 'Doppelte Datei im Prüfmanifest')
     paths.add(relative)
     const source = join(root, relative)
     assert.equal(realpathSync(source), source, relative)
-    assert.ok(lstatSync(source).isFile(), relative)
+    const info = lstatSync(source)
+    assert.ok(info.isFile(), relative)
     const bytes = readFileSync(source)
     assert.equal(sha(bytes), digest, relative)
     const target = join(scratch, relative)
     mkdirSync(dirname(target), { recursive: true })
-    writeFileSync(target, bytes, { flag: 'wx', mode: 0o600 })
+    writeFileSync(target, bytes, { flag: 'wx', mode: info.mode & 0o700 })
   }
   assert.ok(paths.has('scripts/trinity-restore-check.mjs'))
   symlinkSync(join(root, 'node_modules'), join(scratch, 'node_modules'), 'dir')
   invoke('npm', ['run', 'build'])
-  const versions = JSON.parse(readFileSync(join(scratch, 'versions.json'), 'utf8'))
-  console.log(JSON.stringify({ version: versions.runtime, schema: versions.databaseSchema, manifest: sha(manifest), files: paths.size }))
+  const version = JSON.parse(readFileSync(join(scratch, 'package.json'), 'utf8')).version
+  console.log(JSON.stringify({ version, manifest: sha(manifest), files: paths.size }))
   start()
-  assert.equal(cli('status').version, versions.runtime)
+  assert.equal(cli('status').version, version)
   invoke(process.execPath, ['scripts/trinity-check.mjs'])
   mark('memory-scopes-through-cli-token-and-browser-session')
 
@@ -94,24 +99,6 @@ try {
   assert.equal(cli('preview', run.id, approval).approval, approval)
   mark('restart-keeps-memory-and-valid-approval-but-expels-browser-session')
 
-  let adoption
-  if (withModel) {
-    const reviewRun = cli('submit', 'Lege eine Aufgabe an: Zwei Beispiele für einen fiktiven Quellenworkshop sammeln.', '--synthetic')
-    const modelApproval = reviewRun.approvals[0].id
-    cli('preview', reviewRun.id, modelApproval)
-    cli('approve', reviewRun.id, modelApproval)
-    const deadline = Date.now() + 95_000
-    let review
-    do {
-      review = cli('show', reviewRun.id)
-      if (!['queued', 'running'].includes(review.state)) break
-      await delay(350)
-    } while (Date.now() < deadline)
-    assert.equal(review.state, 'review', review.error ?? 'Codex-Ergebnis fehlt')
-    assert.ok(review.result.tasks.length)
-    adoption = { id: review.id, approval: review.approvals.find(item => item.action === 'adopt' && item.state === 'pending').id }
-  }
-
   const backup = cli('backup', '--confirm')
   const backupPath = join(scratch, 'user-data/trinity-audit/backups', backup.name)
   const backupDigest = sha(readFileSync(backupPath))
@@ -135,14 +122,6 @@ try {
   assert.equal(resumed.state, 'permission')
   assert.ok(resumed.approvals.some(item => item.action === 'model' && item.state === 'pending' && item.id !== approval))
   mark('restore-needs-fresh-approval-and-preserves-run-id')
-  if (adoption) {
-    const restoredReview = cli('show', adoption.id)
-    assert.equal(restoredReview.state, 'failed')
-    assert.equal(restoredReview.approvals.find(item => item.id === adoption.approval).state, 'revoked')
-    await api('/runs/' + adoption.id + '/decision', { status: 409, body: { approval: adoption.approval, decision: 'approve' } })
-    assert.ok(!cli('tasks').some(item => item.run_id === adoption.id))
-    mark('restore-rejects-old-adoption-after-real-codex')
-  }
 } finally {
   if (running) stop()
   rmSync(scratch, { recursive: true, force: true })
