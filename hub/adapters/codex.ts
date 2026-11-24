@@ -5,7 +5,7 @@ import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { outfitPlanFormatError, projectPlanFormatError, schemaFile, verifyOutput } from '../../agents/lifepilot/tools/validate.ts'
-import { MODEL_MS } from '../runtime/settings.ts'
+import { cloudModel, MODEL_MS } from '../runtime/settings.ts'
 import { MAX_CHAT_INPUT, MAX_CHAT_APPROVAL_BYTES, MAX_MODEL_PAYLOAD_BYTES, splitLongInput, modelDialogue, dialogueOrderInstruction, type ModelPayload } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
 
@@ -69,6 +69,10 @@ async function prepareLongDialogue(payload:ModelPayload,signal:AbortSignal){
 }
 
 export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
+  if (payload.mode !== 'personal') {
+    return { result: null, error: 'Externe Modelle sind für synthetische Aufträge gesperrt.',
+      metrics: { wallMs: 0, model: null, usage: null, cost: null } }
+  }
   const { context, messages, memory } = payload
   let prepared:ModelPayload
   try {prepared=await prepareLongDialogue(payload,signal)}
@@ -142,6 +146,8 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
 export async function runStructuredCodex<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value:unknown)=>T) {
   const started = performance.now()
   const metrics: ModelMetrics = { wallMs: 0, model: null, usage: null, cost: null }
+  if (signal.aborted) return { result: null, error: 'Vorgang abgebrochen.', metrics }
+  if (!cloudModel) return { result: null, error: 'Der externe Modelladapter ist in diesem Profil gesperrt.', metrics }
   const directory = await mkdtemp(join(tmpdir(), 'lifepilot-model-'))
   const resultPath = join(directory, 'result.json')
   let abortReason = ''

@@ -38,7 +38,7 @@ import { createServer, type IncomingMessage, type ServerResponse } from 'node:ht
 import { createHash, randomBytes, timingSafeEqual, randomUUID } from 'node:crypto'
 import { chmodSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { acceptance, audit, chatMode, data, fixtures, host, MAX_INPUT, MODEL_MS, nightbot, origin, port, Problem, root, secretPath, probeSecretPath, version } from './settings.ts'
+import { acceptance, audit, chatMode, cloudModel, data, fixtures, host, MAX_INPUT, MODEL_MS, nightbot, origin, port, Problem, root, secretPath, probeSecretPath, version } from './settings.ts'
 import { Store, type Channel } from './store.ts'
 import { connectors } from '../connectors/catalog.ts'
 import { GoogleConnector, googleService } from '../connectors/google.ts'
@@ -197,6 +197,7 @@ let stopping = false
 let readingChatDocument = false
 let scanningInbox = false
 const localModel = audit && process.env.LIFEPILOT_LOCAL_MODEL === '1'
+const offlineMetrics = { wallMs: 0, model: null, usage: null, cost: null }
 
 function reply(res: ServerResponse, status: number, payload: unknown) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' })
@@ -352,10 +353,11 @@ async function work() {
   const controller = new AbortController()
   active = { id: next.id, controller }
   try {
-    const runner = localModel ? runLocalModel : runCodex
+    const runner = cloudModel ? runCodex : localModel ? runLocalModel : undefined
     const recurring=projectFromChat(store,next.payload)??seriesFromChat(next.payload)??taskBoardFromChat(next.payload)
-    const { result, error, metrics } = recurring?{result:recurring,error:null,metrics:{wallMs:0,model:null,usage:null,cost:null}}:
-      await runner(next.payload, controller.signal)
+    const { result, error, metrics } = recurring ? { result: recurring, error: null, metrics: offlineMetrics } :
+      runner ? await runner(next.payload, controller.signal) :
+        { result: null, error: 'Im Testprofil sind externe Modelle gesperrt. Lokale Planung und Reisevorschau bleiben verfügbar.', metrics: offlineMetrics }
     if (!stopping) {
       const latest=next.payload.messages.at(-1)?.input??''
       const explicit=explicitCategory(latest)
@@ -606,7 +608,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (path === '/api/trips/guide') {
       const { preview, confirm } = await body(req,['preview','confirm'])
       confirmLocalChange(confirm)
-      if (chatMode==='disabled') throw new Problem(423,'Für die Generierung muss Codex in diesem Profil freigegeben sein.')
+      if (!cloudModel) throw new Problem(423,'Der externe Reiseguide ist in diesem Profil gesperrt. Speichere bei Bedarf die lokale Reisevorschau.')
       return reply(res,200,await generateTripPreview(store,id(preview),async plan=>{
         const forecast=fetchOutfitWeather(plan.draft.destination.split(',')[0].trim(),plan.draft.start).catch(()=>undefined)
         const guide=await createTripGuide(plan,AbortSignal.timeout(MODEL_MS+3000))
@@ -1237,7 +1239,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (path === '/api/state') {
       store.expire()
       const target = acceptance ? undefined : macCalendar.preferred(store)
-      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: localModel ? 'Gemma auf diesem Mac' : 'Codex',
+      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? 'Codex' : localModel ? 'Gemma auf diesem Mac' : 'LifePilot (lokal)', cloudModel,
         googleAppointmentWrite: !acceptance && google.status().some(item => item.service === 'calendar-test' && item.connected), calendarTarget: target ? { name: target.name, account: target.account } : null,
         agents: [manifest], connectors, runs: store.list(), tasks: store.workspace.list(), schedule: store.workspace.schedule(), fixtures: acceptance ? fixtures : null })
     }
