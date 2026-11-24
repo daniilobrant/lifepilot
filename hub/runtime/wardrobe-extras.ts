@@ -98,7 +98,7 @@ export function recommendFragrance(fragrances:Fragrance[],context:{occasion?:str
 }
 
 function saleRow(store:Store,id:string) {
-  return store.db.prepare(`SELECT w.*,sale.state,sale.condition,sale.flaws,sale.original_price,sale.created,sale.sold FROM wardrobe_items w
+  return store.db.prepare(`SELECT w.*,sale.state,sale.condition,sale.flaws,sale.original_price,sale.asking_price_cents,sale.created,sale.sold FROM wardrobe_items w
     LEFT JOIN wardrobe_sales sale ON sale.wardrobe_id=w.id WHERE w.id=?`).get(id)
 }
 export function resaleList(store:Store):ResaleDraft[] {
@@ -114,7 +114,7 @@ export function resaleList(store:Store):ResaleDraft[] {
     const description=[wardrobeCategories[category],item.color&&'Farbe: '+item.color,item.size&&'Größe: '+item.size,
       item.material&&'Material: '+item.material,item.fit&&'Passform: '+item.fit,condition&&'Zustand: '+condition,
       flaws&&'Gebrauchsspuren/Mängel: '+flaws].filter(Boolean).join('\n')
-    return {id,name,state:item.state as ResaleDraft['state'],condition,flaws,originalPrice,created:String(item.created),sold:item.sold?String(item.sold):null,
+    return {id,name,state:item.state as ResaleDraft['state'],condition,flaws,originalPrice,askingPriceCents:item.asking_price_cents===null?null:Number(item.asking_price_cents),created:String(item.created),sold:item.sold?String(item.sold):null,
       hasPhoto:Boolean(item.photo),hasOwnPhoto:Boolean(item.photo && item.photo_origin==='own'),listing:{title,description,minimum:Math.max(1,Math.floor(start*.75)),maximum:Math.ceil(start*1.25),start}}
   })
 }
@@ -134,15 +134,20 @@ export function changeResale(store:Store,id:string,action:unknown,raw:unknown) {
       ON CONFLICT(wardrobe_id) DO UPDATE SET state='sorted',sold=NULL`).run(id,dateInBerlin())
   } else if (action==='start') {
     store.db.prepare(`INSERT INTO wardrobe_sales (wardrobe_id,state,created) VALUES (?,'selling',?)
-      ON CONFLICT(wardrobe_id) DO UPDATE SET state='selling',sold=NULL WHERE state!='sold'`).run(id,dateInBerlin())
+      ON CONFLICT(wardrobe_id) DO UPDATE SET state='selling',sold=NULL,created=CASE WHEN wardrobe_sales.state='sorted' THEN excluded.created ELSE wardrobe_sales.created END WHERE state!='sold'`).run(id,dateInBerlin())
   } else if (action==='selling') {
     const data=record(raw), condition=saleConditions.find(entry=>entry===data.condition)
     if (!condition) throw new Problem(400,'Wähle den Zustand.')
     const price=data.originalPrice
     if (price!==null && (!Number.isSafeInteger(price) || Number(price)<1 || Number(price)>100000)) throw new Problem(400,'Prüfe den Neupreis.')
-    store.db.prepare(`INSERT INTO wardrobe_sales (wardrobe_id,state,condition,flaws,original_price,created) VALUES (?,'selling',?,?,?,?)
+    const askingPrice=data.askingPriceCents===undefined ? item.asking_price_cents : data.askingPriceCents
+    if (askingPrice!==null && (typeof askingPrice!=='number' || !Number.isSafeInteger(askingPrice) || askingPrice<1 || askingPrice>10000000)) {
+      throw new Problem(400,'Prüfe den Verkaufspreis.')
+    }
+    store.db.prepare(`INSERT INTO wardrobe_sales (wardrobe_id,state,condition,flaws,original_price,asking_price_cents,created) VALUES (?,'selling',?,?,?,?,?)
       ON CONFLICT(wardrobe_id) DO UPDATE SET state='selling',condition=excluded.condition,flaws=excluded.flaws,
-        original_price=excluded.original_price,sold=NULL`).run(id,condition,text(data.flaws,350),price as number|null,dateInBerlin())
+        original_price=excluded.original_price,asking_price_cents=excluded.asking_price_cents,sold=NULL,
+        created=CASE WHEN wardrobe_sales.state='sorted' THEN excluded.created ELSE wardrobe_sales.created END`).run(id,condition,text(data.flaws,350),price as number|null,askingPrice,dateInBerlin())
   } else throw new Problem(400,'Wähle die gewünschte Aktion.')
   if (action==='sold' || action==='sorted' || action==='selling' || action==='start') store.db.prepare('DELETE FROM wardrobe_travel WHERE wardrobe_id=?').run(id)
   return resaleList(store)
