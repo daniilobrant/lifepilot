@@ -143,6 +143,7 @@ function PersonalAccountOverview({version,testMode}:{version:string,testMode:boo
     {labels ? <p>Automatische Gmail-Kategorien aktiv</p>:null}
     <details><summary>Versionsverlauf</summary>
       <ul className="release-list">
+        <li><strong>1.0.1</strong> · Kleiderschrank nach Kategorien, vereinfachter Import und getrennte Klickflächen im Pilot-Chat.</li>
         <li><strong>1.0</strong> · Google-Kontobindung, Codex CLI für die Bildanalyse und Prüfungen für Testprofile und private Releases.</li>
         <li><strong>0.25.16</strong> · Bestellbilder, Vorrats-Texterkennung und einheitliche Formulare.</li>
         <li><strong>0.25.15</strong> · Ortssuche, Kalender und Mehrfachauswahl im Reiseformular.</li>
@@ -1005,6 +1006,7 @@ function App() {
   const [input, setInput] = useState('')
   const [doc, setDoc] = useState<SourceNote>()
   const attachmentInput = useRef<HTMLInputElement>(null)
+  const groceryImageInput = useRef<HTMLInputElement>(null)
   const [dictationStop, setDictationStop] = useState(0)
   const [docError, setDocError] = useState('')
   const [readingFile, setReadingFile] = useState(false)
@@ -1861,16 +1863,16 @@ function App() {
           <button type="button" className="quiet composer-tool" aria-label="Datei oder Bild anhängen" title="Datei oder Bild anhängen"
             disabled={!canChat || busy || waitingForChat || readingFile || !!offline}
             onClick={() => attachmentInput.current?.click()}><Icon name="paperclip" /></button>
-          <label className="quiet composer-tool grocery-chat-upload" title="Vorratsfoto oder Kassenbon scannen">
-            <Icon name="camera"/><span className="sr-only">Vorratsfoto oder Kassenbon scannen</span>
-            <input type="file" aria-label="Vorratsfoto oder Kassenbon scannen" accept="image/png,image/jpeg,image/webp,image/heic,.heic,.heif"
-              disabled={!canChat||busy||waitingForChat||readingFile||!!offline} onChange={event=>{
-                const file=event.currentTarget.files?.[0]
-                event.currentTarget.value=''
-                if(file)void selectGroceryImage(file)
-              }}/>
-          </label>
-          <Dictation disabled={!canChat || busy || waitingForChat || !!offline} stopSignal={dictationStop}
+          <input ref={groceryImageInput} hidden type="file" accept="image/png,image/jpeg,image/webp,image/heic,.heic,.heif"
+            onChange={event=>{
+              const file=event.currentTarget.files?.[0]
+              event.currentTarget.value=''
+              if(file)void selectGroceryImage(file)
+            }}/>
+          <button type="button" className="quiet composer-tool" aria-label="Vorratsfoto oder Kassenbon scannen"
+            title="Vorratsfoto oder Kassenbon scannen" disabled={!canChat || busy || waitingForChat || readingFile || !!offline}
+            onClick={()=>groceryImageInput.current?.click()}><Icon name="camera"/></button>
+          <Dictation disabled={!canChat || !!offline} stopSignal={dictationStop}
             focus={() => composer.current?.focus()} append={value => {
               setInput(text => (text.trimEnd() + (text.trim() ? ' ' : '') + value))
               setSynthetic(false)
