@@ -16,7 +16,7 @@ import type { WardrobeDraft } from './outfit-types.ts'
 import { bookOrderFinance,clothingOrders, changeClothingOrder, clothingPhotoTargets,scanClothingOrders, updateClothingTask } from './clothing-orders.ts'
 import { transcribeDictation, maxDictationBytes } from '../connectors/local-dictation.ts'
 import { validRecipeServings } from './recipe-portions.ts'
-import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe } from './grocery.ts'
+import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe, updateRecipePortions } from './grocery.ts'
 import { scanGroceries } from './grocery-scan.ts'
 import { decideMailFinance, pendingMailFinances } from './mail-finance.ts'
 import { confirmedMailAccount, enableMailCategorization, mailAccountKey, syncCategorizedMail } from './mail-sync.ts'
@@ -466,10 +466,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     return reply(res,200,store.decideRecipe(id(run),turn,{save,shop,cancelled,servings},client))
   }
   if (path === '/api/grocery/recipes' && method === 'POST') {
-    const input=await body(req,['action','recipe','run','recipeId','part','index','checked','confirm'])
+    const input=await body(req,['action','recipe','run','recipeId','part','index','checked','servings','quantities','confirm'])
     confirmLocalChange(input.confirm)
     return reply(res,200,store.transaction(()=>{
       if(input.action==='save') return saveRecipe(store,input.run===undefined?input.recipe:store.recipeFromRun(id(input.run)))
+      if(input.action==='portions' && validRecipeServings(input.servings))
+        return updateRecipePortions(store,id(input.recipeId),input.servings,input.quantities)
       if(input.action==='remove')return removeRecipe(store,id(input.recipeId))
       if(input.action==='check' && (input.part==='ingredients'||input.part==='steps') && typeof input.index==='number' && typeof input.checked==='boolean') {
         return checkRecipe(store,id(input.recipeId),input.part,input.index,input.checked)
