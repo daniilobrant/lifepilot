@@ -36,6 +36,7 @@ export function GroceryAnswerCard({answer,hideTitle=false,statuses}:{answer:Groc
   const available=new Set(answer.available.map(name=>name.split(' · ')[0]))
   return <section className="note grocery-answer" aria-label="Ergebnis">
     {!hideTitle&&<strong>{answer.title}</strong>}
+    {answer.sourceUrl?<p><a href={answer.sourceUrl} target="_blank" rel="noreferrer">Originalrezept ansehen</a></p>:null}
     {answer.ingredients?.length?<ul className="recipe-ingredient-status">{answer.ingredients.map((item,index)=><li key={item.name}>
       <input type="checkbox" checked={statuses?statuses[index]==='enough':available.has(item.name)} disabled aria-label={item.name+' im Vorrat'}/>
       <span>{[item.name,item.quantity].filter(Boolean).join(' · ')}<RecipeStockLabel item={item} status={statuses?.[index]}/></span>
@@ -110,6 +111,44 @@ export function ChatRecipe({answer,api,disabled,decide}:{answer:GroceryAnswer,ap
     </>}
     {error?<p role="alert">{error}</p>:null}
   </div>
+}
+
+export function ChatRecipeOptions({answer,api,disabled,decide,refine}:{answer:GroceryAnswer,api:Api,disabled:boolean,
+  decide:(choice:RecipeChoice,option:number)=>Promise<unknown>,refine?:(ingredient:string)=>void}){
+  const [selected,setSelected]=useState<number>()
+  const [stock,setStock]=useState<StockItem[]>([])
+  const [ingredient,setIngredient]=useState('')
+  useEffect(()=>{
+    if(!refine)return
+    let active=true
+    void api<GroceryOverview>('/grocery').then(view=>{if(active)setStock(view.stock)}).catch(()=>{})
+    return ()=>{active=false}
+  },[api,Boolean(refine)])
+  const option=answer.recipeDecision?.option??selected
+  const recipe=option===undefined?undefined:answer.options?.[option]
+  return <section className="recipe-recommendations" aria-label="Rezeptvorschläge">
+    <strong>{answer.title}</strong>
+    {answer.recipeNotice?<p>{answer.recipeNotice}</p>:null}
+    {recipe&&option!==undefined?<div>
+      {!answer.recipeDecision?<button type="button" className="quiet" disabled={disabled} onClick={()=>setSelected(undefined)}>‹ Alle Rezeptvorschläge</button>:null}
+      <ChatRecipe key={option} answer={{...recipe,recipeDecision:answer.recipeDecision}} api={api} disabled={disabled}
+        decide={choice=>decide(choice,option)}/>
+    </div>:<ul>{answer.options?.map((item,index)=><li key={item.title}>
+      <strong>{item.title}</strong>
+      {item.sourceUrl?<p><a href={item.sourceUrl} target="_blank" rel="noreferrer">Originalrezept ansehen</a></p>:null}
+      {item.missing.length?<p>Noch zu prüfen oder einzukaufen: {item.missing.map(ingredient=>[ingredient.name,ingredient.quantity].filter(Boolean).join(' · ')).join(', ')}</p>:
+        <p>Mit dem Vorrat machbar</p>}
+      <button type="button" disabled={disabled} onClick={()=>setSelected(index)}
+        aria-label={item.title+' auswählen'}>Rezept auswählen</button>
+    </li>)}</ul>}
+    {refine&&!answer.recipeDecision?<div className="recipe-refinement">
+      <label>Zutat für die nächste Suche<select disabled={disabled} value={ingredient} onChange={event=>setIngredient(event.currentTarget.value)}>
+        <option value="">Zutat wählen</option>
+        {stock.filter(item=>item.status!=='empty').map(item=><option key={item.id}>{item.name}</option>)}
+      </select></label>
+      <button type="button" disabled={disabled||!ingredient} onClick={()=>refine(ingredient)}>Zutat in den Chat übernehmen</button>
+    </div>:null}
+  </section>
 }
 
 function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:GroceryInput)=>Promise<void>,
@@ -292,6 +331,7 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
       }
       return <details className="grocery-saved-recipe" key={recipe.id}>
       <summary><strong>{recipe.title}</strong><small>{statuses.filter(status=>status==='enough').length}/{recipe.ingredients.length} Zutaten ausreichend</small></summary>
+      {recipe.sourceUrl?<p><a href={recipe.sourceUrl} target="_blank" rel="noreferrer">Originalrezept ansehen</a></p>:null}
       <RecipePortions value={servings} disabled={busy} onChange={value=>setRecipePortions(previous=>({...previous,[recipe.id]:value}))}/>
       {edits?<div className="recipe-quantity-editor">
         <p>Gib die Mengen für die Rezeptbasis von {base} {base===1?'Portion':'Portionen'} ein.</p>

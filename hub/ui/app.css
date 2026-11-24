@@ -1503,3 +1503,12 @@ input[type=file]::file-selector-button {
 .recipe-stock-label { display:block; font-size:.8rem; color:var(--muted); }
 .grocery-recipe-checklists .recipe-stock-label { margin-inline-start:1.55rem; }
 .recipe-quantity-editor { margin-block:.8rem; }
+
+
+.recipe-recommendations { min-width:0; overflow-wrap:anywhere; }
+.recipe-recommendations > ul { display:grid; gap:.65rem; list-style:none; padding:0; }
+.recipe-recommendations > ul > li { background:var(--card); padding:.75rem; border:1px solid var(--control-line); border-radius:var(--control-radius); }
+.recipe-recommendations > ul p { margin-block:.3rem .6rem; }
+.recipe-refinement { display:grid; gap:.5rem; margin-block-start:.8rem; }
+.recipe-refinement select { width:100%; min-width:0; }
+.recipe-refinement button { white-space:normal; justify-self:start; }
