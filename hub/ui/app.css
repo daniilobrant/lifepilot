@@ -700,7 +700,6 @@ progress { display: block; width: 100%; height: 8px; accent-color: var(--mint); 
 .wardrobe-extra-card { border: 1px solid var(--line); background: var(--card); padding: .8rem; border-radius: .75rem; }
 .wardrobe-extra-card h3, .wardrobe-extra-card p, .outfit-scent h3, .outfit-scent p { margin: 0; }
 .wardrobe-extra-image, .outfit-scent img { width: 7rem; height: 7rem; object-fit: contain; }
-.resale-description { white-space: pre-line; }
 .outfit-scent { display: flex; align-items: center; gap: .7rem; padding: .75rem; }
 .outfit-scent img { width: 4rem; height: 4rem; }
 .travel-outfit-select { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,12rem),1fr)); gap: .4rem; }
@@ -1287,9 +1286,9 @@ select[multiple],select[size]:not([size="1"]) { padding-inline:12px; background-
 .wardrobe-extra-header {justify-content:space-between}
 .travel-piece {min-width:0;display:grid;align-content:start;gap:.45rem}
 .travel-piece > label {justify-self:center}
-.fragrance-card,.resale-card {min-width:0;align-content:start;display:grid;gap:.5rem}
-.fragrance-card > img,.resale-card > img {width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;background:var(--bg);border-radius:.7rem}
-.fragrance-card > :is(h3,p),.resale-card > h3 {margin:0;overflow-wrap:break-word}
+.fragrance-card {min-width:0;align-content:start;display:grid;gap:.5rem}
+.fragrance-card > img {width:100%;height:auto;aspect-ratio:4/5;object-fit:contain;background:var(--bg);border-radius:.7rem}
+.fragrance-card > :is(h3,p) {margin:0;overflow-wrap:break-word}
 .fragrance-card .outfit-actions {justify-content:flex-start}
 .fragrance-card .outfit-actions button {font-size:.82rem;padding-inline:.55rem}
 .fragrance-search-form {justify-content:flex-start;align-items:end}
@@ -1419,3 +1418,38 @@ input[type=file]::file-selector-button {
 .travel-choices label:has(input:checked) {background:var(--accent-soft);border-color:var(--mint)}
 .travel-choices input {inline-size:auto;flex:none;accent-color:var(--mint);margin:0}
 @media (max-width:640px) {.travel-intake-row {grid-template-columns:minmax(0,1fr)}}
+
+
+.travel-wardrobe,.resale-panel {scroll-margin-block-start:5rem; min-width:0}
+.travel-request {max-width:11rem; margin-block:.65rem}
+.travel-request .outfit-piece img {width:100%; height:7rem; object-fit:contain}
+.travel-wardrobe fieldset {min-inline-size:0}
+.travel-wardrobe-grid {display:grid; width:100%}
+
+.resale-panel .wardrobe-extra-header {justify-content:space-between; align-items:center; margin-block-end:.8rem}
+.resale-panel .wardrobe-extra-header h2 {margin:0}
+.resale-chooser {margin-block-end:1rem}
+.resale-chooser label {min-width:0; flex:1 1 15rem}
+.resale-grid {display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,16rem),1fr));
+  gap:var(--section-gap); align-items:start}
+.resale-card {display:grid; gap:.65rem; min-width:0; padding:1rem; align-content:start}
+.resale-card :is(h3,p) {margin:0}
+.resale-card header h3 {overflow-wrap:anywhere}
+.resale-card header small {color:var(--muted); font-size:.72rem; text-transform:uppercase; font-weight:650}
+.resale-card .resale-photo {display:grid; place-items:center; width:100%; height:8.5rem; object-fit:contain;
+  border-radius:var(--radius-detail); background:var(--bg)}
+.resale-editor,.resale-prices {display:grid; gap:.55rem; min-width:0}
+.resale-prices {grid-template-columns:repeat(auto-fit,minmax(min(100%,8.5rem),1fr))}
+.resale-panel label {font-size:.84rem; min-width:0}
+.resale-panel :is(input:not([type=file]),select) {width:100%; min-width:0; min-height:2.5rem; border-radius:.7rem}
+.resale-panel select {appearance:none; padding-inline-end:2rem;
+  background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+  background-position:calc(100% - 15px) center,calc(100% - 10px) center; background-size:5px 5px; background-repeat:no-repeat}
+.resale-summary,.resale-photo-options,.resale-links {font-size:.77rem; color:var(--muted)}
+.resale-summary {display:grid; grid-template-columns:minmax(0,1fr) max-content; gap:.5rem; align-items:center}
+.resale-summary p {display:-webkit-box; -webkit-box-orient:vertical; -webkit-line-clamp:2; overflow:hidden}
+.resale-links,.resale-actions {display:flex; flex-wrap:wrap; gap:.4rem}
+.resale-links a {color:var(--mint); text-underline-offset:.14em}
+.resale-card :is(.resale-actions,.resale-summary) button {min-height:2.35rem; padding:.35rem .65rem; border-radius:999px; font-size:.78rem}
+.resale-card .resale-actions button {flex:1 1 auto}
+.resale-photo-options input[type=file] {max-width:100%}

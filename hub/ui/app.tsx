@@ -1698,7 +1698,7 @@ function App() {
           </> : null}
           {page==='Urlaubsplaner' ? <TravelPlanner key={travelRequest?.run ?? 'travel'} api={api} plan={travelRequest?.plan} handoff={travelRequest?.run}
             initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection} /> : null}
-          {page === 'Outfit-Assistent' ? <OutfitAssistant cloudImages={snapshot.cloudModel === true} key={outfitRequest?.run ?? 'studio'} api={api} initialPlan={outfitRequest?.plan} initialChoice={outfitRequest?.choice} initialError={outfitRequest?.error} fragranceNames={outfitRequest?.fragranceNames} initialRequired={outfitRequest?.required} /> : null}
+          {page === 'Outfit-Assistent' ? <OutfitAssistant cloudImages={snapshot.cloudModel === true} key={outfitRequest?.run ?? 'studio'} api={api} initialPlan={outfitRequest?.plan} initialChoice={outfitRequest?.choice} initialError={outfitRequest?.error} fragranceNames={outfitRequest?.fragranceNames} initialRequired={outfitRequest?.required} onOpenPlanner={()=>navigate('Urlaubsplaner')} /> : null}
           {page === 'Bewerbungen' ? <Applications initialId={boardSource?.source_type==='application'?boardSource.source_id:undefined} api={api} onBack={() => setPage('Skills')} /> : null}
           {page === 'Einstellungen' ? <>
             <nav className="actions settings-tabs" aria-label="Einstellungsbereiche">
