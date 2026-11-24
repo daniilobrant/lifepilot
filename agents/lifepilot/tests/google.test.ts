@@ -329,13 +329,19 @@ test('Google write tests create one isolated calendar, recover the event and add
 
 test('owned Calendar grant can remove a verified occurrence but rejects recurrence masters and other owners', async () => {
   const temp=mkdtempSync(join(tmpdir(),'lifepilot-calendar-write-'))
-  let recurrence=false, owner=true, deletions=0
+  let recurrence=false, owner=true, deletions=0, verified=true, email='other@example.com', subject='identity-a'
+  let expiresIn=3600
   const start='2026-11-25T09:00:00+01:00', end='2026-11-25T10:00:00+01:00'
   const previous={title:'Vorlesung Statistik',start,end}
   const mock:typeof fetch=async(input,options)=>{
     const url=new URL(String(input))
-    if(url.hostname==='oauth2.googleapis.com')return json({scope:googleScopes['calendar-write'],token_type:'Bearer',
-      expires_in:3600,access_token:'fixture-owned-calendar',refresh_token:'fixture-refresh'})
+    if(url.hostname==='oauth2.googleapis.com')return json({scope:'email openid https://www.googleapis.com/auth/calendar.events.owned',token_type:'Bearer',
+      expires_in:expiresIn,access_token:'fixture-owned-calendar',refresh_token:'fixture-refresh'})
+    if (url.hostname==='openidconnect.googleapis.com') {
+      assert.equal(url.pathname, '/v1/userinfo')
+      assert.equal(new Headers(options?.headers).get('authorization'), 'Bearer fixture-owned-calendar')
+      return json({email, email_verified:verified, sub:subject})
+    }
     assert.match(url.pathname,/\/calendars\/fixture%40example\.com\/events/u)
     if(url.pathname.endsWith('/events'))return json({accessRole:owner?'owner':'reader'})
     assert.ok(url.pathname.endsWith('/one_occurrence'))
@@ -351,10 +357,20 @@ test('owned Calendar grant can remove a verified occurrence but rejects recurren
   try{
     const connector=new GoogleConnector(temp,origin,mock)
     connector.configure('calendar',credentials)
-    const authorization=new URL(connector.begin('calendar-write','fixture@example.com').url)
-    assert.equal(authorization.searchParams.get('scope'),googleScopes['calendar-write'])
-    assert.equal(authorization.searchParams.get('login_hint'),'fixture@example.com')
-    await connector.complete(new URLSearchParams({state:authorization.searchParams.get('state')!,code:'fixture-code'}))
+    const connect = () => {
+      const authorization=new URL(connector.begin('calendar-write','fixture@example.com').url)
+      assert.equal(authorization.searchParams.get('scope'),googleScopes['calendar-write'])
+      assert.equal(authorization.searchParams.get('login_hint'),'fixture@example.com')
+      return connector.complete(new URLSearchParams({state:authorization.searchParams.get('state')!,code:'fixture-code'}))
+    }
+    await assert.rejects(connect(), {status:403})
+    assert.equal(connector.status().find(item=>item.service==='calendar-write')?.connected,false)
+    email='fixture@example.com'
+    verified=false
+    await assert.rejects(connect(), {status:403})
+    verified=true
+    await connect()
+    await assert.rejects(connector.changeAppointment('other@example.com','one_occurrence',previous,null,'calendar-write'),{status:403})
     const remove=()=>connector.changeAppointment('fixture@example.com','one_occurrence',previous,null,'calendar-write')
     recurrence=true
     await assert.rejects(remove,{status:409})
@@ -363,6 +379,12 @@ test('owned Calendar grant can remove a verified occurrence but rejects recurren
     await assert.rejects(remove,{status:403})
     owner=true
     await remove()
+    assert.equal(deletions,1)
+    connector.disconnect('calendar-write')
+    expiresIn=1
+    await connect()
+    subject='identity-b'
+    await assert.rejects(remove(), {status:403})
     assert.equal(deletions,1)
   }finally{rmSync(temp,{recursive:true,force:true})}
 })

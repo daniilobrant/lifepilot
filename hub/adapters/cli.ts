@@ -15,7 +15,7 @@ const help = `LifePilot [--acceptance | --nightbot] <Befehl>
   agents | list | show VORGANGS-ID
   recipes | recipe-change JSON --confirm
   grocery | grocery-recipe | grocery-change JSON --confirm
-  grocery-scan DATEI --confirm [--receipt | --item]
+  grocery-scan DATEI --confirm [--receipt | --item] [--codex-image]
   finance [YYYY-MM] | finance-save JSON MONAT --confirm [ID REVISION]
   finance-remove ID REVISION MONAT --confirm | finance-settings JSON REVISION --confirm
   profile | profile-save 'JSON' REVISION --confirm | google-account
@@ -54,7 +54,7 @@ const help = `LifePilot [--acceptance | --nightbot] <Befehl>
   application-save 'JSON' --confirm [ID REVISION] | application-image PFAD --confirm
   dictation AUFNAHME.mp4 --confirm
   outfit-product-search 'SUCHTEXT' --confirm
-  outfit-look-analyze FOTO-ID --confirm | outfit-look-pieces LOOK-ID 'ID-LISTE-JSON' --confirm
+  outfit-look-analyze FOTO-ID --confirm [--codex-image] | outfit-look-pieces LOOK-ID 'ID-LISTE-JSON' --confirm
   orders-refresh --confirm [MONAT]
   clothing-orders | clothing-order ID received|kept|return|returned|deadline --confirm [ARTIKEL-ID-ODER-DATUM]
   clothing-photos ID --confirm
@@ -65,7 +65,7 @@ const help = `LifePilot [--acceptance | --nightbot] <Befehl>
   outfit-generate 'JSON' --confirm [--calendar] | outfit-save VORSCHLAG-ID --confirm
   outfit-remove item|look|profile-photo ID --confirm | outfit-photo ID-ODER-profile PFAD --confirm
   outfit-look-photo LOOK-ID-ODER-"-" DATEI --confirm [TITEL]
-  outfit-analyze FOTO --confirm | outfit-product URL --confirm [--image] | outfit-product-photo ID URL --confirm
+  outfit-analyze FOTO --confirm [--codex-image] | outfit-product URL --confirm [--image] | outfit-product-photo ID URL --confirm
   trips | trip ID | trip-windows 'JSON' --confirm | trip-preview 'JSON' --confirm
   trip-guide ENTWURF-ID --confirm | trip-draft ENTWURF-ID
   trip-google REISE-ID --confirm | trip-remove REISE-ID --confirm
@@ -299,7 +299,7 @@ async function dispatch() {
     case 'outfit-generate': return call('/outfits/generate', { query: JSON.parse(args[0] ?? 'null'), confirm: confirm(args[1]), useCalendar: args[2] === '--calendar' }, 20000)
     case 'outfit-save': return call('/outfits/save', { proposal: args[0], confirm: confirm(args[1]) })
     case 'outfit-remove': return call('/outfits/remove', { target: args[0], item: args[1], confirm: confirm(args[2]) })
-    case 'outfit-look-analyze': return call('/outfits/look-analyze',{photo:args[0],confirm:confirm(args[1])},34000)
+    case 'outfit-look-analyze': return call('/outfits/look-analyze',{photo:args[0],confirm:confirm(args[1]),codex:args[2]==='--codex-image'},105000)
     case 'outfit-look-pieces': return call('/outfits/look-pieces',{look:args[0],items:JSON.parse(args[1]??'[]'),confirm:confirm(args[2])})
     case 'outfit-product-search': return call('/outfits/product-search',{query:args[0],confirm:confirm(args[1])},76000)
     case 'outfit-product': return call('/outfits/product', { address: args[0], confirm: confirm(args[1]), prepareImage: args[2] === '--image' }, 30000)
@@ -320,6 +320,7 @@ async function dispatch() {
       const audio = command === 'dictation'
       const outfit = command !== 'application-image' && !audio
       const scan = command === 'grocery-scan'
+      const codexImage = (scan || command === 'outfit-analyze') && args.slice(2).includes('--codex-image')
       const look = command === 'outfit-look-photo'
       const attach = command === 'outfit-photo' || look
       confirm(args[attach ? 2 : 1])
@@ -332,8 +333,8 @@ async function dispatch() {
         const path = audio ? '/chat/dictation' : command==='fragrance-label' ? '/outfits/fragrance-label' : scan ? '/grocery/scan'+(args[2]==='--receipt'?'?kind=receipt':args[2]==='--item'?'?kind=item':'') : look ? '/outfits/look-photo?'+lookQuery : attach ? '/outfits/photo?item=' + encodeURIComponent(args[0] ?? '') : outfit ? '/outfits/analyze-photo' : '/applications/image'
         const response = await fetch(origin + '/api' + path, {
           method: 'POST', headers: { Authorization: 'Bearer ' + readFileSync(secretPath, 'utf8'),
-            'Content-Type': audio ? 'audio/mp4' : 'application/octet-stream', 'X-LifePilot-Confirm': audio ? 'dictation' : 'image' },
-          body: readFileSync(descriptor), signal: AbortSignal.timeout(audio?85000:scan?62000:50000), redirect: 'error',
+            'Content-Type': audio ? 'audio/mp4' : 'application/octet-stream', 'X-LifePilot-Confirm': audio ? 'dictation' : codexImage ? 'codex-image' : 'image' },
+          body: readFileSync(descriptor), signal: AbortSignal.timeout(audio?85000:codexImage?105000:scan?62000:50000), redirect: 'error',
         })
         const result = await response.json()
         if (!response.ok) throw Error(result.error)

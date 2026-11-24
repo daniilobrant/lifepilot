@@ -191,3 +191,18 @@ test('Synthetic travel proposals can be saved without the external guide', async
   const saved = await (await request(trial, '/trips/save', 200, cli, { preview: preview.id, confirm: true })).json()
   assert.equal(saved.draft.destination, draft.destination)
 })
+
+test('Synthetic and unsigned profiles reject explicit Codex image transport', async () => {
+  for (const [base, profile] of [[trial, 'acceptance'], [primary, 'local']]) {
+    const headers = { ...bearer(profile), 'Content-Type': 'application/octet-stream' }
+    for (const path of ['/grocery/scan', '/outfits/analyze-photo']) {
+      const missing = await fetch(base + '/api' + path, { method:'POST', headers, body:Buffer.alloc(0) })
+      assert.equal(missing.status,403)
+      const request = await fetch(base + '/api' + path, {
+        method:'POST', headers:{...headers,'X-LifePilot-Confirm':'codex-image'}, body:Buffer.alloc(0),
+      })
+      assert.equal(request.status,423)
+    }
+    await request(base, '/outfits/look-analyze', 423, bearer(profile), { photo:randomUUID(), confirm:true, codex:true })
+  }
+})
