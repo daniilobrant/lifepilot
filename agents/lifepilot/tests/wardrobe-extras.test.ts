@@ -2,7 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Store } from '../../../hub/runtime/store.ts'
 import { attachOutfitPhoto, OutfitStudio, outfitOverview, saveWardrobe } from '../../../hub/runtime/outfits.ts'
-import { changeResale, fragranceList, recommendFragrance, saveFragrance, updateFragranceTags, saveTravelWardrobe, travelWardrobe } from '../../../hub/runtime/wardrobe-extras.ts'
+import { addTravelWardrobeItem, changeResale, fragranceList, recommendFragrance, saveFragrance, updateFragranceTags, saveTravelWardrobe, travelWardrobe } from '../../../hub/runtime/wardrobe-extras.ts'
 import { previewTrip, saveTrip, changeTrip, trip, removeSavedTrip } from '../../../hub/runtime/trips.ts'
 import { savePersonalProfile } from '../../../hub/runtime/personal-profile.ts'
 import { canonicalGroceryName,grocerySuggestions } from '../../../hub/runtime/grocery-catalog.ts'
@@ -55,6 +55,26 @@ test('Travel outfit generation uses the saved trip-specific wardrobe and never f
     assert.deepEqual(travelWardrobe(store,saved.id),[])
     removeSavedTrip(store,saved.id)
     assert.throws(()=>travelWardrobe(store,saved.id),{status:404})
+  } finally {store.db.close()}
+})
+
+test('Adding one wardrobe item preserves the selected trip and existing packing choices',()=>{
+  const store=new Store(':memory:')
+  try {
+    const top=saveWardrobe(store,{name:'Hemd',category:'top'}).id
+    const trousers=saveWardrobe(store,{name:'Hose',category:'bottom'}).id
+    const spare=saveWardrobe(store,{name:'Pullover',category:'top'}).id
+    const first=saveTrip(store,previewTrip(draft,undefined,undefined,store).id)
+    const second=saveTrip(store,previewTrip({...draft,destination:'Zweite Teststadt'},undefined,undefined,store).id)
+    store.transaction(()=>saveTravelWardrobe(store,first.id,[top]))
+    const expected=[top,trousers].sort()
+    assert.deepEqual(store.transaction(()=>addTravelWardrobeItem(store,first.id,trousers)).sort(),expected)
+    assert.deepEqual(store.transaction(()=>addTravelWardrobeItem(store,first.id,trousers)).sort(),expected)
+    assert.deepEqual(travelWardrobe(store,second.id),[])
+    assert.ok(outfitOverview(store).wardrobe.some(item=>item.id===trousers))
+    store.transaction(()=>changeResale(store,spare,'sorted',null))
+    assert.throws(()=>store.transaction(()=>addTravelWardrobeItem(store,first.id,spare)),{status:409})
+    assert.deepEqual(travelWardrobe(store,first.id).sort(),expected)
   } finally {store.db.close()}
 })
 

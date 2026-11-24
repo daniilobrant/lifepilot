@@ -9,7 +9,7 @@ import {honorSeriesPeriod,seriesFromChat} from './calendar-series-chat.ts'
 import {publicHoliday,travelDays} from './trip-windows.ts'
 import {approveLectureCancellation,inboxWithLectureTargets} from './university-calendar.ts'
 import {MAX_CHAT_BODY_BYTES,MAX_CHAT_INPUT} from './model-payload.ts'
-import { changeResale, fragranceList, fragrancePhoto, updateFragranceTags, resaleList, saveFragrance, saveTravelWardrobe, travelWardrobe } from './wardrobe-extras.ts'
+import { addTravelWardrobeItem, changeResale, fragranceList, fragrancePhoto, updateFragranceTags, resaleList, saveFragrance, saveTravelWardrobe, travelWardrobe } from './wardrobe-extras.ts'
 import { researchFragrance, normalizedFragranceQuery } from './fragrance-research.ts'
 import type { FragranceDraft } from './wardrobe-extras-types.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
@@ -702,10 +702,14 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path==='/api/outfits/travel' && method==='GET') return reply(res,200,travelWardrobe(store,id(url.searchParams.get('trip'))))
   if (path==='/api/outfits/travel' && method==='POST') {
-    const {tripId,items,confirm}=await body(req,['tripId','items','confirm'])
+    const {tripId,items,item,confirm}=await body(req,['tripId','items','item','confirm'])
     confirmLocalChange(confirm)
-    if (!Array.isArray(items) || items.length>80) throw new Problem(400,'Wähle bis zu 80 Kleidungsstücke.')
-    return reply(res,200,store.transaction(()=>saveTravelWardrobe(store,id(tripId),items.map(id))))
+    const tripKey=id(tripId)
+    if (item!==undefined && items===undefined) {
+      return reply(res,200,store.transaction(()=>addTravelWardrobeItem(store,tripKey,id(item))))
+    }
+    if (item!==undefined || !Array.isArray(items) || items.length>80) throw new Problem(400,'Wähle bis zu 80 Kleidungsstücke.')
+    return reply(res,200,store.transaction(()=>saveTravelWardrobe(store,tripKey,items.map(id))))
   }
   if (path==='/api/outfits/fragrance-tags' && method==='POST') {
     const {scent,occasions,seasons,confirm}=await body(req,['scent','occasions','seasons','confirm'])
