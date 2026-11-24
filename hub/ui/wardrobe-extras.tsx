@@ -282,10 +282,11 @@ export function FragrancePanel({api,names=[]}:{api:Api,names?:string[]}) {
 }
 
 export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedItem}:{api:Api,wardrobe:WardrobeItem[],renderPiece:(item:WardrobeItem)=>ReactNode,renderOutfit:(look:Outfit)=>ReactNode,requestedItem?:string}) {
-  const [trips,setTrips]=useState<TripSummary[]>([])
+  const [trips,setTrips]=useState<TripSummary[]>()
   const [selected,setSelected]=useState('')
   const [picked,setPicked]=useState<string[]>([])
-  const [savedItems,setSavedItems]=useState<string[]>([])
+  const [pendingItem,setPendingItem]=useState(requestedItem)
+  const [notice,setNotice]=useState('')
   const [ready,setReady]=useState('')
   const [occasion,setOccasion]=useState('')
   const [daypart,setDaypart]=useState<OutfitDaypart>()
@@ -295,29 +296,48 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
   const [error,setError]=useState('')
   useEffect(()=>{
     let active=true
-    void api<TripSummary[]>('/trips').then(rows=>{if(active){setTrips(rows);setSelected(rows[0]?.id??'')}})
-      .catch(error=>{if(active)setError(errorMessage(error))})
+    void api<TripSummary[]>('/trips').then(async rows=>{
+      if(!active)return
+      setTrips(rows)
+      if(!requestedItem)setSelected(rows[0]?.id??'')
+      if(requestedItem && rows.length===1){
+        setBusy(true)
+        try {
+          const items=await api<string[]>('/outfits/travel',{tripId:rows[0].id,item:requestedItem,confirm:true})
+          if(active)finishAddition(items)
+        } finally {if(active){setSelected(rows[0].id);setBusy(false)}}
+      }
+    }).catch(error=>{if(active)setError(errorMessage(error))})
     return ()=>{active=false}
-  },[api])
+  },[api,requestedItem])
   useEffect(()=>{
     let active=true
     if (selected) void api<string[]>('/outfits/travel?trip='+encodeURIComponent(selected)).then(items=>{
       if(active){
-        setSavedItems(items)
-        setPicked(requestedItem&&!items.includes(requestedItem)&&items.length<80?[...items,requestedItem]:items)
+        setPicked(items)
         setReady(selected)
       }
     }).catch(error=>{if(active)setError(errorMessage(error))})
     return ()=>{active=false}
-  },[api,selected,requestedItem])
-  const trip=trips.find(row=>row.id===selected)
+  },[api,selected])
+  const trip=trips?.find(row=>row.id===selected)
   const selectable=wardrobe.filter(item=>!item.orderState&&!item.saleState)
+  function finishAddition(items:string[]) {
+    setPicked(items);setPendingItem(undefined)
+    setNotice('Kleidungsstück zur Urlaubspackliste hinzugefügt.')
+  }
+  async function addPendingItem() {
+    if(!trip || !pendingItem || busy)return
+    setBusy(true);setError('');setNotice('')
+    try {
+      finishAddition(await api<string[]>('/outfits/travel',{tripId:trip.id,item:pendingItem,confirm:true}))
+    } catch(error) {setError(errorMessage(error))} finally {setBusy(false)}
+  }
   async function perform(generate:boolean) {
     if (!trip) return
     setBusy(true);setError('')
     try {
       await api('/outfits/travel',{tripId:trip.id,items:picked,confirm:true})
-      setSavedItems(picked)
       if (generate) {
         setLook(await api<OutfitChoice>('/outfits/generate',{query:{
         tripId:trip.id,required:[],mode:occasion.trim()?'occasion':'inspiration',occasion:occasion.trim(),daypart,
@@ -329,17 +349,22 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
   }
   return <section className="outfit-form wardrobe-extras"><h2>Urlaubsgarderobe</h2>
     {error?<p role="alert">{error}</p>:null}
-    {!trips.length?<p>Lege im Urlaubsplaner zuerst eine Reise an.</p>:<label>Reise<select value={selected} disabled={busy}
+    {notice?<p role="status">{notice}</p>:null}
+    {!trips && !error ? <p role="status">Reisen werden geladen …</p> : null}
+    {trips?.length===0 ? <p>Lege im Urlaubsplaner zuerst eine Reise an.</p> : null}
+    {trips && trips.length>0 ? <label>Reise<select value={selected} disabled={busy}
       onChange={event=>{
         const next=event.target.value
         if (next===selected) return
-        setReady('');setLook(undefined);setVariant(0);setError('');setSelected(next)
+        setReady('');setLook(undefined);setVariant(0);setError('');setNotice('');setSelected(next)
       }}>
-      {trips.map(trip=><option key={trip.id} value={trip.id}>{trip.destination} · {formatDay(trip.start)}</option>)}</select></label>}
+      {!selected ? <option value="" disabled>Reise auswählen</option> : null}
+      {trips.map(trip=><option key={trip.id} value={trip.id}>{trip.destination} · {formatDay(trip.start)}</option>)}</select></label> : null}
     {trip && ready===trip.id ? <>
-      {requestedItem&&<p role="status">{savedItems.includes(requestedItem)?'Das Teil steht bereits auf der Packliste.':
-        picked.includes(requestedItem)?'Das Teil ist ausgewählt. Speichere die Auswahl für diese Reise.':'Das Teil ist für diese Reise noch nicht ausgewählt.'}</p>}
-      <fieldset disabled={busy}><legend>Kleidungsstücke einpacken</legend><div className="outfit-wardrobe-grid">
+      {pendingItem ? <div className="outfit-actions">
+        <button type="button" className="outfit-primary" disabled={busy} onClick={()=>void addPendingItem()}>Zur Packliste hinzufügen</button>
+      </div> : null}
+      <fieldset disabled={busy || Boolean(pendingItem)}><legend>Kleidungsstücke einpacken</legend><div className="outfit-wardrobe-grid">
         {selectable.map(item=><div className="travel-piece" key={item.id}>{renderPiece(item)}
           <label className="outfit-check"><input type="checkbox" checked={picked.includes(item.id)} aria-label={item.name+' einpacken'}
             onChange={()=>{setLook(undefined);setPicked(current=>current.includes(item.id)?current.filter(id=>id!==item.id):current.length<80?[...current,item.id]:current)}}/>
@@ -349,8 +374,8 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
         <label>Tageszeit<select value={daypart??''} onChange={event=>setDaypart(event.target.value as OutfitDaypart || undefined)}>
           <option value="">Egal</option>{outfitDayparts.map(part=><option key={part}>{part}</option>)}
         </select></label></div>
-      <div className="outfit-actions"><button type="button" disabled={busy} onClick={()=>void perform(false)}>Auswahl speichern</button>
-        <button type="button" className="outfit-primary" disabled={busy||!picked.length} onClick={()=>void perform(true)}>Urlaubsoutfit erstellen</button></div>
+      <div className="outfit-actions"><button type="button" disabled={busy || Boolean(pendingItem)} onClick={()=>void perform(false)}>Auswahl speichern</button>
+        <button type="button" className="outfit-primary" disabled={busy || Boolean(pendingItem) || !picked.length} onClick={()=>void perform(true)}>Urlaubsoutfit erstellen</button></div>
       {look?renderOutfit(look.look):null}
     </>:null}
   </section>
