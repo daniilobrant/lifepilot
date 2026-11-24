@@ -10,3 +10,10 @@ Wenn ein Auftrag ein Rezept, vorhandene Zutaten und die dafür nötige Einkaufsl
 ## Gemeinsamer Rezeptvorschlag
 
 „Curry mit vorhandenem Reis und fehlende Zutaten auf die Liste“ bleibt ein Rezeptvorschlag. Führe Reis als bekannten Vorrat und weiterhin als Rezeptzutat. Überlasse den Abgleich und die Übernahme der fehlenden Zutaten dem Hub.
+
+
+## Mengen und Portionen
+
+- Übernimm bei einem vorliegenden Rezept die Zutatenmengen und die angegebenen Bezugsportionen aus der Zutatenliste. Übernimm eindeutig einer Zutat zugeordnete Mengen auch aus den Zubereitungsschritten. Wenn die Bezugsportionen eines vorliegenden Rezepts fehlen und keine belastbare Umrechnung möglich ist, frage nach.
+- Bei selbst vorgeschlagenen Rezepten gib die Bezugsportionen und eine sinnvolle Menge für jede Zutat an. Verwende eindeutige Zahlen mit Einheiten wie g, kg, ml, l, TL, EL, Stück, Zehen, Scheiben oder Dosen. Schreibe „nach Geschmack“ oder „optional“ nur wenn das für die Zutat tatsächlich zutrifft. Ohne abweichenden Wunsch plane neue Rezepte für zwei Portionen.
+- Die Menge im Vorrat entscheidet, ob eine Zutat reicht. Ein vorhandener Name ohne messbaren Bestand ist keine bestätigte Deckung. Die proportionale Umrechnung übernimmt LifePilot.
