@@ -658,6 +658,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
       </div>
     ))}</div>
   }
+  const sortedItems=overview?.wardrobe.filter(item=>item.saleState==='sorted') ?? []
   const looks = overview?.looks.filter(look => [look.title,look.occasion,look.style].join(' ').toLocaleLowerCase('de-DE')
     .includes(overview.looks.length > 1 ? lookFilter.trim().toLocaleLowerCase('de-DE') : '')) ?? []
   const mode = query.required.length ? 'anchor' : query.occasion.trim() || eventContext ? 'occasion' : 'inspiration'
@@ -753,12 +754,9 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
             {items.length ? wardrobeGrid(items) : <p className="wardrobe-empty">Noch keine Artikel hinzugefügt.</p>}
           </section>
         })}
-        {([['selling','Wird verkauft'],['sorted','Aussortierte Sachen']] as const).map(([state,title])=>{
-          const items=overview.wardrobe.filter(item=>item.saleState===state)
-          return items.length ? <section key={state} className="wardrobe-section">
-            <h3>{title}</h3>{wardrobeGrid(items)}
-          </section> : null
-        })}
+        {sortedItems.length ? <section className="wardrobe-section">
+          <h3>Aussortierte Sachen</h3>{wardrobeGrid(sortedItems)}
+        </section> : null}
       </> : null}
       {wardrobeRemoval ? <dialog ref={wardrobeRemovalDialog} className="task-dialog card wardrobe-remove-dialog"
         aria-labelledby="wardrobe-remove-title" onCancel={event=>{event.preventDefault();setWardrobeRemoval(undefined)}}>

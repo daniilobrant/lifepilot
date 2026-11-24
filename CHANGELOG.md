@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.6 · 24. November 2026
+
+- Aussortierte Teile erscheinen ausschließlich im Kleiderschrank. Der Tab „Verkaufen“ zeigt laufende Verkäufe und verkaufte Teile in eigenen Abschnitten.
+- „Persönlich“ zeigt Finanzen & Abos, Vorrat & Einkauf, Outfit-Assistent und Bestellungstracker in dieser Reihenfolge.
+
 ## v1.0.5 · 24. November 2026
 
 - „Fristen & Abgaben“ zeigt auf der Startseite Einträge von heute bis einschließlich sieben Tage im Voraus. Erledigte Einträge stehen durchgestrichen unter den offenen.
