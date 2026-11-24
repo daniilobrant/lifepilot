@@ -208,11 +208,13 @@ function LookPieces({look,wardrobe,api,reload,cloudImages}:{
   </div>
 }
 
-function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }: {
-  api:Api, item:WardrobeItem|null, initialMode?:'photo'|'link', onDone:()=>Promise<void>, cloudImages:boolean,
+function WardrobeEditor({ api, item, onDone, cloudImages }: {
+  api:Api, item:WardrobeItem|null, onDone:()=>Promise<void>, cloudImages:boolean,
 }) {
   const [draft,setDraft] = useState<WardrobeDraft>(item ?? emptyWardrobe)
-  const [mode,setMode] = useState<'photo'|'link'|'basic'>(initialMode)
+  const [mode,setMode] = useState<'photo'|'link'|'basic'>()
+  const [searchName,setSearchName] = useState('')
+  const [basicSearched,setBasicSearched] = useState(false)
   const [enterSource,setEnterSource] = useState(!item)
   const [hasDraft,setHasDraft] = useState(Boolean(item))
   const [productOptions,setProductOptions]=useState<{colors:string[],sizes:string[]}>()
@@ -250,7 +252,7 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
     try {
       const result=await api<{candidates:ProductCandidate[]}>('/outfits/product-search',{query,confirm:true},76000)
       setCandidates(result.candidates)
-      if (!result.candidates.length) setFeedback('Kein passendes Produktbild gefunden. Du kannst dein Foto verwenden.')
+      if (!result.candidates.length) setFeedback('Kein passendes Produktbild gefunden.')
     } finally {setSearching(false)}
   }
   function searchProduct() {
@@ -286,15 +288,35 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
     setProductOptions({colors:result.colors ?? [],sizes})
     setFeedback(result.note ?? '')
   }
+  function selectSource(source:'photo'|'link'|'basic') {
+    setMode(source);setFeedback('');setFailed(false);setBasicSearched(false)
+    clearSearch()
+    if(source!=='photo'){setFiles([]);setFileIndex(0)}
+  }
+  function reviewBasicResult(candidate?:ProductCandidate) {
+    const name=candidate?.name ?? searchName.trim()
+    const recognized=outfitGarment(name) ?? outfitGarment(searchName)
+    setDraft({...(item??emptyWardrobe),...candidate?.draft,...recognized,name:name.slice(0,120),source:candidate?.source ?? item?.source ?? ''})
+    setPhotoToken(candidate?.photoToken)
+    setProductOptions(undefined);clearSearch();setFeedback('')
+    setHasDraft(true);setEnterSource(false)
+  }
   function inspect(event: FormEvent) {
     event.preventDefault()
-    if (mode!=='link' || !address.trim()) return
-    void perform(async()=>{
-      await loadProduct(address.trim())
-      clearSearch()
-      setEnterSource(false)
-      setHasDraft(true)
-    })
+    if(mode==='basic' && searchName.trim().length>=3) {
+      void perform(async()=>{
+        setBasicSearched(false);setCandidates([])
+        await findProducts(searchName.trim())
+        setBasicSearched(true)
+      })
+    } else if(mode==='link' && address.trim()) {
+      void perform(async()=>{
+        await loadProduct(address.trim())
+        clearSearch()
+        setEnterSource(false)
+        setHasDraft(true)
+      })
+    }
   }
   async function saveChoice(candidate?:ProductCandidate) {
     await api('/outfits/item',{
@@ -320,9 +342,9 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
       {files.length>1 ? <p role="status">Foto {fileIndex+1} von {files.length} · {files[fileIndex]?.name}</p> : null}
       {enterSource ? <>
         <div className="outfit-chips" aria-label="Quelle auswählen">
-          <button type="button" aria-pressed={mode==='photo'} onClick={()=>{setMode('photo');setFeedback('')}}>Eigenes Bild oder Screenshot</button>
-          <button type="button" aria-pressed={mode==='link'} onClick={()=>{setMode('link');setFiles([]);setFeedback('')}}>Produktlink</button>
-          <button type="button" aria-pressed={mode==='basic'} onClick={()=>{setMode('basic');setFiles([]);setFeedback('')}}>Basic-Suche</button>
+          <button type="button" aria-pressed={mode==='photo'} onClick={()=>selectSource('photo')}>Eigenes Bild oder Screenshot</button>
+          <button type="button" aria-pressed={mode==='link'} onClick={()=>selectSource('link')}>Produktlink</button>
+          <button type="button" aria-pressed={mode==='basic'} onClick={()=>selectSource('basic')}>Einfache Suche</button>
         </div>
         {mode==='photo' ? <label>{item?'Foto oder Screenshot auswählen':'Fotos oder Screenshots auswählen'}<input type="file" accept={importFormats} multiple={!item}
           onChange={event=>{
@@ -333,6 +355,24 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
           }} /></label> : mode==='link' ?
           <label>Produktlink<input type="url" autoFocus required maxLength={500} placeholder="https://" value={address}
             onChange={event=>setAddress(event.target.value)} /></label> : null}
+        {mode==='basic' ? <>
+          <div className="outfit-actions wardrobe-name-search">
+            <label>Name des Kleidungsstücks<input type="search" autoFocus required maxLength={420}
+              placeholder="z. B. Levi’s 501 Jeans" value={searchName} onChange={event=>{
+                setSearchName(event.currentTarget.value);setBasicSearched(false);setCandidates([]);setFeedback('')
+              }}/></label>
+            <button type="submit" className="outfit-primary" disabled={searchName.trim().length<3}>Teil suchen</button>
+          </div>
+          {candidates.length>0 ? <div className="outfit-product-grid">
+            {candidates.map(candidate=><figure key={candidate.photoToken}>
+              <img src={preparedPath(candidate.photoToken)} alt={candidate.name}/>
+              <figcaption>{candidate.name}</figcaption>
+              <button type="button" aria-label={'Treffer auswählen: '+candidate.name}
+                onClick={()=>reviewBasicResult(candidate)}>Auswählen</button>
+            </figure>)}
+          </div> : null}
+          {basicSearched && !candidates.length ? <button type="button" onClick={()=>reviewBasicResult()}>Manuell erfassen</button> : null}
+        </> : null}
         {mode==='photo' && files[fileIndex] ? <section className="outfit-product-search" aria-labelledby="outfit-import-hints">
           <h3 id="outfit-import-hints">Was weißt du über das Teil?</h3>
           <p>Alle Angaben sind optional. Für die Produktsuche werden nur Suchwörter verwendet. Dein Foto bleibt auf dem Mac.</p>
@@ -349,10 +389,6 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
         {busy ? <div className="loading" role="status"><span>Quelle wird analysiert …</span><progress aria-label="Kleidungsstück wird analysiert" /></div> : null}
         <div className="outfit-actions">
           {mode==='link' ? <button type="submit" className="outfit-primary" disabled={!address.trim()}>Link einlesen</button> : null}
-          {mode==='basic' ? <button type="button" className="outfit-primary" onClick={()=>{
-            setDraft(item ?? emptyWardrobe);setPhotoToken(undefined);setProductOptions(undefined);clearSearch();setSearchOpen(true)
-            setHasDraft(true);setEnterSource(false)
-          }}>Angaben eingeben</button> : null}
           {failed && files[fileIndex+1] ? <button type="button" onClick={()=>selectPhoto(fileIndex+1)}>Foto überspringen</button>:null}
           {hasDraft ? <button type="button" onClick={()=>setEnterSource(false)}>Zurück zum Formular</button> : null}
           <button type="button" onClick={()=>void perform(onDone)}>Schließen</button>
@@ -463,7 +499,7 @@ function WardrobeEditor({ api, item, initialMode='photo', onDone, cloudImages }:
           <button type="submit" className="outfit-primary">{busy?'Wird gespeichert …':files[fileIndex+1]?'Speichern und weiter':
             mode==='photo' && files[fileIndex] ? 'Eigenes Foto speichern' : 'Teil speichern'}</button> : null}
           {files[fileIndex+1] ? <button type="button" onClick={()=>selectPhoto(fileIndex+1)}>Foto überspringen</button> :
-            <button type="button" onClick={()=>{setEnterSource(true);setFeedback('');clearSearch()}}>Quelle wechseln</button>}
+            <button type="button" onClick={()=>{setMode(undefined);setEnterSource(true);setFeedback('');clearSearch()}}>Quelle wechseln</button>}
           <button type="button" onClick={()=>void perform(onDone)}>Schließen</button></div>
       </>}
     </fieldset>
@@ -573,8 +609,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
   },[api,day,tab])
   const [choice,setChoice] = useState<OutfitChoice | undefined>(initialChoice)
   const [saved,setSaved] = useState(false)
-  const [selectedCategory,setCategory] = useState('')
-  const [editor,setEditor] = useState<WardrobeItem | null | 'link'>()
+  const [editor,setEditor] = useState<WardrobeItem | null>()
   const [packingItem,setPackingItem]=useState<string>()
   const [resaleItem,setResaleItem]=useState<WardrobeItem>()
   const [removing,setRemoving] = useState('')
@@ -614,9 +649,26 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
       await reload()
     })
   }
-  const availableCategories = Object.entries(wardrobeCategories).filter(([category]) => overview?.wardrobe.some(item => item.category === category))
-  const activeCategory = availableCategories.some(([category]) => category === selectedCategory) ? selectedCategory : ''
-  const visible = overview?.wardrobe.filter(item=>!activeCategory || item.category===activeCategory) ?? []
+  function wardrobeGrid(items:WardrobeItem[]) {
+    return <div className="outfit-wardrobe-grid">{items.map(item=>(
+      <div key={item.id} className={item.saleState?'outfit-inventory wardrobe-inactive':'outfit-inventory'}>
+        <Piece item={item} imageVersion={imageVersion} />
+        <WardrobeMenu title={productDisplayName(item.name)}>
+          <button type="button" onClick={()=>setEditor(item)}>Bearbeiten</button>
+          <button type="button" disabled={busy || Boolean(item.orderState || item.saleState)}
+            onClick={()=>{setPackingItem(item.id);setTab('Urlaubsgarderobe')}}>Zur Urlaubspackliste hinzufügen</button>
+          <button type="button" disabled={busy || Boolean(item.orderState)} onClick={()=>void perform(async()=>{
+            await api('/outfits/resale',{item:item.id,action:'start',confirm:true})
+            await reload();setResaleItem(item);setTab('Verkaufen')
+          })}>Verkaufen</button>
+          <button type="button" disabled={busy || Boolean(item.orderState) || item.saleState==='sorted'} onClick={()=>void perform(async()=>{
+            await api('/outfits/resale',{item:item.id,action:'sorted',confirm:true})
+            await reload();setNotice('Teil aussortiert. Im Bereich Verkaufen kannst du es wiederherstellen.')
+          })}>Aussortieren</button>
+        </WardrobeMenu>
+      </div>
+    ))}</div>
+  }
   const looks = overview?.looks.filter(look => [look.title,look.occasion,look.style].join(' ').toLocaleLowerCase('de-DE')
     .includes(overview.looks.length > 1 ? lookFilter.trim().toLocaleLowerCase('de-DE') : '')) ?? []
   const mode = query.required.length ? 'anchor' : query.occasion.trim() || eventContext ? 'occasion' : 'inspiration'
@@ -700,37 +752,23 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
         renderPiece={item=><Piece item={item} imageVersion={imageVersion}/> } renderOutfit={look=><Board look={look} wardrobe={overview.wardrobe} imageVersion={imageVersion}/>}/>:null}
       {overview && tab==='Kleiderschrank' ? <>
         <div className="outfit-bar">
-          <button type="button" className="outfit-primary" onClick={()=>setEditor(null)}>Teil hinzufügen</button>
-          <button type="button" onClick={()=>setEditor('link')}>Produktlink importieren</button>
-          {availableCategories.length > 1 ? <label>Kategorie<select value={activeCategory} onChange={event=>setCategory(event.target.value)}>
-            <option value="">Alle Teile</option>{availableCategories.map(([key,label])=><option key={key} value={key}>{label}</option>)}
-          </select></label> : null}
+          <button type="button" className="outfit-primary" onClick={()=>setEditor(null)}>Teile hinzufügen</button>
         </div>
-        {editor !== undefined ? <WardrobeEditor cloudImages={cloudImages} key={editor==='link' ? 'link' : editor?.id ?? 'new'} api={api}
-          item={editor==='link' ? null : editor} initialMode={editor==='link' ? 'link' : 'photo'} onDone={async()=>{await reload();setEditor(undefined)}} /> : null}
-        {visible.length ? ([
-          [undefined, ''], ['selling','Wird verkauft'], ['sorted','Aussortierte Sachen']
-        ] as const).map(([state,title])=>{
-          const items=visible.filter(item=>item.saleState===state)
-          return items.length ? <section key={title} className="wardrobe-section">
-            {title && <h3>{title}</h3>}
-            <div className="outfit-wardrobe-grid">{items.map(item=><div key={item.id} className={state?'outfit-inventory wardrobe-inactive':'outfit-inventory'}>
-          <Piece item={item} imageVersion={imageVersion} />
-          <WardrobeMenu title={productDisplayName(item.name)}>
-            <button type="button" onClick={()=>setEditor(item)}>Bearbeiten</button>
-            <button type="button" disabled={busy || Boolean(item.orderState || item.saleState)}
-              onClick={()=>{setPackingItem(item.id);setTab('Urlaubsgarderobe')}}>Zur Urlaubspackliste hinzufügen</button>
-            <button type="button" disabled={busy || Boolean(item.orderState)} onClick={()=>void perform(async()=>{
-              await api('/outfits/resale',{item:item.id,action:'start',confirm:true})
-              await reload();setResaleItem(item);setTab('Verkaufen')
-            })}>Verkaufen</button>
-            <button type="button" disabled={busy || Boolean(item.orderState) || item.saleState==='sorted'} onClick={()=>void perform(async()=>{
-              await api('/outfits/resale',{item:item.id,action:'sorted',confirm:true})
-              await reload();setNotice('Teil aussortiert. Im Bereich Verkaufen kannst du es wiederherstellen.')
-            })}>Aussortieren</button>
-          </WardrobeMenu>
-        </div>)}</div></section> : null
-        }) : <p>{overview.wardrobe.length?'In dieser Kategorie sind keine Teile gespeichert.':'Dein Kleiderschrank ist leer.'}</p>}
+        {editor !== undefined ? <WardrobeEditor cloudImages={cloudImages} key={editor?.id ?? 'new'} api={api}
+          item={editor} onDone={async()=>{await reload();setEditor(undefined)}} /> : null}
+        {Object.entries(wardrobeCategories).map(([category,title])=>{
+          const items=overview.wardrobe.filter(item=>item.category===category&&!item.saleState)
+          return <section key={category} className="wardrobe-section">
+            <h3>{title}</h3>
+            {items.length ? wardrobeGrid(items) : <p className="wardrobe-empty">Noch keine Artikel hinzugefügt.</p>}
+          </section>
+        })}
+        {([['selling','Wird verkauft'],['sorted','Aussortierte Sachen']] as const).map(([state,title])=>{
+          const items=overview.wardrobe.filter(item=>item.saleState===state)
+          return items.length ? <section key={state} className="wardrobe-section">
+            <h3>{title}</h3>{wardrobeGrid(items)}
+          </section> : null
+        })}
       </> : null}
       {overview && tab==='Einstellungen' ? <FitEditor api={api} overview={overview} imageVersion={imageVersion} reload={reload} /> : null}
       {overview && tab==='Meine Looks' ? <>
