@@ -567,8 +567,8 @@ function FitEditor({ api, overview, imageVersion, reload }: { api: Api, overview
   </section>
 }
 
-export function OutfitAssistant({ api, initialPlan, initialChoice, initialError, fragranceNames, initialRequired, cloudImages }: {
-  api:Api, initialPlan?:OutfitChatPlan, initialChoice?:OutfitChoice, initialError?:string, fragranceNames?:string[], initialRequired?:string[], cloudImages:boolean,
+export function OutfitAssistant({ api, initialPlan, initialChoice, initialError, fragranceNames, initialRequired, cloudImages, onOpenPlanner }: {
+  api:Api, initialPlan?:OutfitChatPlan, initialChoice?:OutfitChoice, initialError?:string, fragranceNames?:string[], initialRequired?:string[], cloudImages:boolean, onOpenPlanner?:()=>void,
 }) {
   const [tab,setTab] = useState<Tab>(fragranceNames?.length?'Parfüm':'Styling-Studio')
   const [overview,setOverview] = useState<Overview>()
@@ -673,6 +673,13 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
           <button type="button" className="wardrobe-remove-action" disabled={busy || Boolean(item.orderState)}
             onClick={()=>setWardrobeRemoval(item)}>Entfernen</button>
         </WardrobeMenu>
+        {item.saleState==='sorted' ? <div className="outfit-actions">
+          <button type="button" disabled={busy} onClick={()=>void perform(async()=>{
+            await api('/outfits/resale',{item:item.id,action:'restore',confirm:true})
+            await reload()
+            setNotice('Zurück im Kleiderschrank.')
+          })}>Zurück in den Kleiderschrank</button>
+        </div> : null}
       </div>
     ))}</div>
   }
@@ -755,7 +762,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
       </> : null}
       {overview && tab==='Verkaufen' ? <ResalePanel key={resaleItem?.id??'sales'} api={api} item={resaleItem} wardrobe={overview.wardrobe} onDone={reload}/>:null}
       {overview && tab==='Parfüm' ? <FragrancePanel api={api} names={fragranceNames}/>:null}
-      {overview && tab==='Urlaubsgarderobe' ? <TravelOutfits key={packingItem??'pack'} api={api} wardrobe={overview.wardrobe} requestedItem={packingItem}
+      {overview && tab==='Urlaubsgarderobe' ? <TravelOutfits key={packingItem??'pack'} api={api} wardrobe={overview.wardrobe} requestedItem={packingItem} onOpenPlanner={onOpenPlanner}
         renderPiece={item=><Piece item={item} imageVersion={imageVersion}/> } renderOutfit={look=><Board look={look} wardrobe={overview.wardrobe} imageVersion={imageVersion}/>}/>:null}
       {overview && tab==='Kleiderschrank' ? <>
         <div className="outfit-bar">

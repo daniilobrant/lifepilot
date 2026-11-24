@@ -24,10 +24,17 @@ test('Resale summarizes observed attributes, differentiates photo provenance and
     assert.equal(sale.hasOwnPhoto,false)
     assert.match(sale.listing.description,/Größe: 42/)
     assert.equal(sale.listing.start,21)
+    assert.equal(sale.askingPriceCents,null)
+    assert.throws(()=>store.transaction(()=>changeResale(store,id,'selling',
+      {condition:'Gut',originalPrice:60,askingPriceCents:-1})),{status:400})
+    sale=store.transaction(()=>changeResale(store,id,'selling',
+      {condition:'Gut',flaws:'Kleine Naht ausgebessert',originalPrice:60,askingPriceCents:350}))[0]
+    assert.equal(sale.askingPriceCents,350)
     assert.equal(outfitOverview(store).wardrobe[0].saleState,'selling')
     attachOutfitPhoto(store,id,photo,'image/png','own')
     sale=store.transaction(()=>changeResale(store,id,'selling',{condition:'Gut',flaws:'',originalPrice:null}))[0]
     assert.equal(sale.hasOwnPhoto,true)
+    assert.equal(sale.askingPriceCents,350)
     assert.equal(store.transaction(()=>changeResale(store,id,'sold',null))[0].state,'sold')
     assert.equal(outfitOverview(store).wardrobe.length,0)
     store.transaction(()=>changeResale(store,id,'restore',null))
