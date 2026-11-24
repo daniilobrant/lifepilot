@@ -881,15 +881,14 @@ input::selection, textarea::selection { color:var(--ink); background:var(--accen
 .outfit-piece-attributes { display:flex; align-items:center; gap:.35rem; min-width:0; font-size:.82rem; }
 .outfit-piece-attributes svg { flex:none; }
 .outfit-piece-attributes span { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-.wardrobe-menu { position:absolute; z-index:1; top:.55rem; right:.55rem; }
+.wardrobe-menu { position:absolute; z-index:1; top:.55rem; inset-inline:.55rem; pointer-events:none; }
 .wardrobe-menu[open] { z-index:3; }
-.wardrobe-menu summary { list-style:none; box-shadow:var(--shadow); font-size:1.2rem; }
+.wardrobe-menu summary { display:grid; margin-inline-start:auto; list-style:none; box-shadow:var(--shadow); font-size:1.2rem; pointer-events:auto; }
 .wardrobe-menu summary::-webkit-details-marker { display:none; }
-.wardrobe-menu-actions { display:grid; position:absolute; inset:calc(100% + .35rem) 0 auto auto; min-width:12rem; max-width:calc(100vw - 32px);
+.wardrobe-menu-actions { display:none; position:absolute; inset:calc(100% + .35rem) 0 auto; pointer-events:auto;
   padding:.35rem; border:1px solid var(--control-line); border-radius:var(--radius-detail); background:var(--card); box-shadow:0 12px 30px #27282222; }
+.wardrobe-menu[open] .wardrobe-menu-actions { display:grid; }
 .wardrobe-menu-actions button { min-height:32px; width:100%; border-color:transparent; background:transparent; text-align:left; font-size:.83rem; }
-.wardrobe-menu-danger { border-top:1px solid var(--line); margin-top:.3rem; padding-top:.3rem; }
-.wardrobe-menu-danger button:first-child { color:var(--error); }
 .wardrobe-edit-actions { margin-bottom:var(--section-gap); }
 .fragrance-panel { border:0; box-shadow:none; background:none; padding:0; }
 .fragrance-collection { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr)); gap:var(--section-gap); align-items:start; }
@@ -920,12 +919,9 @@ input::selection, textarea::selection { color:var(--ink); background:var(--accen
 
 @media (max-width:620px) {
   .application-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
-  .wardrobe-menu-actions { inset-inline-start:auto; inset-inline-end:0; width:min(11.25rem,calc(100vw - 32px)); min-width:0; }
-  .outfit-inventory:nth-child(odd) .wardrobe-menu-actions { inset-inline-start:auto; inset-inline-end:-.3rem; }
   .fragrance-collection { grid-template-columns:1fr; }
 }
 @media (max-width:420px) {
-  .outfit-inventory:nth-child(odd) .wardrobe-menu-actions { inset-inline-start:auto; inset-inline-end:-1rem; }
 }
 .finance-distribution { container: budget-chart / inline-size; }
 .finance-split-chart { grid-template-columns:minmax(0,1fr); }
@@ -1276,7 +1272,7 @@ select[multiple],select[size]:not([size="1"]) { padding-inline:12px; background-
 .outfit-board > .outfit-actions { justify-content:flex-end; }
 
 .wardrobe-section + .wardrobe-section {margin-block-start:1.75rem}
-.wardrobe-inactive > :first-child {filter:grayscale(1);opacity:.62}
+.wardrobe-inactive > .outfit-piece {filter:grayscale(1);opacity:.62}
 
 .outfit-saved .look-upload {background:none;border:0;box-shadow:none;padding:.75rem 0 0}
 .look-card ul {padding-inline-start:1rem;margin:.5rem 0;color:var(--muted)}
