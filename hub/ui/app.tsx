@@ -13,7 +13,7 @@ import {DateInput,TimeInput} from './presentation.tsx'
 import {MAX_CHAT_INPUT} from '../runtime/model-payload.ts'
 import { MailFinance } from './mail-finance.tsx'
 import { OrderTracker } from './clothing-orders.tsx'
-import { ChatRecipe, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
+import { ChatRecipe, ChatRecipeOptions, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
 import { FinanceForm, FinancePanel } from './finance.tsx'
 import { financeKinds, money, type FinanceChange } from '../runtime/finance-types.ts'
@@ -785,8 +785,8 @@ function FinanceProposal({run, change, index, mutate}:{run:Run,change:FinanceCha
   </section>
 }
 
-function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleWrite, auditDetails, onQuickReply, compact = false, grouped = false }: {
-  auditDetails: boolean, compact?:boolean, grouped?:boolean, onQuickReply?: (text: string) => void,
+function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleWrite, auditDetails, onQuickReply, onRecipeRefine, compact = false, grouped = false }: {
+  auditDetails: boolean, compact?:boolean, grouped?:boolean, onQuickReply?: (text: string) => void, onRecipeRefine?:(ingredient:string)=>void,
   googleWrite: boolean,
   modelName: string,
   run: Run, onReply?: () => void, mutate: (path: string, payload: object) => Promise<unknown>, busy: boolean, actionError?: string
@@ -829,7 +829,9 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
       {run.result.summary ? <p className="note">{run.result.summary}</p> : null}
       {run.projectChange?<ProjectProposal change={run.projectChange}/>:null}
       {run.seriesChange?<SeriesProposal change={run.seriesChange}/>:null}
-      {recipeControls&&recipe ? <ChatRecipe answer={recipe} api={api} disabled={busy}
+      {run.groceryChange?.options?<ChatRecipeOptions answer={run.groceryChange} api={api} disabled={busy} refine={onRecipeRefine}
+        decide={(choice,option)=>mutate('/grocery/recipes/decision',{...choice,option,run:run.id,turn:run.turn,confirm:true})}/>:
+        recipeControls&&recipe ? <ChatRecipe answer={recipe} api={api} disabled={busy}
         decide={choice=>mutate('/grocery/recipes/decision',{...choice,run:run.id,turn:run.turn,confirm:true})}/>:
         run.groceryChange?<GroceryAnswerCard answer={run.groceryChange}/>:null}
       {(run.financeChanges??(run.financeChange?[run.financeChange]:[])).map((change,index)=>
@@ -1177,7 +1179,7 @@ function App() {
         if (await answerTripChange(focus,currentTripChange.offer.id,answer==='ja')) clearDraft()
         return
       }
-      if(focus.groceryChange?.ingredients?.length&&!focus.groceryChange.recipeDecision){
+      if((focus.groceryChange?.ingredients?.length||focus.groceryChange?.options)&&!focus.groceryChange?.recipeDecision){
         setError({path:'/runs',message:'Wähle Ja oder Nein direkt beim Rezept und bestätige deine Auswahl.'})
         return
       }
@@ -1220,7 +1222,8 @@ function App() {
     !['permission','queued','running'].includes(focus.state) ? focus:undefined
   const group = focus ? runs.filter(run=>run.parent_run===focus.id) : []
   const unanswered=group.filter(run=>run.state==='review'&&run.result?.questions.length&&run.turn<24)
-  const replying = focus?.result?.questions.length || currentTripChange ? focus : unanswered.length===1 ? unanswered[0]:undefined
+  const replying = focus?.result?.questions.length || currentTripChange || focus?.groceryChange?.options?.length&&
+    /^(?:ja[, ]|lieber |mit |ohne |als beilage|verwende |nimm )/iu.test(input.trim()) ? focus : unanswered.length===1 ? unanswered[0]:undefined
   const activeReply = !doc && recentConversation ? replyTo ?? (replying && (replying!==focus||mayReply) && replying.turn<24 ?
     {id:replying.id,turn:replying.turn}:null) : null
   const earlier:Run[]=[]
@@ -1824,7 +1827,11 @@ function App() {
         <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline} compact/>
         {projectReview?.step?<button type="button" onClick={()=>goProjectWork({title:projectReview.step!,date:projectReview.date??undefined})}>Freie Zeit finden</button>:null}
         {focus?.parent_run&&<button type="button" className="quiet" onClick={()=>show(focus.parent_run!)}>Alle Aufträge dieser Nachricht</button>}
-        {focus ? <RunDetail key={focus.id+':'+focus.turn} compact auditDetails={false} onQuickReply={activeReply && canChat ? useQuickReply : undefined} googleWrite={!!snapshot?.googleAppointmentWrite} modelName={snapshot?.modelName ?? 'Codex'} run={focus} busy={busy || !!offline} mutate={mutate} actionError={runError} onReply={
+        {focus ? <RunDetail key={focus.id+':'+focus.turn} compact auditDetails={false} onQuickReply={activeReply && canChat ? useQuickReply : undefined} googleWrite={!!snapshot?.googleAppointmentWrite} modelName={snapshot?.modelName ?? 'Codex'} run={focus} busy={busy || !!offline} mutate={mutate}
+          onRecipeRefine={canChat&&mayReply&&focus.turn<24?ingredient=>{
+            chooseReply(focus)
+            setInput('Verwende als Zutat: '+ingredient+'.')
+          }:undefined} actionError={runError} onReply={
           canChat && mayReply && focus.turn < 24 && !activeReply ? () => chooseReply(focus) : undefined
         } /> :
           canChat ? <p className="empty">Hier erscheinen dein Auftrag und die Vorschläge von LifePilot.</p> : null}

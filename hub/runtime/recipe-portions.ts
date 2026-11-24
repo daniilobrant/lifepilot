@@ -44,6 +44,7 @@ export function measured(quantity:string|undefined){
     case 'scheibe':case 'scheiben':return {kind:'scheibe',value:parsed.amount}
     case 'bund':case 'bünde':return {kind:'bund',value:parsed.amount}
     case 'prise':case 'prisen':return {kind:'prise',value:parsed.amount}
+    case 'msp':case 'messerspitze':return {kind:'messerspitze',value:parsed.amount}
     default:return null
   }
 }
@@ -64,9 +65,18 @@ export function recipeStockStatus(item:StockItem|undefined,request:GroceryInput,
   return have.value+1e-9>=need.value?'enough':'short'
 }
 
+function recipeStockKey(name:string){
+  const key=groceryKey(name.replace(/\s*\((?:rot|gelb|grün|parboiled|frisch)\)/giu,'')
+    .replace(/^(?:kleine[nrms]?|große[nrms]?|frische[nrms]?|tiefgefrorene[nrms]?)\s+/iu,''))
+  if(/^paprikaschote[n]?$/u.test(key))return 'paprika'
+  if(/^hahnchenbrust(?:filet)?s?$/u.test(key))return 'hahnchen'
+  if(/^(?:basmati|parboiled|jasmin) reis$/u.test(key))return 'reis'
+  return key
+}
 export function ingredientStock(ingredients:GroceryInput[],stock:StockItem[],day=dateInBerlin()){
-  const byName=new Map(stock.map(item=>[groceryKey(item.name),item]))
-  return ingredients.map(item=>recipeStockStatus(byName.get(groceryKey(item.name)),item,day))
+  const names=new Map(stock.map(item=>[groceryKey(item.name),item]))
+  const alternatives=new Map(stock.map(item=>[recipeStockKey(item.name),item]))
+  return ingredients.map(item=>recipeStockStatus(names.get(groceryKey(item.name))??alternatives.get(recipeStockKey(item.name)),item,day))
 }
 export function stockedIngredients(ingredients:GroceryInput[],stock:StockItem[],day=dateInBerlin()){
   return ingredientStock(ingredients,stock,day).map(status=>status==='enough')
