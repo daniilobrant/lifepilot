@@ -1,3 +1,4 @@
+import { identifiedColor } from './outfit-palette.ts'
 import type { OutfitStyle, WardrobeCategory, WardrobeDraft } from './outfit-types.ts'
 
 const garments: [RegExp, WardrobeCategory, string][] = [
@@ -64,7 +65,7 @@ const martensModels: [RegExp,string,string][] = [
 
 export function outfitFields(text: string, labels: string[], color: string, attributes = false): Partial<WardrobeDraft> {
   const clean = text.replace(/\s+/gu,' ').trim()
-  const brand = martens.test(clean) ? 'Dr. Martens' : clean.match(/\b(?:Nike|Adidas|Carhartt|Uniqlo|Patagonia|Asics|Converse|Vans|New Balance|Levi['’]s|Birkenstock)\b/iu)?.[0]
+  const brand = martens.test(clean) ? 'Dr. Martens' : clean.match(/\b(?:Nike|Adidas|Carhartt|Uniqlo|Zara|H&M|Patagonia|Asics|Converse|Vans|New Balance|Levi['’]s|Birkenstock)\b/iu)?.[0]
   const model = brand === 'Dr. Martens' ? martensModels.filter(([pattern])=>pattern.test(clean)) : []
   const exact = model.length === 1 ? model[0] : undefined
   const fromText = garments.find(([pattern])=>pattern.test(clean))
@@ -79,7 +80,7 @@ export function outfitFields(text: string, labels: string[], color: string, attr
     const source = clean.match(new RegExp(`(?:(\\d{1,3}(?:[.,]\\d+)?\\s*%)\\s*)?(?:${pattern.source})`, 'iu'))
     if (source) materials.push(source[1] ? source[1].replace(/\s*%/u,' %') + ' ' + name : name)
   }
-  const fit = clean.match(/\b(?:slim fit|regular fit|relaxed fit|straight fit|oversized|skinny|wide leg|regular|slim|relaxed)\b/iu)?.[0]
+  const fit = clean.match(/\b(?:slim[ -]fit|regular[ -]fit|relaxed[ -]fit|straight[ -]fit|skinny[ -]fit|loose[ -]fit|oversized|skinny|wide[ -]leg|regular|slim|relaxed)\b/iu)?.[0]
   const seasons = clean.match(/\b(?:frühling|summer|sommer|autumn|herbst|winter|spring)\b/giu)
   const context = clean + ' ' + (garment?.[2] ?? '') + ' ' + labels.join(' ')
   const tags: string[] = guessedStyleTags(context)
@@ -97,4 +98,43 @@ export function outfitFields(text: string, labels: string[], color: string, attr
     ...(attributes && seasons?.length && { season:[...new Set(seasons)].join(', ').slice(0,70) }),
     ...(tags.length && { tags:tags.join(', ') }),
   }
+}
+
+const productColors: [RegExp,string][] = [
+  [/off[ -]?white|cremeweiß/iu,'Cremeweiß'], [/weiß|weiss|white/iu,'Weiß'],
+  [/schwarz|black/iu,'Schwarz'], [/grau|grey|gray/iu,'Grau'], [/beige|creme|cream/iu,'Beige'],
+  [/braun|brown/iu,'Braun'], [/weinrot|bordeaux|burgundy/iu,'Weinrot'], [/rot|red/iu,'Rot'],
+  [/navy|dunkelblau|marineblau/iu,'Dunkelblau'], [/hellblau|light[ -]blue/iu,'Hellblau'], [/blau|blue/iu,'Blau'],
+  [/oliv|olive/iu,'Olivgrün'], [/grün|green/iu,'Grün'], [/gelb|yellow/iu,'Gelb'], [/orange/iu,'Orange'],
+  [/rosa|pink/iu,'Rosa'], [/lila|violett|purple/iu,'Violett'], [/türkis|teal/iu,'Türkis'],
+]
+const colorAliases=productColors.map(([part])=>part.source).join('|')
+// The regex is composed exclusively from the static aliases above.
+const productColorPattern=new RegExp(`(?<![\\p{L}\\p{N}])(?:${colorAliases})(?:en|em|er|es|e)?(?![\\p{L}\\p{N}])`,'giu') // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
+export function textProductColor(raw:string) {
+  const seen=new Set<string>()
+  for(const match of raw.matchAll(productColorPattern)) {
+    const color=productColors.find(([part])=>part.test(match[0]))
+    if(color)seen.add(color[1])
+  }
+  return seen.size===1 ? [...seen][0] : ''
+}
+export function productColorName(raw:string) {
+  const hex=raw.match(/#[0-9a-f]{6}\b/iu)?.[0]
+  const clean=raw.replace(/#[0-9a-f]{3,8}\b/giu,'').trim()
+  return textProductColor(clean)||clean||(hex?identifiedColor(hex).split(' #')[0]:'')
+}
+export function productWardrobeFields(title:string,description='',query='',metadata:Partial<WardrobeDraft>={},imageColor=''):Partial<WardrobeDraft> {
+  const queryFields=outfitFields(query,[],'',true)
+  const descriptionFields=outfitFields(description,[],'',true)
+  const titleFields=outfitFields(title,[],'',true)
+  const merged={...queryFields,...descriptionFields,...titleFields,...metadata}
+  const garment=outfitGarment(title) ?? outfitGarment(description) ?? outfitGarment(query)
+  const metadataColor=metadata.color??''
+  const color=productColorName(metadataColor.replace(/#[0-9a-f]{3,8}\b/giu,''))||
+    textProductColor(title)||textProductColor(description)||textProductColor(query)||
+    productColorName(metadataColor)||productColorName(imageColor)
+  const material=metadata.material || [descriptionFields.material,titleFields.material].find(value=>value?.includes('%')) || merged.material
+  const fit=merged.fit?.toLowerCase().replace(/-/g,' ').replace(/\b\w/gu, letter=>letter.toUpperCase())
+  return {...merged,...garment,...(title && {name:title.slice(0,120)}),...(material && {material}),...(fit && {fit}),...(color && {color})}
 }
