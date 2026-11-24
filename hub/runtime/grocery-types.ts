@@ -14,9 +14,11 @@ export type GroceryInput = { name:string, quantity?:string, category?:GroceryCat
 export type StockItem = Required<GroceryInput> & { id:string }
 export type ShoppingItem = Pick<StockItem,'id'|'name'|'quantity'|'category'|'note'> & { checked:boolean, expiry?:string|null }
 export type GroceryOverview = { stock:StockItem[], shopping:ShoppingItem[], recent:ShoppingItem[] }
+export type RecipePreference = {excluded:string[],include?:string[],mode?:'meat'|'fish'|'vegetarian'|'vegan',allergy?:boolean,side?:string}
+export type RecipeSource = {title:string,ingredients:GroceryInput[],steps:string[],servings:number,url?:string}
 export type GroceryPlan = { groceryIntent:'stock_read'|'list_read'|'shop_add'|'shop_remove'|'stock_add'|'recipe'|'ideas'|'receipt', title:string|null,
-  items:{name:string,quantity:string|null,status:StockState|null}[], onHand?:{name:string,quantity:string|null,save:boolean}[], steps:string[], totalCents:number|null, servings?:number }
-export type GroceryAnswer = { title:string, available:string[], missing:GroceryInput[], steps:string[], write:'shop'|'remove'|'stock'|'receipt'|'recipe'|null, rows:(GroceryInput&{id?:string})[], totalCents?:number, ingredients?:GroceryInput[], baseIngredients?:GroceryInput[], baseServings?:number, stockRows?:GroceryInput[], servings?:number, recipeDecision?:RecipeDecision }
+  items:{name:string,quantity:string|null,status:StockState|null}[], onHand?:{name:string,quantity:string|null,save:boolean}[], steps:string[], totalCents:number|null, servings?:number, preferences?:RecipePreference }
+export type GroceryAnswer = { title:string, available:string[], missing:GroceryInput[], steps:string[], write:'shop'|'remove'|'stock'|'receipt'|'recipe'|null, rows:(GroceryInput&{id?:string})[], totalCents?:number, ingredients?:GroceryInput[], baseIngredients?:GroceryInput[], baseServings?:number, stockRows?:GroceryInput[], servings?:number, recipeDecision?:RecipeDecision, options?:GroceryAnswer[], sourceUrl?:string, recipeNotice?:string }
 
 export function receiptTotal(text:string) {
   const matches=[...text.matchAll(/(?:^|\n)\s*(?:gesamtsumme|gesamtbetrag|zu zahlen|endbetrag|summe|gesamt)\s*[:€ ]*\n?\s*(\d{1,5})[,.](\d{2})(?=\s|€|$)/giu)]
@@ -25,6 +27,6 @@ export function receiptTotal(text:string) {
 }
 
 export type RecipeChoice={save:boolean,shop:boolean,servings:number,cancelled?:boolean}
-export type RecipeDecision=RecipeChoice&{added:number}
+export type RecipeDecision=RecipeChoice&{added:number, option?:number}
 export type SavedRecipe = { id:string, title:string, ingredients:GroceryInput[], baseIngredients?:GroceryInput[], steps:string[],
-  ingredientChecks:boolean[], ingredientOverrides?:(boolean|null)[], stepChecks:boolean[], servings?:number, baseServings?:number, savedAt:string }
+  ingredientChecks:boolean[], ingredientOverrides?:(boolean|null)[], stepChecks:boolean[], servings?:number, baseServings?:number, sourceUrl?:string, savedAt:string }

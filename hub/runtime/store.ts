@@ -5,8 +5,8 @@ import {CalendarConfirmations,type CalendarWindow,type ExternalConflicts} from '
 import {adoptSeries,prepareSeries} from './calendar-series.ts'
 import type {SeriesChange} from './calendar-series-types.ts'
 import { refreshLegacyGroceryCatalog } from './grocery.ts'
-import { adoptGrocery, applyRecipeChoice, groceryAnswer, normalizeRecipeAnswer } from './grocery.ts'
-import { receiptTotal, type GroceryAnswer, type RecipeChoice } from './grocery-types.ts'
+import { adoptGrocery, applyRecipeChoice, groceryAnswer, normalizeRecipeAnswer, recipeRecommendations } from './grocery.ts'
+import { receiptTotal, type GroceryAnswer, type RecipeChoice, type RecipeSource } from './grocery-types.ts'
 import { financeChatResult, financeDraft, prepareFinanceChange, sameRecurringFinance, saveFinance } from './finance.ts'
 import type { FinanceChange } from './finance-types.ts'
 import { mkdirSync, readFileSync } from 'node:fs'
@@ -191,25 +191,37 @@ export class Store {
     const row=this.db.prepare('SELECT data FROM grocery_chat WHERE run_id=? AND turn=?').get(runId,turn)
     return row?JSON.parse(String(row.data)) as GroceryAnswer:undefined
   }
-  recipeFromRun(id:string) {
+  previousRecipePlan(id:string) {
     const row=this.run(id)
-    const result=this.groceryChange(id,this.followups(id).length)
+    const previous=this.followups(id).at(-1)?.previous_result
+    const parent=row.previous_run?this.run(row.previous_run).result:null
+    const result=previous??parent
+    if(!result)return
+    const plan=(JSON.parse(result) as Result).skillData
+    if(plan&&'groceryIntent' in plan&&plan.groceryIntent==='ideas')return plan
+  }
+
+  recipeFromRun(id:string,option?:number) {
+    const row=this.run(id)
+    const proposal=this.groceryChange(id,this.followups(id).length)
+    const result=proposal?.options?option===undefined?undefined:proposal.options[option]:option===undefined?proposal:undefined
     if(!this.permits(row)||!['review','accepted'].includes(row.state)||!result?.ingredients?.length||!result.steps.length) {
       throw new Problem(409,'In diesem Vorgang gibt es kein speicherbares Rezept.')
     }
     return normalizeRecipeAnswer(result)
   }
 
-  decideRecipe(id:string,turn:number,choice:RecipeChoice,channel:Channel) {
+  decideRecipe(id:string,turn:number,choice:RecipeChoice,channel:Channel,option?:number) {
     const row=this.run(id)
     if(turn!==this.followups(id).length)throw new Problem(409,'Das Rezept wurde inzwischen geändert.')
     const prior=this.groceryChange(id,turn)?.recipeDecision
     if(prior&&this.permits(row))return prior
-    const answer=this.recipeFromRun(id)
+    const answer=this.recipeFromRun(id,option)
+    const proposal=this.groceryChange(id,turn)!
     const apply=()=>{
-      const outcome=applyRecipeChoice(this,answer,choice)
+      const outcome={...applyRecipeChoice(this,answer,choice),...(option===undefined?{}:{option})}
       this.db.prepare('UPDATE grocery_chat SET data=? WHERE run_id=? AND turn=?')
-        .run(JSON.stringify({...answer,recipeDecision:outcome}),id,turn)
+        .run(JSON.stringify({...proposal,recipeDecision:outcome}),id,turn)
       return outcome
     }
     if(row.state==='accepted')return this.transaction(apply)
@@ -693,7 +705,7 @@ export class Store {
     })
   }
 
-  finish(id: string, result: Result | null, error: string | null, metrics: ModelMetrics) {
+  finish(id: string, result: Result | null, error: string | null, metrics: ModelMetrics, webRecipes:RecipeSource[]=[]) {
     this.transaction(() => {
       const row = this.run(id)
       if (row.state !== 'running') return
@@ -715,11 +727,11 @@ export class Store {
           this.finishResult(this.run(key),part,null,null)
         }
         this.finishResult(row,{...result,parts:[],summary:result.summary??'Ich habe die Aufträge einzeln vorbereitet.'},null,metrics)
-      } else this.finishResult(row,result,error,metrics)
+      } else this.finishResult(row,result,error,metrics,webRecipes)
     })
   }
 
-  private finishResult(row:Run,result:Result|null,error:string|null,metrics:ModelMetrics|null) {
+  private finishResult(row:Run,result:Result|null,error:string|null,metrics:ModelMetrics|null,webRecipes:RecipeSource[]=[]) {
     const id=row.id
     if (result?.actions?.some(action=>action.kind==='remember'||action.kind==='correct_memory') && !row.synthetic) {
       result=null
@@ -753,7 +765,7 @@ export class Store {
     if(result?.skill==='grocery' && plan && 'groceryIntent' in plan && !result.questions.length) {
       const checked=plan.groceryIntent==='receipt' && row.source_note ?
         {...plan,totalCents:receiptTotal((JSON.parse(row.source_note) as SourceNote).text)}:plan
-      const answer=groceryAnswer(this,checked)
+      const answer=checked.groceryIntent==='ideas'?recipeRecommendations(this,checked,webRecipes,parseInt(id.slice(0,4),16)):groceryAnswer(this,checked)
       this.db.prepare('INSERT INTO grocery_chat VALUES (?,?,?)').run(id,this.followups(id).length,JSON.stringify(answer))
       groceryWrite=!!answer.write
       result={...result,summary:null}

@@ -461,6 +461,18 @@
           ],
           "properties": {
             "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
+            "preferences": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["excluded"],
+              "properties": {
+                "excluded": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
+                "include": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
+                "mode": {"enum": ["meat", "fish", "vegetarian", "vegan"]},
+                "allergy": {"type": "boolean"},
+                "side": {"type":"string","maxLength":70}
+              }
+            },
             "groceryIntent": {
               "type": "string",
               "enum": [
@@ -1532,6 +1544,18 @@
                 ],
                 "properties": {
                   "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
+                  "preferences": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["excluded"],
+                    "properties": {
+                      "excluded": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
+                      "include": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
+                      "mode": {"enum": ["meat", "fish", "vegetarian", "vegan"]},
+                      "allergy": {"type": "boolean"},
+                      "side": {"type":"string","maxLength":70}
+                    }
+                  },
                   "groceryIntent": {
                     "type": "string",
                     "enum": [

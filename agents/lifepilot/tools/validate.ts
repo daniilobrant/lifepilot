@@ -156,6 +156,8 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       plan.items.some(item=>!hasRecipeQuantity(item.quantity??undefined)))) {
       throw new Error('Das Rezept benötigt die Portionszahl, Zubereitungsschritte und messbare Mengen pro Zutat. Verwende nur für Gewürze nach Geschmack oder optionale Zutaten einen entsprechenden Hinweis.')
     }
+    if(plan.preferences&&[...plan.preferences.excluded,...(plan.preferences.include??[])].some(term=>!bounded(term,70)))
+      throw new Error('Zutatenbedingungen brauchen kurze, eindeutige Namen.')
     if (candidate.skill!=='grocery' || plan.items.length>30 || plan.steps.length>12 ||
         plan.title!==null&&!bounded(plan.title,120) ||
         plan.items.some(item=>!bounded(item.name,90)||item.quantity!==null&&!bounded(item.quantity,50)) ||
