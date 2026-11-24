@@ -138,11 +138,12 @@ function PersonalAccountOverview({version,testMode}:{version:string,testMode:boo
     return ()=>{active=false}
   },[testMode])
   return <section className="card settings">
-    <h2>LifePilot {version}</h2>
+    <h2>LifePilot {version === '1.0.0' ? '1.0' : version}</h2>
     <p>{testMode?'Testprofil':gmail?'Persönliches Konto · '+gmail:'Persönliches Profil'}</p>
     {labels ? <p>Automatische Gmail-Kategorien aktiv</p>:null}
     <details><summary>Versionsverlauf</summary>
       <ul className="release-list">
+        <li><strong>1.0</strong> · Google-Kontobindung, Codex CLI für die Bildanalyse und Prüfungen für Testprofile und private Releases.</li>
         <li><strong>0.25.16</strong> · Bestellbilder, Vorrats-Texterkennung und einheitliche Formulare.</li>
         <li><strong>0.25.15</strong> · Ortssuche, Kalender und Mehrfachauswahl im Reiseformular.</li>
         <li><strong>0.25.14</strong> · Einkauf nach Kategorien, Vorratsaktionen rechts und eine kompakte Rezeptansicht.</li>
