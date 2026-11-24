@@ -1,3 +1,6 @@
+import type {Result} from '../../agents/lifepilot/tools/validate.ts'
+import {researchPantryRecipes} from '../connectors/recipe-web.ts'
+import {localRecipePreference,recipeRequest} from './recipe-preferences.ts'
 import {taskBoardFromChat} from './tasks-board-chat.ts'
 import {changeBoardSource,taskBoard} from './tasks-board.ts'
 import type {CalendarWindow,ExternalConflicts} from './calendar-conflicts.ts'
@@ -363,12 +366,24 @@ async function work() {
   const controller = new AbortController()
   active = { id: next.id, controller }
   try {
+    const latest=next.payload.messages.at(-1)?.input??''
+    const previous=store.previousRecipePlan(next.id)
+    const stated=localRecipePreference(latest)
+    const refinement=previous&&Boolean(stated.include?.length||stated.side||stated.mode||stated.excluded.length)&&
+      !/\b(?:plane|termin|kalender|kauf|bestell)\b/iu.test(latest)
+    const wantsIdeas=recipeRequest(latest)||refinement
+    const portions=Number(/\b(\d{1,2})\s+portion(?:en)?\b/iu.exec(latest)?.[1])
+    const fallback:Result|null=wantsIdeas?{
+      skill:'grocery' as const,tasks:[],questions:[],
+      skillData:{groceryIntent:'ideas' as const,title:null,items:[],steps:[],totalCents:null,
+        servings:validRecipeServings(portions)?portions:previous?.servings??1},
+    }:null
     const recurring=projectFromChat(store,next.payload)??seriesFromChat(next.payload)??taskBoardFromChat(next.payload)
-    const { result, error, metrics } = recurring ? { result: recurring, error: null, metrics: offlineMetrics } :
-      cloudModel ? await runCodex(next.payload, controller.signal) :
-        { result: null, error: 'Im Testprofil sind externe Modelle gesperrt. Lokale Planung und Reisevorschau bleiben verfügbar.', metrics: offlineMetrics }
+    const model=recurring ? {result:recurring,error:null,metrics:offlineMetrics} : cloudModel ?
+      await runCodex(next.payload,controller.signal) : {result:fallback,error:null,metrics:offlineMetrics}
+    const result=model.result??fallback
+    const {error,metrics}=model
     if (!stopping) {
-      const latest=next.payload.messages.at(-1)?.input??''
       const explicit=explicitCategory(latest)
       function categorize(proposal:NonNullable<typeof result>, part=false):NonNullable<typeof result> {
         if (proposal.parts?.length) return {...proposal,parts:proposal.parts.map(child=>categorize(child,true))}
@@ -381,8 +396,34 @@ async function work() {
           questions:[`Gehört „${unknown.title}“ zu Arbeit, Uni oder Freizeit?`,...proposal.questions].slice(0,8)}:
           {...proposal,tasks}
       }
-      const categorized=result?categorize(recurring?result:honorSeriesPeriod(result,next.payload)):null
-      store.finish(next.id, categorized, error, metrics)
+      let categorized=result?categorize(recurring?result:honorSeriesPeriod(result,next.payload)):null
+      const plan=categorized?.skillData
+      let webRecipes:Awaited<ReturnType<typeof researchPantryRecipes>>=[]
+      if(categorized?.skill==='grocery'&&plan&&'groceryIntent' in plan&&!categorized.questions.length&&
+        (plan.groceryIntent==='ideas'||wantsIdeas&&plan.groceryIntent==='recipe')){
+        const modelPreferences=plan.preferences
+        const inherited=refinement?previous?.preferences:undefined
+        const preference={
+          ...inherited,...modelPreferences,
+          excluded:[...new Set([...(inherited?.excluded??[]),...(modelPreferences?.excluded??[]),...stated.excluded])].slice(0,12),
+          include:[...new Set([
+            ...(/\b(?:statt|ersetz\w*)\b/iu.test(latest)?[]:inherited?.include??[]),
+            ...(stated.include??modelPreferences?.include??[]),
+          ])].slice(0,6),
+          side:stated.side??modelPreferences?.side??inherited?.side,
+          mode:stated.mode??modelPreferences?.mode??inherited?.mode,
+          allergy:stated.allergy||modelPreferences?.allergy||inherited?.allergy||false,
+        }
+        if(preference.allergy&&!preference.excluded.length)
+          categorized={...categorized,skillData:null,questions:['Welche Zutaten soll ich wegen der Allergie ausschließen?']}
+        else{
+          const sharePlan={...plan,groceryIntent:'ideas' as const,preferences:preference,
+            servings:validRecipeServings(portions)?portions:plan.servings??1}
+          categorized={...categorized,skillData:sharePlan}
+          if(cloudModel)webRecipes=await researchPantryRecipes(groceryOverview(store).stock,preference,controller.signal)
+        }
+      }
+      if(!controller.signal.aborted)store.finish(next.id,categorized,categorized?null:error??'Im Testprofil ist für diesen Auftrag kein lokaler Entwurf verfügbar.',metrics,webRecipes)
     }
   } catch {
     if (!stopping) store.finish(next.id, null, 'Der Modelladapter konnte nicht gestartet werden.', { wallMs: 0, model: null, usage: null, cost: null })
@@ -459,11 +500,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path === '/api/grocery/recipes' && method === 'GET') return reply(res,200,listRecipes(store))
   if (path === '/api/grocery/recipes/decision' && method === 'POST') {
-    const {run,turn,save,shop,cancelled,servings,confirm}=await body(req,['run','turn','save','shop','cancelled','servings','confirm'])
+    const {run,turn,save,shop,cancelled,servings,option,confirm}=await body(req,['run','turn','save','shop','cancelled','servings','option','confirm'])
     confirmLocalChange(confirm)
     if(typeof turn!=='number'||!Number.isSafeInteger(turn)||turn<0||typeof save!=='boolean'||typeof shop!=='boolean'||
-      typeof cancelled!=='boolean'||cancelled&&(save||shop)||!validRecipeServings(servings))throw new Problem(400,'Ungültige Rezeptentscheidung.')
-    return reply(res,200,store.decideRecipe(id(run),turn,{save,shop,cancelled,servings},client))
+      typeof cancelled!=='boolean'||cancelled&&(save||shop)||!validRecipeServings(servings)||
+      option!==undefined&&(typeof option!=='number'||!Number.isSafeInteger(option)||option<0||option>3))throw new Problem(400,'Ungültige Rezeptentscheidung.')
+    return reply(res,200,store.decideRecipe(id(run),turn,{save,shop,cancelled,servings},client,option as number|undefined))
   }
   if (path === '/api/grocery/recipes' && method === 'POST') {
     const input=await body(req,['action','recipe','run','recipeId','part','index','checked','servings','quantities','confirm'])
