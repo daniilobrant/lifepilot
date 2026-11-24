@@ -1,9 +1,10 @@
 import { confirmImageTransfer } from './image-consent.ts'
 import {DateInput} from './presentation.tsx'
 import { GroceryIcon } from './grocery-icon.tsx'
-import { canonicalGroceryName, groceryCategory, grocerySuggestions } from '../runtime/grocery-catalog.ts'
+import {legacyRecipeServings,maxRecipeServings,scaleRecipeIngredients,stockedIngredients,validRecipeServings} from '../runtime/recipe-portions.ts'
+import { canonicalGroceryName, groceryCategory, groceryKey, grocerySuggestions } from '../runtime/grocery-catalog.ts'
 import { useEffect, useState, type FormEvent } from 'react'
-import { groceryCategories, locations, stockStates, type GroceryAnswer, type GroceryInput, type GroceryOverview, type StockItem, type ShoppingItem, type SavedRecipe } from '../runtime/grocery-types.ts'
+import { groceryCategories, locations, stockStates, type GroceryAnswer, type GroceryInput, type GroceryOverview, type StockItem, type ShoppingItem, type SavedRecipe, type RecipeChoice } from '../runtime/grocery-types.ts'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
 
 type Api=<T>(path:string,payload?:object,timeout?:number)=>Promise<T>
@@ -26,18 +27,83 @@ export async function scanGroceryFile(file:File, receipt=false, item=false,codex
 }
 
 export function GroceryAnswerCard({answer,hideTitle=false}:{answer:GroceryAnswer,hideTitle?:boolean}) {
+  const available=new Set(answer.available.map(name=>name.split(' · ')[0]))
   return <section className="note grocery-answer" aria-label="Ergebnis">
     {!hideTitle&&<strong>{answer.title}</strong>}
-    {answer.available.length>0&&<div><h4>{answer.steps.length||answer.missing.length?'Vorhanden':'Artikel'}</h4>
+    {answer.ingredients?.length?<ul className="recipe-ingredient-status">{answer.ingredients.map(item=><li key={item.name}>
+      <input type="checkbox" checked={available.has(item.name)} disabled aria-label={item.name+' im Vorrat'}/>
+      <span>{[item.name,item.quantity].filter(Boolean).join(' · ')}</span>
+    </li>)}</ul>:null}
+    {!answer.ingredients?.length&&answer.available.length>0&&<div><h4>{answer.steps.length||answer.missing.length?'Vorhanden':'Artikel'}</h4>
       <p>{answer.available.join(' · ')}</p></div>}
-    {answer.missing.length>0&&<div><h4>Fehlt</h4><p>{answer.missing.map(item=>[item.name,item.quantity].filter(Boolean).join(' · ')).join(', ')}</p></div>}
+    {!answer.ingredients?.length&&answer.missing.length>0&&<div><h4>Fehlt</h4><p>{answer.missing.map(item=>[item.name,item.quantity].filter(Boolean).join(' · ')).join(', ')}</p></div>}
     {(answer.write==='stock'||answer.write==='receipt'||answer.write==='remove')&&<div><h4>{answer.write==='remove'?'Ausgewählt':'Zur Übernahme'}</h4><p>{answer.rows.map(item=>[item.name,item.quantity].filter(Boolean).join(' · ')).join(', ')}</p></div>}
     {answer.stockRows?.length ? <div><h4>In den Vorrat</h4><p>{answer.stockRows.map(item=>item.name).join(' · ')}</p></div> : null}
-    {answer.write==='recipe' && answer.rows.length ? <div><h4>Auf die Einkaufsliste</h4><p>{answer.rows.map(item=>[item.name,item.quantity].filter(Boolean).join(' · ')).join(', ')}</p></div> : null}
     {answer.totalCents!==undefined&&<p>Bonbetrag {euro.format(answer.totalCents/100)}</p>}
     {answer.steps.length>0&&<details><summary>Zubereitung</summary><ol>{answer.steps.map((step,i)=><li key={i}>{step}</li>)}</ol></details>}
     {!answer.available.length&&!answer.missing.length&&!answer.rows.length&&!answer.steps.length&&<p>Keine Artikel gefunden.</p>}
   </section>
+}
+
+function RecipePortions({value,onChange,disabled=false}:{value:number,onChange:(value:number)=>void,disabled?:boolean}){
+  const [text,setText]=useState(String(value))
+  return <label className="recipe-portions">Portionen<input type="number" min={1} max={maxRecipeServings} step={1} disabled={disabled}
+    value={text} onChange={event=>{
+      setText(event.currentTarget.value)
+      if(validRecipeServings(event.currentTarget.valueAsNumber))onChange(event.currentTarget.valueAsNumber)
+    }} onBlur={()=>setText(String(value))}/></label>
+}
+
+export function ChatRecipe({answer,api,disabled,decide}:{answer:GroceryAnswer,api:Api,disabled:boolean,
+  decide:(choice:RecipeChoice)=>Promise<unknown>}){
+  const base=answer.servings??legacyRecipeServings
+  const [servings,setServings]=useState(answer.recipeDecision?.servings??base)
+  const [stock,setStock]=useState<StockItem[]>()
+  const [save,setSave]=useState<boolean>()
+  const [shop,setShop]=useState<boolean>()
+  const [busy,setBusy]=useState(false)
+  const [error,setError]=useState('')
+  useEffect(()=>{
+    let active=true
+    void api<GroceryOverview>('/grocery').then(view=>{if(active)setStock(view.stock)}).catch(()=>{})
+    return ()=>{active=false}
+  },[api])
+  const ingredients=scaleRecipeIngredients(answer.ingredients??[],base,servings)
+  const present=stock?stockedIngredients(ingredients,stock):ingredients.map(item=>answer.available.some(name=>name.split(' · ')[0]===item.name))
+  const preview={...answer,stockRows:undefined,ingredients,available:ingredients.filter((_,index)=>present[index]).map(item=>item.name)}
+  const hasMissing=present.some(checked=>!checked)
+  async function submit(cancelled=false){
+    if(busy||disabled)return
+    setBusy(true);setError('')
+    try{
+      if(!await decide({servings,save:!cancelled&&save===true,shop:!cancelled&&hasMissing&&shop===true,cancelled}))
+        setError('Die Auswahl konnte nicht gespeichert werden.')
+    }catch(cause){setError(errorText(cause))}
+    finally{setBusy(false)}
+  }
+  function decision(label:string,value:boolean|undefined,change:(value:boolean)=>void){
+    return <fieldset className="recipe-choice"><legend>{label}</legend>
+      <div className="actions">{([true,false] as const).map(choice=><button type="button" key={String(choice)} disabled={busy||disabled}
+        aria-pressed={value===choice} onClick={()=>change(choice)}>{choice?'Ja':'Nein'}</button>)}</div>
+    </fieldset>
+  }
+  const done=answer.recipeDecision
+  return <div className="chat-recipe">
+    <GroceryAnswerCard answer={preview}/>
+    {done?<p role="status">{done.cancelled?'Rezeptvorgang abgebrochen.':
+      [done.save?'Rezept gespeichert.':'',done.shop?(done.added?done.added+(done.added===1?' Zutat':' Zutaten')+' zur Einkaufsliste hinzugefügt.':
+        'Alle fehlenden Zutaten stehen bereits auf der Einkaufsliste.'):''].filter(Boolean).join(' ')||'Rezeptvorschlag abgeschlossen.'}</p>:<>
+      <RecipePortions value={servings} disabled={busy||disabled} onChange={setServings}/>
+      {decision('Rezept speichern?',save,setSave)}
+      {hasMissing?decision('Fehlende Zutaten auf die Einkaufsliste?',shop,setShop):null}
+      <div className="actions recipe-submit">
+        <button type="button" disabled={busy||disabled} onClick={()=>void submit(true)}>Abbrechen</button>
+        <button type="button" className="primary" disabled={busy||disabled||save===undefined||hasMissing&&shop===undefined}
+          onClick={()=>void submit()}>Auswahl übernehmen</button>
+      </div>
+    </>}
+    {error?<p role="alert">{error}</p>:null}
+  </div>
 }
 
 function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:GroceryInput)=>Promise<void>,
@@ -145,8 +211,10 @@ function ScanForm({busy,commit,initialKind,cloudImages}:{busy:boolean,commit:(va
 const tabs = ['Einkaufsliste','Mein Vorrat','Meine Rezepte'] as const
 type GroceryTab = typeof tabs[number]
 
-function RecipesPanel({api,onAsk,notice,changed,refreshKey}:{api:Api,onAsk:()=>void,notice:(message:string)=>void,
+function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:Api,onAsk:(servings:number)=>void,stock:StockItem[],shopping:ShoppingItem[],notice:(message:string)=>void,
   changed:()=>void,refreshKey:string}) {
+  const [portions,setPortions]=useState(1)
+  const [recipePortions,setRecipePortions]=useState<Record<string,number>>({})
   const [recipes,setRecipes]=useState<SavedRecipe[]>([])
   const [ideas,setIdeas]=useState<GroceryAnswer[]>([])
   const [busy,setBusy]=useState(false)
@@ -165,9 +233,9 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey}:{api:Api,onAsk:()=>v
     catch(cause){setError(errorText(cause))}
     finally{setBusy(false)}
   }
-  async function getIdeas() {
+  async function getIdeas(servings:number) {
     setBusy(true);setError('')
-    try {setIdeas(await api<GroceryAnswer[]>('/grocery/recipes/ideas'))}
+    try {setIdeas(await api<GroceryAnswer[]>('/grocery/recipes/ideas?'+new URLSearchParams({servings:String(servings)})))}
     catch(cause){setError(errorText(cause))}
     finally{setBusy(false)}
   }
@@ -177,23 +245,40 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey}:{api:Api,onAsk:()=>v
     catch(cause){setError(errorText(cause))}
     finally{setBusy(false)}
   }
+  const shoppingKeys=new Set(shopping.map(item=>groceryKey(item.name)))
+  const previews=ideas.map(idea=>{
+    const ingredients=scaleRecipeIngredients(idea.ingredients??[],idea.servings??1,portions)
+    const checks=stockedIngredients(ingredients,stock)
+    const missing=ingredients.filter((_,index)=>!checks[index])
+    return {...idea,servings:portions,ingredients,missing,available:ingredients.filter((_,index)=>checks[index]).map(item=>item.name),
+      rows:missing.filter(item=>!shoppingKeys.has(groceryKey(item.name)))}
+  })
   return <section className="card settings grocery-recipes">
     <div className="grocery-recipe-actions">
-      <button type="button" className="primary" disabled={busy} onClick={()=>void getIdeas()}>Aus meinem Vorrat kochen</button>
-      <button type="button" onClick={onAsk}>Pilot nach Rezepten fragen</button>
+      <button type="button" className="primary" disabled={busy} onClick={()=>void getIdeas(portions)}>Aus meinem Vorrat kochen</button>
+      <button type="button" onClick={()=>onAsk(portions)}>Pilot nach Rezepten fragen</button>
     </div>
+    <RecipePortions value={portions} disabled={busy} onChange={setPortions}/>
     {error&&<p role="alert">{error}</p>}
-    {ideas.length>0&&<div className="grocery-recipe-ideas"><h2>Rezeptideen</h2>{ideas.map(idea=><details key={idea.title}>
+    {previews.length>0&&<div className="grocery-recipe-ideas"><h2>Rezeptideen</h2>{previews.map(idea=><details key={idea.title}>
       <summary><strong>{idea.title}</strong><small>{idea.missing.length?idea.missing.length+' Zutaten fehlen':'Mit Vorrat machbar'}</small></summary>
       <GroceryAnswerCard answer={idea} hideTitle/>
       <div className="actions"><button type="button" disabled={busy} onClick={()=>void act({action:'save',recipe:idea},'Rezept gespeichert.')}>Rezept speichern</button>
         {idea.rows.length>0&&<button type="button" disabled={busy} onClick={()=>void shop(idea)}>Fehlende Zutaten auf die Liste</button>}</div>
     </details>)}</div>}
-    {recipes.map(recipe=><details className="grocery-saved-recipe" key={recipe.id}>
-      <summary><strong>{recipe.title}</strong><small>{recipe.ingredientChecks.filter(Boolean).length}/{recipe.ingredients.length} Zutaten</small></summary>
+    {recipes.map(recipe=>{
+      const base=recipe.servings??legacyRecipeServings
+      const servings=recipePortions[recipe.id]??base
+      const ingredients=scaleRecipeIngredients(recipe.ingredients,base,servings)
+      const inStock=stockedIngredients(ingredients,stock)
+      const checks=inStock.map((value,index)=>recipe.ingredientOverrides?
+        recipe.ingredientOverrides[index]??value:recipe.ingredientChecks[index]||value)
+      return <details className="grocery-saved-recipe" key={recipe.id}>
+      <summary><strong>{recipe.title}</strong><small>{checks.filter(Boolean).length}/{recipe.ingredients.length} Zutaten</small></summary>
+      <RecipePortions value={servings} disabled={busy} onChange={value=>setRecipePortions(previous=>({...previous,[recipe.id]:value}))}/>
       <div className="grocery-recipe-checklists">
-        <div><h3>Zutaten</h3><ul>{recipe.ingredients.map((item,index)=><li key={index}><label>
-          <input type="checkbox" checked={recipe.ingredientChecks[index]} disabled={busy} onChange={event=>void act({
+        <div><h3>Zutaten</h3><ul>{ingredients.map((item,index)=><li key={index}><label>
+          <input type="checkbox" checked={checks[index]} disabled={busy} onChange={event=>void act({
             action:'check',recipeId:recipe.id,part:'ingredients',index,checked:event.target.checked,
           })}/><span>{[item.name,item.quantity].filter(Boolean).join(' · ')}</span>
         </label></li>)}</ul></div>
@@ -206,11 +291,11 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey}:{api:Api,onAsk:()=>v
       {removing===recipe.id?<div className="actions"><button type="button" disabled={busy} onClick={()=>void act({action:'remove',recipeId:recipe.id},'Rezept entfernt.')}>Entfernen bestätigen</button>
         <button type="button" onClick={()=>setRemoving(undefined)}>Abbrechen</button></div>:
         <button type="button" className="quiet" onClick={()=>setRemoving(recipe.id)}>Rezept entfernen</button>}
-    </details>)}
+    </details>})}
   </section>
 }
 
-export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{api:Api,refreshKey:string,onAsk:()=>void,recipeVersion:number,cloudImages:boolean}) {
+export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{api:Api,refreshKey:string,onAsk:(servings:number)=>void,recipeVersion:number,cloudImages:boolean}) {
   const [tab,setTab]=useState<GroceryTab>('Einkaufsliste')
   const [view,setView]=useState(empty)
   const [loading,setLoading]=useState(true)
@@ -236,7 +321,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{a
     void api<GroceryOverview>('/grocery').then(data=>{if(current)setView(data)})
       .catch(cause=>{if(current)setError(errorText(cause))}).finally(()=>{if(current)setLoading(false)})
     return ()=>{current=false}
-  },[api,refreshKey,change])
+  },[api,refreshKey,change,recipeVersion])
   function chooseTab(next:GroceryTab) {
     setTab(next);setSearch('');setFilter('');setEditor(undefined);setShowScan(false)
     setChoosing(false);setPhotoRows([]);setError('');setNotice('');setQuickArticle('')
@@ -279,7 +364,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{a
     {error&&<p role="alert">{error}</p>}
     {notice&&<p role="status">{notice}</p>}
     {loading&&<p role="status">Vorrat wird geladen …</p>}
-    {tab==='Meine Rezepte'?<RecipesPanel api={api} onAsk={onAsk} notice={setNotice} changed={()=>setChange(value=>value+1)}
+    {tab==='Meine Rezepte'?<RecipesPanel api={api} onAsk={onAsk} stock={view.stock} shopping={view.shopping} notice={setNotice} changed={()=>setChange(value=>value+1)}
       refreshKey={refreshKey+':'+recipeVersion}/>:<>
       <div className="grocery-toolbar grocery-top-tools">
         <label><span className="sr-only">Artikel suchen</span><input type="search" value={search} placeholder="Artikel suchen …"

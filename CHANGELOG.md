@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.7 · 24. November 2026
+
+- Offene Finanz-, Mail-, Projekt-, Bewerbungs- und Pilot-Vorschläge erhalten eine Sammelbestätigung. Finanzen & Abos zeigt keine eigenen Einstellungen mehr.
+- Der Kochassistent gleicht Zutaten mit dem Vorrat ab, rechnet Mengen für die eingegebene Portionszahl um und bietet im Chat getrennte Entscheidungen für Rezept und Einkaufsliste.
+
 ## v1.0.6 · 24. November 2026
 
 - Aussortierte Teile erscheinen ausschließlich im Kleiderschrank. Der Tab „Verkaufen“ zeigt laufende Verkäufe und verkaufte Teile in eigenen Abschnitten.
