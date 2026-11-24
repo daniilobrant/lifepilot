@@ -1,3 +1,4 @@
+import {BulkApproval,type BatchResult} from './bulk-approval.tsx'
 import {useEffect,useRef,useState,type FormEvent} from 'react'
 import type {TaskRow} from '../runtime/workspace.ts'
 import {DateInput,displayDay} from './presentation.tsx'
@@ -6,6 +7,7 @@ import {projectAreas,projectPriorities,timeframeNames,type Project,type ProjectC
 
 type SavePlan=(plan:Partial<ProjectPlan>&Pick<ProjectPlan,'projectIntent'>,project?:Project,step?:string)=>Promise<boolean>
 type DecideMail=(suggestion:ProjectSuggestion,approved:boolean)=>Promise<void>
+type ApproveMails=(items:readonly (ProjectSuggestion&{title:string})[])=>Promise<BatchResult>
 const modes={none:'Kein Datum',deadline:'Feste Deadline',checkpoint:'Ungefährer Checkpoint'} as const
 const displayDate=(date:string)=>displayDay(date)
 export const priorityText=(priority:Project['priority'])=>projectPriorities[priority]
@@ -202,7 +204,9 @@ function ProjectOverlay({project,focus,close,save,saveEditor,archive,busy,error,
   </dialog>
 }
 
-export function ProjectMailSuggestions({suggestions,decide,busy=false,compact=false}:{suggestions:ProjectSuggestion[],decide:DecideMail,busy?:boolean,compact?:boolean}){
+export function ProjectMailSuggestions({suggestions,decide,approveAll,busy=false,compact=false}:{
+  suggestions:ProjectSuggestion[],decide:DecideMail,approveAll:ApproveMails,busy?:boolean,compact?:boolean,
+}){
   if(!suggestions.length)return null
   return <details className={compact?'project-mail disclosure':'card settings project-mail disclosure'}><summary>E-Mail-Updates für Projekte ({suggestions.length})</summary>
     {suggestions.map(item=><details key={item.id} className="project-mail-item">
@@ -217,11 +221,13 @@ export function ProjectMailSuggestions({suggestions,decide,busy=false,compact=fa
         <button type="button" disabled={busy} onClick={()=>void decide(item,false)}>Nein</button>
       </div>
     </details>)}
+    <BulkApproval items={suggestions.map(item=>({...item,title:item.subject}))} disabled={busy} approve={approveAll}
+      description="LifePilot übernimmt die angezeigten E-Mail-Updates in die zugeordneten Projekte."/>
   </details>
 }
 
-export function ProjectsPanel({overview,save,saveEditor,mail,work,busy,error,selected,tasks,openTask,addTask}:{
-  overview:ProjectsOverview,save:SavePlan,saveEditor:SaveEditor,mail:DecideMail,work:(work:ProjectWork)=>void,busy:boolean,error?:string,
+export function ProjectsPanel({overview,save,saveEditor,mail,approveMails,work,busy,error,selected,tasks,openTask,addTask}:{
+  overview:ProjectsOverview,save:SavePlan,saveEditor:SaveEditor,mail:DecideMail,approveMails:ApproveMails,work:(work:ProjectWork)=>void,busy:boolean,error?:string,
   selected?:ProjectFocus,tasks:TaskRow[],openTask:(id:string)=>void,addTask:(id:string)=>void
 }){
   const [focus,setFocus]=useState<ProjectFocus>()
@@ -251,7 +257,7 @@ export function ProjectsPanel({overview,save,saveEditor,mail,work,busy,error,sel
       <p>{active.length} aktive Projekte · {overview.weekCheckpoints} {overview.weekCheckpoints===1?'Checkpoint':'Checkpoints'} diese Woche</p>
       <button type="button" className="primary" onClick={()=>setFocus({area:'uni'})}>+ Neues Projekt</button>
     </div>
-    <ProjectMailSuggestions suggestions={overview.suggestions} decide={mail} busy={busy}/>
+    <ProjectMailSuggestions suggestions={overview.suggestions} decide={mail} approveAll={approveMails} busy={busy}/>
     {(Object.keys(projectAreas) as ProjectArea[]).map(area=>{
       const rows=active.filter(project=>project.area===area)
       return <section key={area} className="project-area" aria-label={projectAreas[area]}>

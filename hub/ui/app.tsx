@@ -1,3 +1,4 @@
+import {BulkApproval,approveEach} from './bulk-approval.tsx'
 import { confirmImageTransfer } from './image-consent.ts'
 import {TasksBoard} from './tasks-board.tsx'
 import type {BoardItem,BoardSourcePatch} from '../runtime/tasks-board-types.ts'
@@ -12,7 +13,7 @@ import {DateInput,TimeInput} from './presentation.tsx'
 import {MAX_CHAT_INPUT} from '../runtime/model-payload.ts'
 import { MailFinance } from './mail-finance.tsx'
 import { OrderTracker } from './clothing-orders.tsx'
-import { GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
+import { ChatRecipe, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
 import { FinanceForm, FinancePanel } from './finance.tsx'
 import { financeKinds, money, type FinanceChange } from '../runtime/finance-types.ts'
@@ -272,6 +273,7 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
   const [proposals, setProposals] = useState<InboxProposal[]>()
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [submitted,setSubmitted]=useState(false)
   useEffect(() => {
     let active = true
     void api<InboxProposal[]>('/inbox').then(items => { if (active) setProposals(items) },
@@ -292,13 +294,27 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
   useEffect(()=>{if(proposals)onLectures?.(proposals.filter(item=>item.state==='pending'&&item.lectureCancellation))},[proposals,onLectures])
 
   const pending = proposals?.filter(item => item.id===sourceId||item.state === 'pending' && item.category !== 'orders' && item.category !== 'returns' && (!lecturesOnly||Boolean(item.lectureCancellation))) ?? []
-  if (!pending.length && !error) return null
+  if (!pending.length && !error && !submitted) return null
   const heading=lecturesOnly?'Vorgeschlagene Vorlesungsausfälle':'Vorschläge aus deinen Mails'
   const visible=sourceId?[...pending].sort((a,b)=>Number(b.id===sourceId)-Number(a.id===sourceId)):pending
+  const batchItems=visible.filter(item=>item.state==='pending'&&(!item.lectureCancellation||
+    item.lectureCancellation.target&&!item.lectureCancellation.reason&&!item.lectureCancellation.approvedTarget))
+    .map(item=>({...item,title:item.subject}))
+  async function approveAll(items:readonly (typeof batchItems)[number][]){
+    setBusy(true);setError('');setSubmitted(true)
+    try{
+      const result=await approveEach(items,item=>api('/inbox/decision',{
+        proposal:item.id,decision:'accept',lectureTarget:item.lectureCancellation?.target,confirm:true,
+      },20000))
+      setProposals(await api('/inbox'))
+      if(result.approved)onDecision()
+      return result
+    }finally{setBusy(false)}
+  }
   return <section className="card settings" aria-label={heading}>
     <h2>{heading}</h2>
     {error ? <p role="alert">{error}</p> : null}
-    {visible.slice(0, 12).map(item => {
+    {visible.map(item => {
       const cancellation=item.lectureCancellation
       if(cancellation){
         const target=cancellation.target
@@ -337,6 +353,9 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
           })}>{decision === 'accept' ? item.event ? 'In Kalender übernehmen' : 'Als Aufgabe bestätigen' : 'Ablehnen'}</button>)}
       </div> : <p>{item.state === 'accepted' ? 'Aufgabe gespeichert' : 'Abgelehnt'}</p>}
     </section>})}
+    <BulkApproval items={batchItems} disabled={busy} approve={approveAll} description={lecturesOnly?
+      'LifePilot entfernt die zugeordneten Vorlesungstermine aus den angegebenen Kalendern.':
+      'LifePilot übernimmt Aufgaben und Termine, ohne vorgeschlagene Zeitblöcke zu buchen. Eindeutig zugeordnete Vorlesungsausfälle entfernen den angezeigten Termin.'}/>
   </section>
 }
 
@@ -772,7 +791,8 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
   modelName: string,
   run: Run, onReply?: () => void, mutate: (path: string, payload: object) => Promise<unknown>, busy: boolean, actionError?: string
 }) {
-  const [recipeSaved,setRecipeSaved]=useState(false)
+  const recipe=run.groceryChange?.ingredients?.length&&run.groceryChange.steps.length?run.groceryChange:undefined
+  const recipeControls=recipe&&(run.state==='review'||run.state==='accepted'||Boolean(recipe.recipeDecision))
   const approval = run.approvals.find(item => item.state === 'pending')
   const context = run.context ?? []
   const titles = new Map(context.map(task => [task.id, task.title]))
@@ -809,11 +829,9 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
       {run.result.summary ? <p className="note">{run.result.summary}</p> : null}
       {run.projectChange?<ProjectProposal change={run.projectChange}/>:null}
       {run.seriesChange?<SeriesProposal change={run.seriesChange}/>:null}
-      {run.groceryChange ? <GroceryAnswerCard answer={run.groceryChange}/> : null}
-      {run.groceryChange?.ingredients?.length&&run.groceryChange.steps.length>0&&run.state==='accepted'&&run.groceryChange.write!=='recipe'?
-        <button type="button" className="quiet" disabled={busy||recipeSaved} onClick={()=>void (async()=>{
-          if(await mutate('/grocery/recipes',{action:'save',run:run.id,confirm:true}))setRecipeSaved(true)
-        })()}>{recipeSaved?'Rezept gespeichert':'In Meine Rezepte speichern'}</button>:null}
+      {recipeControls&&recipe ? <ChatRecipe answer={recipe} api={api} disabled={busy}
+        decide={choice=>mutate('/grocery/recipes/decision',{...choice,run:run.id,turn:run.turn,confirm:true})}/>:
+        run.groceryChange?<GroceryAnswerCard answer={run.groceryChange}/>:null}
       {(run.financeChanges??(run.financeChange?[run.financeChange]:[])).map((change,index)=>
         <FinanceProposal key={run.id+':'+run.turn+':'+index} run={run} change={change} index={index} mutate={mutate}/>)}
       {run.result.advice?.length ? <div className="task"><strong>Empfohlene Reihenfolge</strong><ol>
@@ -853,17 +871,16 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
       </li>)}</ul> : null}
     </details> : null}
     {approval?.action === 'model' ? <AnalysisApproval modelName={modelName} key={approval.id} runId={run.id} approval={approval} busy={busy} decide={decide} /> :
-      approval && (!compact || actionable) ? <div className="approval">
+      approval && !recipeControls && (!compact || actionable) ? <div className="approval">
       <strong>{actionable ? compact ? 'Soll ich das übernehmen?' : 'Lokale Änderungen freigeben' : 'Ergebnis zur Kenntnis nehmen'}</strong>
       {!compact ? <p>{actionable ? 'Bestätige genau die angezeigten lokalen Änderungen.' : 'Die Antwort enthält keine lokalen Änderungen.'}</p> : null}
       {!compact && approval.action === 'adopt' && run.result && Boolean(run.result.tasks.length || run.result.actions?.some(action => !['complete', 'remember', 'correct_memory'].includes(action.kind))) ? <ProposalEditor key={approval.id} result={run.result}
         save={candidate => mutate('/runs/' + run.id + '/revise', { result: candidate, confirm: true })} /> : null}
-      <div className="actions"><button disabled={busy} className="primary" onClick={() => decide('approve')}>{run.projectChange?'Ja, übernehmen':run.seriesChange?.operation==='delete'?'Serie löschen':run.seriesChange?'Serie eintragen':run.groceryChange?.write==='recipe' ? run.groceryChange.rows.length || run.groceryChange.stockRows?.length ? 'Rezept und Zutaten übernehmen' : 'Rezept speichern' :
-        run.groceryChange?.write==='shop' ? run.groceryChange.steps.length ? 'Fehlende Zutaten ('+run.groceryChange.rows.length+') auf Einkaufsliste setzen' : 'Auf Einkaufsliste setzen' :
+      <div className="actions"><button disabled={busy} className="primary" onClick={() => decide('approve')}>{run.projectChange?'Ja, übernehmen':run.seriesChange?.operation==='delete'?'Serie löschen':run.seriesChange?'Serie eintragen':run.groceryChange?.write==='shop' ? run.groceryChange.steps.length ? 'Fehlende Zutaten ('+run.groceryChange.rows.length+') auf Einkaufsliste setzen' : 'Auf Einkaufsliste setzen' :
         run.groceryChange?.write==='remove' ? 'Artikel entfernen' : (run.financeChanges?.length??0)>1 ? run.financeChanges!.length+' Einträge übernehmen' : actionable ? compact && !run.financeChange && !run.groceryChange ? 'Ja' : 'Übernehmen' : 'Gelesen'}</button>
         {googleWrite && run.result?.skill === 'appointment' && run.result.tasks.length === 1 ?
           <button disabled={busy} onClick={() => decide('approve', true)}>In LifePilot und Google speichern</button> : null}
-        <button disabled={busy} onClick={() => decide('deny')}>{run.projectChange?'Nein':run.financeChange ? 'Abbrechen' : compact ? 'Nein' : 'Ablehnen'}</button></div>
+        <button disabled={busy} onClick={() => decide('deny')}>Nein</button></div>
     </div> : null}
     {run.googleSync === 'saved' ? <details className="approval"><summary>Google-Termin bearbeiten</summary>
       <form onSubmit={event => {
@@ -888,10 +905,10 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
       <button disabled={busy || !googleWrite} onClick={() => void mutate('/google/sync-appointment', { run: run.id, confirm: true })}>Google-Speicherung prüfen</button>
     </div> : null}
     {actionError ? <p role="alert" className="error-text">{actionError}</p> : null}
-    {onReply ? <button disabled={busy} className="primary" onClick={onReply}>
-      {run.result?.questions.length ? 'Rückfrage beantworten' : 'Vorgang fortsetzen'}
+    {onReply && !recipe && (run.result?.questions.length||run.state==='failed') ? <button disabled={busy} className="primary" onClick={onReply}>
+      {run.result?.questions.length ? 'Rückfrage beantworten' : 'Erneut versuchen'}
     </button> : null}
-    {openStates.has(run.state) ? <button disabled={busy} className="quiet" onClick={() => void mutate(`/runs/${run.id}/cancel`, {})}>Vorgang abbrechen</button> : null}
+    {openStates.has(run.state) && !recipeControls ? <button disabled={busy} className="quiet" onClick={() => void mutate(`/runs/${run.id}/cancel`, {})}>Vorgang abbrechen</button> : null}
   </article>
 }
 
@@ -966,6 +983,11 @@ function App() {
   const [outfitRequest, setOutfitRequest] = useState<{ run: string, plan?:OutfitChatPlan, fragranceNames?:string[], required?:string[], choice?:OutfitChoice, error?:string }>()
   const [projects,setProjects]=useState<ProjectsOverview>()
   const [projectsError,setProjectsError]=useState('')
+  const [financeMailRevision,setFinanceMailRevision]=useState(0)
+  function financeMailUpdated(){
+    setFinanceMailRevision(value=>value+1)
+    void refresh()
+  }
   const [projectRefresh,setProjectRefresh]=useState(0)
   const [taskProject,setTaskProject]=useState<string>()
   const [briefingVersion,setBriefingVersion]=useState(0)
@@ -1121,7 +1143,7 @@ function App() {
         return
       }
       if(calendarAction)setCalendarApproval(undefined)
-      if(path==='/grocery/recipes' || path.endsWith('/decision'))setRecipeVersion(value=>value+1)
+      if(path.startsWith('/grocery/recipes') || path.endsWith('/decision'))setRecipeVersion(value=>value+1)
       await refresh()
       return result
     } catch (cause) {
@@ -1153,6 +1175,10 @@ function App() {
     if (answer && !busy && !skillBusy && focus && !doc) {
       if (currentTripChange && 'offer' in currentTripChange) {
         if (await answerTripChange(focus,currentTripChange.offer.id,answer==='ja')) clearDraft()
+        return
+      }
+      if(focus.groceryChange?.ingredients?.length&&!focus.groceryChange.recipeDecision){
+        setError({path:'/runs',message:'Wähle Ja oder Nein direkt beim Rezept und bestätige deine Auswahl.'})
         return
       }
       const approval=focus.approvals.find(entry=>entry.action==='adopt' && entry.state==='pending')
@@ -1205,7 +1231,7 @@ function App() {
     earlier.unshift(prior)
     preceding=prior.parent_run?runs.find(run=>run.id===prior.parent_run)?.previous_run:prior.previous_run
   }
-  const readyAnswer=/^(ja|nein)[.!]?$/iu.test(input.trim()) && Boolean(
+  const readyAnswer=!focus?.groceryChange?.ingredients?.length && /^(ja|nein)[.!]?$/iu.test(input.trim()) && Boolean(
     currentTripChange && 'offer' in currentTripChange ||
     focus?.approvals.some(entry=>entry.action==='adopt' && entry.state==='pending') &&
     (focus.projectChange || focus.seriesChange || focus.groceryChange?.write || focus.financeChange || focus.result?.tasks.length || focus.result?.actions?.length))
@@ -1255,6 +1281,34 @@ function App() {
     if(!project)return
     const saved=await mutate<{ok:boolean}>('/projects/mail',{suggestion:suggestion.id,revision:project.revision,approved,confirm:true})
     if(saved)setProjectRefresh(number=>number+1)
+  }
+  async function approveProjectMails(items:readonly (ProjectSuggestion&{title:string})[]){
+    const revisions=new Map(projects?.projects.map(project=>[project.id,project.revision]))
+    const result=await approveEach(items,async item=>{
+      const revision=revisions.get(item.projectId)
+      if(revision===undefined)throw Error('Das Projekt ist nicht mehr verfügbar.')
+      const saved=await api<{revision:number}>('/projects/mail',{suggestion:item.id,revision,approved:true,confirm:true})
+      revisions.set(item.projectId,saved.revision)
+    })
+    setProjectRefresh(number=>number+1)
+    return result
+  }
+  const pendingAdoptions=waiting.flatMap(run=>{
+    const approval=run.approvals.find(entry=>entry.action==='adopt'&&entry.state==='pending')
+    if(run.state!=='review'||!approval||run.result?.questions.length||run.groceryChange?.ingredients?.length)return []
+    return [{id:run.id,title:run.projectChange?.data.title??run.result?.summary??run.input,approval:approval.id}]
+  })
+  async function approvePilotProposals(items:readonly (typeof pendingAdoptions)[number][]){
+    const result=await approveEach(items,async item=>{
+      const saved=await api<Run|{calendarConfirmation:CalendarConfirmation}>(`/runs/${item.id}/decision`,{
+        approval:item.approval,decision:'approve',
+      },40000)
+      if('calendarConfirmation' in saved)throw Error('Der Kalenderkonflikt braucht eine einzelne Bestätigung.')
+      if(saved.state!=='accepted')throw Error(saved.error??'Der Vorschlag ist noch offen.')
+    })
+    if(result.approved)setRecipeVersion(value=>value+1)
+    await refresh()
+    return result
   }
   async function saveProjectEditor(plan:Partial<ProjectPlan>&Pick<ProjectPlan,'projectIntent'>,
     steps:Array<{key:string,id?:string,title:string,date:string|null,priority:unknown,scheduleMode:unknown,approxLabel:string|null,completed:boolean|null,startDate?:string|null,notes?:string|null,phase?:string|null}>,
@@ -1602,11 +1656,11 @@ function App() {
             planSlot={item=>goProjectWork({title:item.title,date:item.due_date??undefined})}
             updateKey={JSON.stringify([calendarUpdateKey,projectRefresh,projectRunRefresh,inboxFeed?.loadedAt])}/>:null}
           {page==='Projekte'?<>
-            {projectsError?<p role="alert">{projectsError}</p>:projects?<ProjectsPanel overview={projects} save={saveProject} saveEditor={saveProjectEditor} mail={decideProject} error={error?.path.startsWith('/projects')?error.message:undefined}
+            {projectsError?<p role="alert">{projectsError}</p>:projects?<ProjectsPanel overview={projects} save={saveProject} saveEditor={saveProjectEditor} mail={decideProject} approveMails={approveProjectMails} error={error?.path.startsWith('/projects')?error.message:undefined}
               work={goProjectWork} busy={busy||!!offline} selected={projectSelection} tasks={tasks} openTask={openTask} addTask={id=>{setTaskProject(id);requestAnimationFrame(()=>document.querySelector('.project-task-create')?.scrollIntoView({block:'center'}))}}/>:<Loading label="Projekte werden geladen …"/>}
           </>:null}
           {page === 'Posteingang' ? <>
-            <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} busy={busy||!!offline}/>
+            <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline}/>
             <section className="card settings" aria-label="Relevante Nachrichten">
               <div className="editor-title inbox-header"><h2>Wichtig für dich</h2>
                 <div className="actions">
@@ -1653,10 +1707,13 @@ function App() {
                     <RunDetail compact auditDetails={false} run={run} googleWrite={!!snapshot.googleAppointmentWrite}
                       modelName={snapshot.modelName??'Codex'} busy={busy||!!offline} mutate={mutate}/>
                   </details>)}
-                <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} busy={busy||!!offline} compact/>
-                <MailFinance api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion} onUpdate={()=>void refresh()}/>
+
+                <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline} compact/>
+                <MailFinance api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion} onUpdate={financeMailUpdated}/>
                 <LiveInbox batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
                 <button type="button" className="quiet" onClick={()=>navigate('Posteingang')}>Mailvorschläge öffnen →</button>
+                <BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}
+                  description="LifePilot übernimmt die angezeigten Pilot-Vorschläge. Kalenderänderungen werden lokal ausgeführt."/>
               </Section>
             </div>
             {inboxFeed?.messages.some(item=>item.important) ? <section className="card settings start-inbox">
@@ -1673,7 +1730,8 @@ function App() {
             </div>)}</Section> : null}
           </> : null}
           {page === 'Skills' ? <>
-            {waiting.length ? <Section title="Freigaben" icon="◇">{waiting.map(run => <RunRow key={run.id} run={run} onClick={() => { show(run.id); document.getElementById('agent-chat')?.focus() }} />)}</Section> : null}
+            {waiting.length ? <Section title="Freigaben" icon="◇">{waiting.map(run => <RunRow key={run.id} run={run} onClick={() => { show(run.id); document.getElementById('agent-chat')?.focus() }} />)}<BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}
+              description="LifePilot übernimmt die offenen Pilot-Vorschläge. Kalenderänderungen werden lokal ausgeführt."/></Section> : null}
             <div className="skill-grid">
               {([
                 ['E-Mail-Manager','envelope','Prüft relevante Mails und schlägt Ausgaben, Abos und Fristen vor.'],
@@ -1695,10 +1753,10 @@ function App() {
               </section>)}
             </div>
           </> : null}
-          {page==='Vorrat & Einkauf' ? <GroceryPanel cloudImages={snapshot.cloudModel === true} api={api} recipeVersion={recipeVersion} onAsk={()=>openDraft('Was kann ich heute mit meinem Vorrat kochen?')} refreshKey={skillRefresh('grocery')}/> : null}
+          {page==='Vorrat & Einkauf' ? <GroceryPanel cloudImages={snapshot.cloudModel === true} api={api} recipeVersion={recipeVersion} onAsk={servings=>openDraft('Was kann ich heute mit meinem Vorrat für '+servings+' '+(servings===1?'Portion':'Portionen')+' kochen?')} refreshKey={skillRefresh('grocery')}/> : null}
           {page==='Finanzen & Abos' ? <>
-            <MailFinance api={api} refreshKey={inboxFeed?.loadedAt??''} onUpdate={()=>void refresh()} />
-            <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')} />
+            <MailFinance api={api} refreshKey={inboxFeed?.loadedAt??''} onUpdate={financeMailUpdated} />
+            <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')+':'+financeMailRevision} />
           </> : null}
           {page==='Urlaubsplaner' ? <TravelPlanner key={travelRequest?.run ?? 'travel'} api={api} plan={travelRequest?.plan} handoff={travelRequest?.run}
             initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection} /> : null}
@@ -1763,7 +1821,7 @@ function App() {
         {earlier.length>0&&<details className="history-note"><summary>Vorherige Nachrichten in diesem Chat</summary>
           {earlier.map(run=><div key={run.id}><p>{run.input}</p>{run.result?.summary&&<p>{run.result.summary}</p>}</div>)}
         </details>}
-        <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} busy={busy||!!offline} compact/>
+        <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline} compact/>
         {projectReview?.step?<button type="button" onClick={()=>goProjectWork({title:projectReview.step!,date:projectReview.date??undefined})}>Freie Zeit finden</button>:null}
         {focus?.parent_run&&<button type="button" className="quiet" onClick={()=>show(focus.parent_run!)}>Alle Aufträge dieser Nachricht</button>}
         {focus ? <RunDetail key={focus.id+':'+focus.turn} compact auditDetails={false} onQuickReply={activeReply && canChat ? useQuickReply : undefined} googleWrite={!!snapshot?.googleAppointmentWrite} modelName={snapshot?.modelName ?? 'Codex'} run={focus} busy={busy || !!offline} mutate={mutate} actionError={runError} onReply={
@@ -1783,7 +1841,11 @@ function App() {
           <RunDetail key={run.id+':'+run.turn} grouped compact auditDetails={false} run={run} mutate={mutate} busy={busy||!!offline}
             modelName={snapshot?.modelName??'Codex'} googleWrite={!!snapshot?.googleAppointmentWrite}/>
           <button type="button" className="quiet" onClick={()=>show(run.id)}>{run.result?.questions.length?'Rückfrage öffnen':'Auftrag öffnen'}</button>
-        </section>)}</div>}
+        </section>)}
+          <BulkApproval items={pendingAdoptions.filter(item=>group.some(run=>run.id===item.id))}
+            disabled={busy||!!offline} approve={approvePilotProposals}
+            description="LifePilot übernimmt die angezeigten Pilot-Vorschläge dieses Auftrags."/>
+        </div>}
         {focus && ['review','accepted'].includes(focus.state) && focus.result?.skill === 'deadline_guardian' && (snapshot?.acceptance || skillResult?.error) ? <button type="button" className="primary"
           disabled={skillBusy} onClick={() => void executeChatSkill(focus)}>Offene Fristen anzeigen</button> : null}
         {focus && ['review','accepted'].includes(focus.state) && focus.result?.skill === 'smart_planning' && focus.result.skillData && (snapshot?.acceptance || skillResult?.error) ? <button type="button" className="primary"
@@ -1803,7 +1865,6 @@ function App() {
               {entry.destination} · {formatDate(entry.start)}</button>)}</div>
           </> : <p>{currentTripChange.message}</p>}
         </div> : null}
-        {focus?.result?.skill==='grocery' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Vorrat & Einkauf')}}>Vorrat &amp; Einkauf öffnen</button> : null}
         {focus?.state==='accepted'&&focus.groceryChange?.write==='receipt'&&focus.groceryChange.totalCents ? <button className="quiet" type="button"
           onClick={()=>{setReplyTo(null);setNewConversation(true);setInput('Erfasse den bestätigten Bonbetrag '+money(focus.groceryChange!.totalCents!)+' als variable Ausgabe Supermarkteinkauf in Finanzen.')}}>Bonbetrag für Finanzen vorbereiten</button>:null}
         {focus?.result?.skill==='orders' && skillResult?.orders ? <p role="status">{skillResult.orders.checked} Bestellmails geprüft.
