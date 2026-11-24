@@ -1,5 +1,5 @@
-LifePilot 1.0.2 verwendet für den privaten Pilot-Chat wieder die lokale, versionsgebundene Freigabe mit Prüfsummen. Dafür ist kein systemweit installierter Prüfschlüssel erforderlich.
+LifePilot 1.0.3 zeigt beim Wechsel zur Urlaubsgarderobe sofort das ausgewählte Kleidungsstück. Aussortierte Teile können direkt an der Karte wieder in den Kleiderschrank einsortiert werden.
 
-Die Kleiderschrank- und Pilot-Verbesserungen aus 1.0.1 sind enthalten.
+Der Verkaufstab zeigt kompakte Karten mit Verkaufspreis, Angaben zum Zustand und einem einheitlichen Inseratstext für Kleinanzeigen und Vinted.
 
-[Installation](https://github.com/daniilobrant/lifepilot/blob/v1.0.2/README.md#installation) · [Versionsverlauf](https://github.com/daniilobrant/lifepilot/blob/v1.0.2/CHANGELOG.md) · [Lokale Freigabe](https://github.com/daniilobrant/lifepilot/blob/v1.0.2/docs/SICHERHEIT.md#privaten-chat-lokal-freigeben)
+[Installation](https://github.com/daniilobrant/lifepilot/blob/v1.0.3/README.md#installation) · [Versionsverlauf](https://github.com/daniilobrant/lifepilot/blob/v1.0.3/CHANGELOG.md)

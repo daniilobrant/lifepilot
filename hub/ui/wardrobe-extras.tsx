@@ -11,20 +11,26 @@ export const scentPhotoPath=(id:string)=>'/api/outfits/fragrance-photo?scent='+e
 const errorMessage=(error:unknown)=>error instanceof Error?error.message:'Die Aktion konnte nicht abgeschlossen werden.'
 const formatDay=(value:string)=>value.split('-').reverse().join('.')
 
+const euros=new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'})
+
 export function ResalePanel({api,item,wardrobe,onDone}:{api:Api,item?:WardrobeItem,wardrobe:WardrobeItem[],onDone:()=>Promise<void>}) {
-  const [rows,setRows]=useState<ResaleDraft[]>([])
+  const panel=useRef<HTMLElement>(null)
+  const [rows,setRows]=useState<ResaleDraft[]>()
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
   const [notice,setNotice]=useState('')
   const [editing,setEditing]=useState<string>()
   const [adding,setAdding]=useState(false)
   const [selectedItem,setSelectedItem]=useState('')
-  const [photoChoice,setPhotoChoice]=useState<string>()
+  const [photoChoice,setPhotoChoice]=useState(0)
   useEffect(()=>{
     let active=true
     void api<ResaleDraft[]>('/outfits/resale').then(rows=>{if(active)setRows(rows)}).catch(error=>{if(active)setError(errorMessage(error))})
     return ()=>{active=false}
   },[api])
+  useEffect(()=>{
+    if(item)panel.current?.scrollIntoView({block:'start'})
+  },[item?.id])
   async function perform(action:()=>Promise<void>) {
     setBusy(true);setError('');setNotice('')
     try {await action()} catch(error) {setError(errorMessage(error))} finally {setBusy(false)}
@@ -34,86 +40,112 @@ export function ResalePanel({api,item,wardrobe,onDone}:{api:Api,item?:WardrobeIt
     setEditing(undefined)
     await onDone()
   }
-  function editor(id:string,prior?:ResaleDraft) {
-    return <form className="outfit-form" onSubmit={event=>{
+  function startSale(id:string) {
+    void perform(async()=>{
+      await change(id,'start')
+      setEditing(id)
+      setSelectedItem('')
+      setAdding(false)
+    })
+  }
+  async function updatePhoto(id:string,file:File) {
+    if(file.size>4*1024*1024)throw Error('Das Foto darf bis zu 4 MB groß sein.')
+    const response=await fetch('/api/outfits/photo?item='+encodeURIComponent(id),{method:'POST',
+      headers:{'Content-Type':'application/octet-stream','X-LifePilot-Confirm':'image'},body:file})
+    if(!response.ok)throw Error((await response.json()).error)
+    setRows(await api<ResaleDraft[]>('/outfits/resale'))
+    setPhotoChoice(value=>value+1)
+    await onDone()
+  }
+  function editor(row:ResaleDraft) {
+    return <form className="resale-editor" onSubmit={event=>{
       event.preventDefault()
-      const data=new FormData(event.currentTarget)
-      void perform(()=>change(id,'selling',{condition:data.get('condition'),flaws:data.get('flaws'),
-        originalPrice:data.get('price') ? Number(data.get('price')) : null}))
+      const fields=new FormData(event.currentTarget)
+      const asking=fields.get('asking')
+      void perform(()=>change(row.id,'selling',{condition:fields.get('condition'),flaws:fields.get('flaws'),
+        originalPrice:fields.get('price') ? Number(fields.get('price')) : null,
+        askingPriceCents:asking ? Math.round(Number(asking)*100) : null}))
     }}>
-      <label>Zustand<select name="condition" defaultValue={prior?.condition||''} required>
+      <label>Zustand<select name="condition" defaultValue={row.condition} required>
         <option value="" disabled>Zustand auswählen</option>{saleConditions.map(value=><option key={value}>{value}</option>)}
       </select></label>
-      <label>Gebrauchsspuren oder Mängel<input name="flaws" maxLength={350} defaultValue={prior?.flaws}/></label>
-      <label>Ungefährer Neupreis in Euro<input name="price" type="number" min={1} max={100000} step={1} defaultValue={prior?.originalPrice??''}/></label>
-      <button type="submit" className="outfit-primary" disabled={busy}>Anzeige vorbereiten</button>
+      <label>Gebrauchsspuren oder Mängel<input name="flaws" maxLength={350} defaultValue={row.flaws}/></label>
+      <div className="resale-prices">
+        <label>Ungefährer Neupreis (€)<input name="price" type="number" min={1} max={100000} step={1} defaultValue={row.originalPrice??''}/></label>
+        <label>Verkaufspreis (€)<input name="asking" type="number" min={0.01} max={100000} step={0.01}
+          defaultValue={row.askingPriceCents===null?'':row.askingPriceCents/100}/></label>
+      </div>
+      <div className="resale-actions">
+        <button type="submit" className="outfit-primary" disabled={busy}>Anzeige vorbereiten</button>
+        {row.condition?<button type="button" disabled={busy} onClick={()=>setEditing(undefined)}>Abbrechen</button>:null}
+      </div>
     </form>
   }
-  function copy(text:string) {
-    void perform(async()=>{await navigator.clipboard.writeText(text);setNotice('Kopiert.')})
-  }
-  return <section className="outfit-form wardrobe-extras">
+  return <section ref={panel} className="resale-panel">
     <header className="outfit-actions wardrobe-extra-header"><h2>Verkaufen</h2>
-      <button type="button" aria-label="Teil zum Verkauf hinzufügen" aria-expanded={adding} onClick={()=>setAdding(!adding)}>+</button>
+      <button type="button" className="icon-button" aria-label="Teil zum Verkauf hinzufügen" aria-expanded={adding}
+        onClick={()=>setAdding(!adding)}>+</button>
     </header>
-    {adding && <div className="outfit-actions">
-      <label>Kleidungsstück <select value={selectedItem} onChange={event=>setSelectedItem(event.currentTarget.value)}>
+    {adding ? <div className="outfit-actions resale-chooser">
+      <label>Kleidungsstück<select value={selectedItem} onChange={event=>setSelectedItem(event.currentTarget.value)}>
         <option value="">Teil auswählen</option>{wardrobe.filter(piece=>!piece.orderState&&!piece.saleState).map(piece=>
           <option value={piece.id} key={piece.id}>{piece.name}</option>)}
       </select></label>
-      <button type="button" disabled={busy||!selectedItem} onClick={()=>void perform(async()=>{
-        await change(selectedItem,'start');setEditing(selectedItem);setSelectedItem('');setAdding(false)
-      })}>Übernehmen</button>
-    </div>}
-    {item && !rows.some(row=>row.id===item.id) ? <section><h3>{item.name}</h3>{editor(item.id)}</section> : null}
+      <button type="button" className="outfit-primary" disabled={busy||!selectedItem} onClick={()=>startSale(selectedItem)}>Übernehmen</button>
+    </div> : null}
     {error ? <p role="alert">{error}</p> : null}
     {notice ? <p role="status">{notice}</p> : null}
-    {!rows.length&&!item ? <p>Wähle im Kleiderschrank ein Teil zum Verkaufen oder Aussortieren.</p> : null}
-    <div className="outfit-wardrobe-grid">{rows.map(row=><article key={row.id} className="wardrobe-extra-card resale-card">
-      {row.hasPhoto?<img className="wardrobe-extra-image" src={'/api/outfits/photo?item='+row.id+'&v='+encodeURIComponent(photoChoice??'')} alt={row.name} loading="lazy"/>:
-        <div className="outfit-piece-placeholder">Kleidungsstück</div>}
-      <h3>{row.state==='sold'?<s>{row.name}</s>:row.name}</h3>
-      <small>{row.state==='sold'?'Verkauft am '+formatDay(row.sold??row.created):row.state==='sorted'?'Aussortiert':'Zum Verkauf seit '+formatDay(row.created)}</small>
-      {row.state==='selling' ? <>
-        {(editing===row.id || !row.condition) ? editor(row.id,row) : <details>
-          <summary>Inserat für Kleinanzeigen oder Vinted</summary>
-          <p><strong>{row.listing.title}</strong></p><p className="resale-description">{row.listing.description}</p>
-          <p>Startpreis ca. <strong>{row.listing.start} €</strong> · grobe Spanne {row.listing.minimum}–{row.listing.maximum} €</p>
-          <small>Schätzung nach Zustand und {row.originalPrice?'Neupreis':'Artikelkategorie'}.</small>
-          {row.hasOwnPhoto ? <div className="outfit-actions">
-            <a href={'/api/outfits/photo?item='+row.id} download>Eigenes Foto herunterladen</a>
-          </div>:<p>Für die Anzeige bitte eigene Fotos des tatsächlichen Artikels aufnehmen.</p>}
-          <label>Eigenes Foto hinzufügen<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={event=>{
-            const file=event.target.files?.[0]
-            if (!file) return
-            void perform(async()=>{
-              if (file.size>4*1024*1024) throw Error('Das Foto darf bis zu 4 MB groß sein.')
-              const response=await fetch('/api/outfits/photo?item='+row.id,{method:'POST',
-                headers:{'Content-Type':'application/octet-stream','X-LifePilot-Confirm':'image'},body:file})
-              if (!response.ok) throw Error((await response.json()).error)
-              setRows(await api<ResaleDraft[]>('/outfits/resale'));setPhotoChoice(String(Date.now()));await onDone()
-            })
-          }}/></label>
-          <div className="outfit-actions">
-            <button type="button" disabled={busy} onClick={()=>copy([
-              row.listing.title,row.listing.description,'Preisvorstellung: '+row.listing.start+' €',
-            ].join('\n\n'))}>Kleinanzeigen-Text kopieren</button>
-            <button type="button" disabled={busy} onClick={()=>copy([
-              row.listing.title,row.listing.description,'Preis: '+row.listing.start+' €',
-            ].join('\n\n'))}>Vinted-Text kopieren</button>
-            <a href="https://www.kleinanzeigen.de/p-anzeige-aufgeben.html" target="_blank" rel="noreferrer">Kleinanzeigen öffnen</a>
-            <a href="https://www.vinted.de/items/new" target="_blank" rel="noreferrer">Vinted öffnen</a>
-          </div>
-          <button type="button" className="quiet" onClick={()=>setEditing(row.id)}>Zustand bearbeiten</button>
-        </details>}
-        <button type="button" disabled={busy} onClick={()=>void perform(async()=>{
-          if (window.confirm(row.name+' als verkauft markieren?')) await change(row.id,'sold')
-        })}>Als verkauft markieren</button>
-      </>:null}
-      <button type="button" className="quiet" disabled={busy} onClick={()=>void perform(()=>change(row.id,'restore'))}>
-        {row.state==='selling'?'Verkauf stoppen':'Zurück in den Kleiderschrank'}
-      </button>
-    </article>)}</div>
+    {!rows && !error ? <p role="status">Verkaufsartikel werden geladen …</p> : null}
+    {rows?.length===0 ? <p>Wähle ein Kleidungsstück für den Verkauf aus.</p> : null}
+    <div className="resale-grid">{rows?.map(row=>{
+      const price=euros.format(row.askingPriceCents===null?row.listing.start:row.askingPriceCents/100)
+      const preparing=row.state==='selling' && (editing===row.id || !row.condition)
+      const photo='/api/outfits/photo?item='+encodeURIComponent(row.id)
+      return <article key={row.id} className="outfit-inventory resale-card">
+        {row.hasPhoto?<img className="resale-photo" src={photo+'&v='+photoChoice} alt={row.name} loading="lazy"/>:
+          <div className="outfit-piece-placeholder resale-photo">Kleidungsstück</div>}
+        <header><h3>{row.name}</h3>
+          <small>{row.state==='sold'?'Verkauft am '+formatDay(row.sold??row.created):row.state==='sorted'?'Aussortiert':'Zum Verkauf seit '+formatDay(row.created)}</small>
+        </header>
+        {row.state==='selling' ? <>
+          {preparing ? editor(row) : <>
+            <p className="resale-price">{row.askingPriceCents===null?'Preisvorschlag':'Verkaufspreis'} <strong>{price}</strong></p>
+            <div className="resale-summary">
+              <p>{row.listing.description.split('\n').join(' · ')}</p>
+              <button type="button" disabled={busy} onClick={()=>void perform(async()=>{
+                await navigator.clipboard.writeText([row.listing.title,row.listing.description,'Preis: '+price].join('\n\n'))
+                setNotice('Inseratstext kopiert.')
+              })}>Text kopieren</button>
+            </div>
+            <div className="resale-links">
+              <a href="https://www.kleinanzeigen.de/p-anzeige-aufgeben.html" target="_blank" rel="noreferrer">Kleinanzeigen öffnen</a>
+              <a href="https://www.vinted.de/items/new" target="_blank" rel="noreferrer">Vinted öffnen</a>
+            </div>
+          </>}
+          <details className="resale-photo-options">
+            <summary>Eigenes Foto</summary>
+            {row.hasOwnPhoto ? <a href={photo} download>Foto herunterladen</a> : null}
+            <label>Eigenes Foto hinzufügen<input type="file" accept="image/png,image/jpeg,image/webp" disabled={busy} onChange={event=>{
+              const file=event.currentTarget.files?.[0]
+              event.currentTarget.value=''
+              if(file)void perform(()=>updatePhoto(row.id,file))
+            }}/></label>
+          </details>
+        </> : null}
+        <div className="resale-actions">
+          {row.state==='selling' ? <>
+            {!preparing ? <button type="button" disabled={busy} onClick={()=>setEditing(row.id)}>Zustand bearbeiten</button> : null}
+            <button type="button" disabled={busy} onClick={()=>{
+              if(window.confirm(row.name+' als verkauft markieren?'))void perform(()=>change(row.id,'sold'))
+            }}>Als verkauft markieren</button>
+          </> : null}
+          <button type="button" disabled={busy} onClick={()=>void perform(()=>change(row.id,'restore'))}>
+            {row.state==='selling'?'Verkauf stoppen':'Zurück in den Kleiderschrank'}
+          </button>
+          {row.state==='sorted'?<button type="button" disabled={busy} onClick={()=>startSale(row.id)}>Über Kleinanzeigen verkaufen</button>:null}
+        </div>
+      </article>
+    })}</div>
   </section>
 }
 
@@ -281,7 +313,8 @@ export function FragrancePanel({api,names=[]}:{api:Api,names?:string[]}) {
   </section>
 }
 
-export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedItem}:{api:Api,wardrobe:WardrobeItem[],renderPiece:(item:WardrobeItem)=>ReactNode,renderOutfit:(look:Outfit)=>ReactNode,requestedItem?:string}) {
+export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedItem,onOpenPlanner}:{api:Api,wardrobe:WardrobeItem[],renderPiece:(item:WardrobeItem)=>ReactNode,renderOutfit:(look:Outfit)=>ReactNode,requestedItem?:string,onOpenPlanner?:()=>void}) {
+  const panel=useRef<HTMLElement>(null)
   const [trips,setTrips]=useState<TripSummary[]>()
   const [selected,setSelected]=useState('')
   const [picked,setPicked]=useState<string[]>([])
@@ -294,6 +327,9 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
   const [variant,setVariant]=useState(0)
   const [busy,setBusy]=useState(false)
   const [error,setError]=useState('')
+  useEffect(()=>{
+    if(requestedItem)panel.current?.scrollIntoView({block:'start'})
+  },[requestedItem])
   useEffect(()=>{
     let active=true
     void api<TripSummary[]>('/trips').then(async rows=>{
@@ -321,10 +357,12 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
     return ()=>{active=false}
   },[api,selected])
   const trip=trips?.find(row=>row.id===selected)
-  const selectable=wardrobe.filter(item=>!item.orderState&&!item.saleState)
+  const requested=wardrobe.find(item=>item.id===requestedItem)
+  const selectable=wardrobe.filter(item=>!item.orderState&&!item.saleState&&item.id!==pendingItem)
+  if(requestedItem)selectable.sort((first,second)=>Number(second.id===requestedItem)-Number(first.id===requestedItem))
   function finishAddition(items:string[]) {
     setPicked(items);setPendingItem(undefined)
-    setNotice('Kleidungsstück zur Urlaubspackliste hinzugefügt.')
+    setNotice(requested ? `„${requested.name}“ ist auf der Urlaubspackliste.` : 'Kleidungsstück zur Urlaubspackliste hinzugefügt.')
   }
   async function addPendingItem() {
     if(!trip || !pendingItem || busy)return
@@ -347,11 +385,18 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
       }
     } catch(error) {setError(errorMessage(error))} finally {setBusy(false)}
   }
-  return <section className="outfit-form wardrobe-extras"><h2>Urlaubsgarderobe</h2>
+  return <section ref={panel} className="outfit-form wardrobe-extras travel-wardrobe"><h2>Urlaubsgarderobe</h2>
     {error?<p role="alert">{error}</p>:null}
     {notice?<p role="status">{notice}</p>:null}
     {!trips && !error ? <p role="status">Reisen werden geladen …</p> : null}
-    {trips?.length===0 ? <p>Lege im Urlaubsplaner zuerst eine Reise an.</p> : null}
+    {pendingItem && requested ? <section className="travel-request" aria-label="Ausgewähltes Kleidungsstück">
+      {renderPiece(requested)}
+      {trips && trips.length>1 && !selected ? <p>Wähle die Reise für dieses Teil aus.</p> : null}
+    </section> : null}
+    {trips?.length===0 ? <div className="outfit-actions">
+      <p>Für die Packliste brauchst du eine gespeicherte Reise.</p>
+      {onOpenPlanner?<button type="button" onClick={onOpenPlanner}>Urlaubsplaner öffnen</button>:null}
+    </div> : null}
     {trips && trips.length>0 ? <label>Reise<select value={selected} disabled={busy}
       onChange={event=>{
         const next=event.target.value
@@ -364,7 +409,7 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
       {pendingItem ? <div className="outfit-actions">
         <button type="button" className="outfit-primary" disabled={busy} onClick={()=>void addPendingItem()}>Zur Packliste hinzufügen</button>
       </div> : null}
-      <fieldset disabled={busy || Boolean(pendingItem)}><legend>Kleidungsstücke einpacken</legend><div className="outfit-wardrobe-grid">
+      <fieldset disabled={busy || Boolean(pendingItem)}><legend>Kleidungsstücke einpacken</legend><div className="outfit-wardrobe-grid travel-wardrobe-grid">
         {selectable.map(item=><div className="travel-piece" key={item.id}>{renderPiece(item)}
           <label className="outfit-check"><input type="checkbox" checked={picked.includes(item.id)} aria-label={item.name+' einpacken'}
             onChange={()=>{setLook(undefined);setPicked(current=>current.includes(item.id)?current.filter(id=>id!==item.id):current.length<80?[...current,item.id]:current)}}/>
