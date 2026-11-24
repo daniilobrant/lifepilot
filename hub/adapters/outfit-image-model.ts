@@ -9,7 +9,8 @@ export async function inspectLocalImage(photo: Buffer, format:'png'|'jpeg', inst
   if (busy) return
   busy = true
   try {
-    const result = await fetch(endpoint,{
+    // The fixed loopback endpoint rejects redirects.
+    const result = await fetch(endpoint,{ // nosemgrep: typescript.react.security.react-insecure-request.react-insecure-request
       method:'POST', redirect:'error', signal:AbortSignal.timeout(timeout),
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({model:'google/gemma-4-e4b',temperature:0,max_tokens:1250,

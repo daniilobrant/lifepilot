@@ -213,7 +213,8 @@ export function completeProductMetadata(html: string, url: URL, selectedColor = 
   const product = (color ? byColor.find(variant=>variant.size===size) ?? byColor[0] : undefined)?.product ?? root
   const name = (textField(root?.name,120) || textField(product?.name,120) || og.name).split(/\s+\|\s+/u,1)[0].trim()
   const propertyLabel = (label: string) => {
-    const marker = new RegExp(`(?:^|>)\\s*${label}\\s*:`, 'iu').exec(html)
+    // The only label arguments are fixed product property names.
+    const marker = new RegExp(`(?:^|>)\\s*${label}\\s*:`, 'iu').exec(html) // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
     if (!marker) return ''
     return textField(html.slice(marker.index+marker[0].length,marker.index+marker[0].length+260)
       .replace(/^[\s]*(?:<[^>]*>\s*)*/u,'').split('<',1)[0],100)

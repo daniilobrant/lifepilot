@@ -9,7 +9,8 @@ const bearer = name => ({ Authorization: 'Bearer ' + readFileSync(new URL('user-
 const owner = bearer('adapter-token')
 const probe = bearer('probe-token')
 const tag = 'Quarz' + randomUUID().slice(0, 8)
-const withModel = process.argv.includes('--codex')
+if (process.argv.slice(2).some(arg => arg !== '--local-model')) throw new Error('Das Prüfprofil unterstützt nur --local-model.')
+const withModel = process.argv.includes('--local-model')
 const taskIds = []
 const memoryIds = []
 

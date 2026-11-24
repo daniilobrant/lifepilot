@@ -4,10 +4,10 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-if (!process.argv.includes('--codex')) throw new Error('Mit --codex wird der vorhandene Codex-Login für diese fiktiven Fälle verwendet.')
+if (!process.argv.includes('--local-model')) throw new Error('Starte diese fiktiven Fälle mit --local-model und einem lokalen Testmodell.')
 process.argv.push('--trinity-audit')
 const { Store } = await import('../hub/runtime/store.ts')
-const { runCodex } = await import('../hub/adapters/codex.ts')
+const { runLocalModel } = await import('../hub/adapters/local-model.ts')
 const { dateInBerlin } = await import('../hub/runtime/values.ts')
 const { berlinInstant } = await import('../agents/lifepilot/tools/validate.ts')
 const base = Date.parse(dateInBerlin() + 'T00:00:00Z')
@@ -26,7 +26,7 @@ async function analyze(name, input, check) {
   const running = store.next()
   assert.equal(running?.id, pending.id)
   assert.deepEqual(running.payload, preview.payload)
-  const reply = await runCodex(running.payload, new AbortController().signal)
+  const reply = await runLocalModel(running.payload, new AbortController().signal)
   store.finish(pending.id, reply.result, reply.error, reply.metrics)
   const review = store.present(store.run(pending.id))
   console.log(JSON.stringify({ name, state: review.state, result: review.result, error: reply.error, metrics: reply.metrics }))

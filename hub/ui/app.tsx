@@ -46,7 +46,7 @@ type Followup = { turn: number, input: string, previousResult: Result | null, sh
 type Run = { projectChange?:ProjectChange, seriesChange?:SeriesChange, previous_run?:string|null, parent_run?:string|null, updated_at:string, financeChanges?:FinanceChange[], groceryChange?:GroceryAnswer, financeChange?:FinanceChange, googleSync?: 'pending' | 'saved' | 'removed' | null, id: string, input: string, state: State, origin: 'ui' | 'cli', result: Result | null,
   error: string | null, turn: number, followups: Followup[], version: string, approvals: Approval[], memory: Entry[], context: TaskContext[],
   reference_day: string | null, sourceName: string | null }
-type Snapshot = { directTestChat?:boolean, nightbot?:boolean, googleAppointmentWrite?: boolean, modelName?: string, version: string, acceptance: boolean, chatMode: 'disabled' | 'synthetic' | 'private', runs: Run[], tasks?: TaskRow[], schedule?: ScheduleRow[], connectors?: ConnectorEntry[],
+type Snapshot = { cloudModel?: boolean, directTestChat?:boolean, nightbot?:boolean, googleAppointmentWrite?: boolean, modelName?: string, version: string, acceptance: boolean, chatMode: 'disabled' | 'synthetic' | 'private', runs: Run[], tasks?: TaskRow[], schedule?: ScheduleRow[], connectors?: ConnectorEntry[],
   agents: { name: string, description: string, version: string }[],
   calendarTarget?: { name: string, account: string } | null
   fixtures: { ui: string, cli: string, memory: string } | null }
@@ -1350,7 +1350,8 @@ function App() {
         const months=['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember']
         const current=dateInBerlin().slice(0,7)
         const explicit=run.input.match(/\b20\d{2}-(?:0[1-9]|1[0-2])\b/u)?.[0]
-        const named=months.findIndex(month=>new RegExp('\\b'+month+'\\b','iu').test(run.input))
+        // Months come from the fixed month table.
+        const named=months.findIndex(month=>new RegExp('\\b'+month+'\\b','iu').test(run.input)) // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
         const numbered=named<0 ? undefined : String(named+1).padStart(2,'0')
         const year=run.input.match(/\b20\d{2}\b/u)?.[0] ??
           String(Number(current.slice(0,4))-(numbered && numbered>current.slice(5) ? 1:0))
@@ -1692,7 +1693,7 @@ function App() {
             <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')} />
           </> : null}
           {page==='Urlaubsplaner' ? <TravelPlanner key={travelRequest?.run ?? 'travel'} api={api} plan={travelRequest?.plan} handoff={travelRequest?.run}
-            initialId={travelSelection} onSelect={setTravelSelection} /> : null}
+            initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection} /> : null}
           {page === 'Outfit-Assistent' ? <OutfitAssistant key={outfitRequest?.run ?? 'studio'} api={api} initialPlan={outfitRequest?.plan} initialChoice={outfitRequest?.choice} initialError={outfitRequest?.error} fragranceNames={outfitRequest?.fragranceNames} initialRequired={outfitRequest?.required} onOrders={()=>navigate('Bestellungstracker')} /> : null}
           {page === 'Bewerbungen' ? <Applications initialId={boardSource?.source_type==='application'?boardSource.source_id:undefined} api={api} onBack={() => setPage('Skills')} /> : null}
           {page === 'Einstellungen' ? <>
@@ -1794,7 +1795,7 @@ function App() {
               {entry.destination} · {formatDate(entry.start)}</button>)}</div>
           </> : <p>{currentTripChange.message}</p>}
         </div> : null}
-        {focus?.result?.skill==='grocery' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Vorrat & Einkauf')}}>Vorrat & Einkauf öffnen</button> : null}
+        {focus?.result?.skill==='grocery' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Vorrat & Einkauf')}}>Vorrat &amp; Einkauf öffnen</button> : null}
         {focus?.state==='accepted'&&focus.groceryChange?.write==='receipt'&&focus.groceryChange.totalCents ? <button className="quiet" type="button"
           onClick={()=>{setReplyTo(null);setNewConversation(true);setInput('Erfasse den bestätigten Bonbetrag '+money(focus.groceryChange!.totalCents!)+' als variable Ausgabe Supermarkteinkauf in Finanzen.')}}>Bonbetrag für Finanzen vorbereiten</button>:null}
         {focus?.result?.skill==='orders' && skillResult?.orders ? <p role="status">{skillResult.orders.checked} Bestellmails geprüft.
@@ -1802,7 +1803,7 @@ function App() {
         {focus?.result?.skill==='orders' ? <button className="quiet" type="button" disabled={skillBusy}
           onClick={()=>skillResult?.orders ? openFromPilot('Bestellungstracker') : void executeChatSkill(focus)}>
           {skillResult?.orders ? 'Bestellungstracker öffnen' : 'Bestellungen prüfen'}</button> : null}
-        {focus?.result?.skill==='finance' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Finanzen & Abos')}}>Finanzen & Abos öffnen</button> : null}
+        {focus?.result?.skill==='finance' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Finanzen & Abos')}}>Finanzen &amp; Abos öffnen</button> : null}
         {focus && ['review','accepted'].includes(focus.state) && focus.result?.skill==='travel' && !focus.result.questions.length &&
           !(focus.result.skillData && 'intent' in focus.result.skillData && focus.result.skillData.intent==='change') ? <button type="button"
           disabled={skillBusy} onClick={()=>void executeChatSkill(focus)}>{focus.result.skillData && 'intent' in focus.result.skillData &&
