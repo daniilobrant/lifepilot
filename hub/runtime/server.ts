@@ -30,7 +30,6 @@ import {searchTripPlaces} from '../connectors/trip-places.ts'
 import { fetchOutfitWeather, outfitLocation } from '../connectors/outfit-weather.ts'
 import { outfitGarment } from './outfit-fields.ts'
 import { matchProductPhoto } from './outfit-catalog.ts'
-import { suggestOutfitFields, visibleLookPieces } from '../adapters/outfit-image-model.ts'
 import { analyzeOutfitPhoto, prepareFullOutfitPhoto } from '../connectors/outfit-vision.ts'
 import { OutfitStudio, outfitOverview, saveWardrobe, saveStyle, attachOutfitPhoto, outfitPhoto, removeOutfitData, lookPhoto, saveLookPhoto, removeLookPhoto, assignLookPieces } from './outfits.ts'
 import { inspectProduct, importProductPhoto, searchProductImages, searchProductPages, photoMime, uploadOutfitPhoto, outfitUploadLimit } from '../connectors/outfit-import.ts'
@@ -43,7 +42,7 @@ import { Store, type Channel } from './store.ts'
 import { connectors } from '../connectors/catalog.ts'
 import { GoogleConnector, googleService } from '../connectors/google.ts'
 import { MacCalendar, macCalendarBridge } from '../connectors/mac-calendar.ts'
-import { runLocalModel } from '../adapters/local-model.ts'
+import { analyzeCodexImage } from '../adapters/codex-image.ts'
 import { runCodex } from '../adapters/codex.ts'
 import { berlinInstant } from '../../agents/lifepilot/tools/validate.ts'
 import type { TaskPatch, Step } from './workspace.ts'
@@ -196,7 +195,6 @@ let active: { id: string, controller: AbortController } | undefined
 let stopping = false
 let readingChatDocument = false
 let scanningInbox = false
-const localModel = audit && process.env.LIFEPILOT_LOCAL_MODEL === '1'
 const offlineMetrics = { wallMs: 0, model: null, usage: null, cost: null }
 
 function reply(res: ServerResponse, status: number, payload: unknown) {
@@ -286,6 +284,17 @@ function taskPatch(value: unknown): TaskPatch {
 function taskDetail(value: unknown) {
   return value === '' || value === undefined ? '' : field(value, 360)
 }
+function confirmCodexImage(requested: boolean) {
+  if (requested && !cloudModel) throw new Problem(423, 'Die Bildanalyse über Codex ist in diesem Profil gesperrt.')
+  return requested
+}
+
+function imageApproval(req: IncomingMessage) {
+  const confirm = req.headers['x-lifepilot-confirm']
+  confirmLocalChange(confirm === 'image' || confirm === 'codex-image')
+  return confirmCodexImage(confirm === 'codex-image')
+}
+
 function confirmLocalChange(confirm: unknown) {
   if (confirm !== true) throw new Problem(403, 'Bestätige genau diese lokale Änderung.')
 }
@@ -353,10 +362,9 @@ async function work() {
   const controller = new AbortController()
   active = { id: next.id, controller }
   try {
-    const runner = cloudModel ? runCodex : localModel ? runLocalModel : undefined
     const recurring=projectFromChat(store,next.payload)??seriesFromChat(next.payload)??taskBoardFromChat(next.payload)
     const { result, error, metrics } = recurring ? { result: recurring, error: null, metrics: offlineMetrics } :
-      runner ? await runner(next.payload, controller.signal) :
+      cloudModel ? await runCodex(next.payload, controller.signal) :
         { result: null, error: 'Im Testprofil sind externe Modelle gesperrt. Lokale Planung und Reisevorschau bleiben verfügbar.', metrics: offlineMetrics }
     if (!stopping) {
       const latest=next.payload.messages.at(-1)?.input??''
@@ -434,10 +442,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     groceryIntent:'ideas',title:null,items:[],steps:[],totalCents:null,
   }))
   if (path === '/api/grocery/scan' && method === 'POST') {
-    confirmLocalChange(req.headers['x-lifepilot-confirm']==='image')
+    const allowCodex=imageApproval(req)
     const photo=await uploadOutfitPhoto(req,outfitUploadLimit)
     const receipt=url.searchParams.get('kind')==='receipt'
-    const result=await scanGroceries(photo,receipt,url.searchParams.get('kind')==='item')
+    const result=await scanGroceries(photo,receipt,url.searchParams.get('kind')==='item',allowCodex)
     if (!receipt) return reply(res,200,result)
     const fingerprint=createHash('sha256').update(photo).digest('hex').slice(0,32)
     const operation=[fingerprint.slice(0,8),fingerprint.slice(8,12),fingerprint.slice(12,16),fingerprint.slice(16,20),fingerprint.slice(20)].join('-')
@@ -755,24 +763,20 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     return res.end(file)
   }
   if (path === '/api/outfits/analyze-photo' && method === 'POST') {
-    confirmLocalChange(req.headers['x-lifepilot-confirm'] === 'image')
+    const allowCodex=imageApproval(req)
     const { draft, photo, feature } = await analyzeOutfitPhoto(await uploadOutfitPhoto(req,outfitUploadLimit))
     const catalog = matchProductPhoto(feature)
     if (catalog && (!draft.model || draft.model===catalog.model)) {
       return reply(res,200,{draft:{...draft,...catalog},photoToken:stageOutfitPhoto(photo),
         note:'Ähnliches Herstellerfoto im lokalen Katalog gefunden. Prüfe Modell und Variante.'})
     }
-    const visual = draft.model ? undefined : await suggestOutfitFields(photo)
-    const result = {...visual,...draft}
+    const visual=allowCodex && !draft.model ? await analyzeCodexImage(photo,'png','garment') : undefined
+    const result={...visual,...draft}
     if (visual?.name && !draft.brand && !draft.model) result.name=visual.name
-    Object.assign(result,outfitGarment(result.name ?? ''))
-    if (result.model && !draft.model && draft.brand && visual?.brand?.toLowerCase()!==draft.brand.toLowerCase()) {
-      delete result.model
-    }
+    if (result.model && !draft.model && draft.brand && visual?.brand?.toLowerCase()!==draft.brand.toLowerCase()) delete result.model
     const note = draft.model ? 'Modell aus dem sichtbaren Etikett erkannt. Prüfe die Variante vor dem Speichern.' :
-      visual?.model && result.model ? 'Modellvorschlag aus dem Foto. Vergleiche ihn vor dem Speichern mit dem Etikett.' :
       'Prüfe die erkannten Angaben. Ein Foto vom Etikett oder ein Produktlink hilft beim genauen Modell.'
-    return reply(res,200,{draft:result,photoToken:stageOutfitPhoto(photo),note})
+    return reply(res,200,{draft:{...result,...outfitGarment(result.name ?? '')},photoToken:stageOutfitPhoto(photo),note})
   }
   if (path === '/api/outfits/look-photo') {
     if (method === 'GET') {
@@ -810,16 +814,22 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       return reply(res,200,store.transaction(()=>assignLookPieces(store,id(look),items.map(id))))
     }
     if (path==='/api/outfits/look-analyze') {
-      const {photo,confirm}=await body(req,['photo','confirm'])
+      const {photo,confirm,codex}=await body(req,['photo','confirm','codex'])
       confirmLocalChange(confirm)
+      const allowCodex=confirmCodexImage(codex===true)
       const image=lookPhoto(store,id(photo))
       if (!image) throw new Problem(404,'Tragefoto nicht gefunden.')
-      const pieces=await visibleLookPieces(Buffer.from(image))
+      const bytes=Buffer.from(image)
+      const names=allowCodex ? await analyzeCodexImage(bytes,'jpeg','look') : []
+      if (!names.length) {
+        const {draft}=await analyzeOutfitPhoto(bytes)
+        if (draft.name && outfitGarment(draft.name)) names.push(draft.name)
+      }
       const wardrobe=outfitOverview(store).wardrobe
-      return reply(res,200,{pieces:pieces.map(name=>{
-        const type=outfitGarment(name)
+      return reply(res,200,{pieces:names.map(name=>{
+        const type=outfitGarment(name)?.garmentType
         return {name,suggestions:type ? wardrobe.filter(item=>
-          (item.garmentType || outfitGarment(item.name)?.garmentType)===type.garmentType).slice(0,8).map(item=>item.id) : []}
+          (item.garmentType || outfitGarment(item.name)?.garmentType)===type).slice(0,8).map(item=>item.id) : []}
       })})
     }
     if (path === '/api/outfits/item') {
@@ -1239,7 +1249,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (path === '/api/state') {
       store.expire()
       const target = acceptance ? undefined : macCalendar.preferred(store)
-      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? 'Codex' : localModel ? 'Gemma auf diesem Mac' : 'LifePilot (lokal)', cloudModel,
+      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? 'Codex' : 'LifePilot (lokal)', cloudModel,
         googleAppointmentWrite: !acceptance && google.status().some(item => item.service === 'calendar-test' && item.connected), calendarTarget: target ? { name: target.name, account: target.account } : null,
         agents: [manifest], connectors, runs: store.list(), tasks: store.workspace.list(), schedule: store.workspace.schedule(), fixtures: acceptance ? fixtures : null })
     }
