@@ -1,4 +1,4 @@
-import { outfitFields } from '../../../hub/runtime/outfit-fields.ts'
+import { outfitFields, productWardrobeFields } from '../../../hub/runtime/outfit-fields.ts'
 import { colorRelation, identifiedColor, paletteDescription, paletteFit } from '../../../hub/runtime/outfit-palette.ts'
 
 import assert from 'node:assert/strict'
@@ -14,6 +14,26 @@ import { verifyOutput } from '../tools/validate.ts'
 
 const query = { mode:'inspiration', occasion:'', style:'Schlicht', required:[], variant:0 }
 const pixel = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==','base64')
+
+test('Wardrobe product details prefer the website and preserve descriptive attributes', () => {
+  const title='BASIC SLIM-FIT T-SHIRT aus Baumwolle - Weiß'
+  const details=productWardrobeFields(title,'Jersey aus 100 % Baumwolle','Zara T-Shirt schwarz',{},'Grau #D9DDE1')
+  assert.equal(details.color,'Weiß')
+  assert.equal(details.fit,'Slim Fit')
+  assert.equal(details.material,'100 % Baumwolle')
+  assert.equal(details.brand,'Zara')
+  assert.equal(details.garmentType,'T-Shirt')
+  assert.equal(productWardrobeFields(title,'','',{color:'#D9DDE1'}).color,'Weiß')
+  assert.equal(productWardrobeFields(title,'','',{color:'Deep Indigo'}).color,'Deep Indigo')
+  assert.equal(productWardrobeFields('T-Shirt','','',{},'Grau #D9DDE1').color,'Grau')
+  const description='Farbe: Weiß. Hauptmaterial: 100 % Baumwolle'
+  const product=completeProductMetadata('<script type="application/ld+json">'+JSON.stringify({
+    '@type':'Product',name:'BASIC SLIM-FIT T-SHIRT',description,brand:{name:'Muster'},
+  })+'</script>',new URL('https://shop.example/shirt'))
+  assert.equal(product.draft.color,'Weiß')
+  assert.equal(product.draft.material,'100 % Baumwolle')
+  assert.equal(product.draft.brand,'Muster')
+})
 
 test('Outfit studio starts empty outside the example profile and pins only owned IDs', () => {
   const store = new Store(':memory:')

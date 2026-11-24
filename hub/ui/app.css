@@ -1453,3 +1453,34 @@ input[type=file]::file-selector-button {
 .resale-card :is(.resale-actions,.resale-summary) button {min-height:2.35rem; padding:.35rem .65rem; border-radius:999px; font-size:.78rem}
 .resale-card .resale-actions button {flex:1 1 auto}
 .resale-photo-options input[type=file] {max-width:100%}
+
+
+.outfit-form:has(.wardrobe-attributes) { container: wardrobe-form / inline-size; }
+.wardrobe-attributes {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  align-items: end;
+  gap: 12px;
+}
+.wardrobe-attributes :is(label,.wardrobe-attribute-choice) { display: block; min-width: 0; }
+.outfit-space .wardrobe-attributes :is(input,select) {
+  min-width: 0;
+  height: var(--control-height);
+  margin-top: 5px;
+  background-color: var(--card);
+}
+.wardrobe-attributes .wardrobe-attribute-choice:has(> button) {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  align-items: end;
+  gap: 4px;
+}
+.outfit-space .wardrobe-attribute-choice > button { height: var(--control-height); padding-inline: 8px; }
+.outfit-space .wardrobe-save-actions { justify-self: stretch; justify-content: flex-end; }
+@container wardrobe-form (max-width: 480px) {
+  .wardrobe-attributes { grid-template-columns: repeat(2,minmax(0,1fr)); }
+}
+@container wardrobe-form (max-width: 310px) {
+  .wardrobe-attributes { grid-template-columns: minmax(0,1fr); }
+}
