@@ -1223,9 +1223,13 @@ function App() {
   const homeTasks=tasks.filter(task=>visibleOnStart(task,today))
   const projectNames=new Map(projects?.projects.map(project=>[project.id,project.title]))
   const deadlines = [
-    ...homeTasks.filter(task=>task.due_date).map(task=>({task,project:null,priority:task.priority==='normal'?'medium' as const:task.priority,date:task.due_date!})),
-    ...(projects?.deadlines??[]).map(project=>({task:null,project,priority:project.priority,date:project.date})),
+    ...homeTasks.flatMap(task=>task.due_date?[{task,project:null,priority:task.priority==='normal'?'medium' as const:task.priority,
+      date:task.due_date,completed:task.status==='done'}]:[]),
+    ...(projects?.deadlines??[]).map(project=>({task:null,project,priority:project.priority,date:project.date,completed:!!project.completed})),
   ].sort((a,b)=>a.date.localeCompare(b.date)||priorityRank[a.priority]-priorityRank[b.priority])
+  const deadlineWindowEnd=shiftDay(today,7)
+  const visibleDeadlines=deadlines.filter(item=>item.date>=today&&item.date<=deadlineWindowEnd)
+    .sort((a,b)=>Number(a.completed)-Number(b.completed))
   const tomorrow=shiftDay(today,1)
   const briefing={now,remaining:homeTasks.some(task=>task.status==='open'&&(!task.due_date||task.due_date<=today))||
     deadlines.some(({project,date})=>project&&!project.completed&&date<=today),
@@ -1627,7 +1631,7 @@ function App() {
               <CalendarOverview key="start-week" mode="week" today={today} openTask={openTask} updateKey={calendarUpdateKey}
                 briefing={briefing} lectureNotices={lectureNotices} onCalendar={()=>navigate('Kalender')}/>
               <Section title="Fristen & Abgaben" icon="◷">
-                {deadlines.length?<ul className="deadline-list">{deadlines.map(({task,project})=>project?
+                {visibleDeadlines.length?<ul className="deadline-list">{visibleDeadlines.map(({task,project})=>project?
                   <ProjectDeadlineRow key={'project:'+project.id} item={project} open={showProject} busy={busy||!!offline||projects?.projects.find(entry=>entry.id===project.projectId)?.status==='archived'}
                     toggle={async value=>{
                       const owner=projects?.projects.find(entry=>entry.id===project.projectId)
@@ -1635,7 +1639,7 @@ function App() {
                         saveProject({projectIntent:'update_step',completed:value},owner,project.id))
                     }}/>:task?<li key={'task:'+task.id} className={task.status==='done'?'done':''}>
                       {homeTaskFields(task)}
-                    </li>:null)}</ul>:<p className="empty">Keine Fristen.</p>}
+                    </li>:null)}</ul>:<p className="empty">Keine Fristen in den nächsten sieben Tagen.</p>}
               </Section>
               <Section title="Aufgaben" icon="✓">
                 {homeTasks.some(task=>!task.due_date)?<ul className="deadline-list">{homeTasks.filter(task=>!task.due_date).map(task=>

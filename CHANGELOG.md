@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.5 · 24. November 2026
+
+- „Fristen & Abgaben“ zeigt auf der Startseite Einträge von heute bis einschließlich sieben Tage im Voraus. Erledigte Einträge stehen durchgestrichen unter den offenen.
+
 ## v1.0.4 · 24. November 2026
 
 - Die Kleidungsstücksuche übernimmt Farbe, Marke, Passform und Material aus Produktseiten und Suchtext. Bildfarben dienen als letzte Rückfallebene.
