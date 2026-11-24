@@ -151,6 +151,10 @@ export function travelWardrobe(store:Store,trip:string) {
   if (!store.db.prepare('SELECT 1 FROM trips WHERE id=?').get(trip)) throw new Problem(404,'Reise nicht gefunden.')
   return store.db.prepare('SELECT wardrobe_id FROM wardrobe_travel WHERE trip_id=?').all(trip).map(row=>String(row.wardrobe_id))
 }
+export function addTravelWardrobeItem(store:Store,trip:string,item:string) {
+  return saveTravelWardrobe(store,trip,[...travelWardrobe(store,trip),item])
+}
+
 export function saveTravelWardrobe(store:Store,trip:string,items:string[]) {
   travelWardrobe(store,trip)
   const ids=[...new Set(items)]
