@@ -1,3 +1,4 @@
+import { confirmImageTransfer } from './image-consent.ts'
 import {TasksBoard} from './tasks-board.tsx'
 import type {BoardItem,BoardSourcePatch} from '../runtime/tasks-board-types.ts'
 import {ProjectDeadlineRow,ProjectMailSuggestions,ProjectProposal,ProjectsPanel,priorityText} from './projects.tsx'
@@ -1072,7 +1073,7 @@ function App() {
     const selection=++fileRevision.current
     setReadingFile(true);setDoc(undefined);setDocError('');setSynthetic(false)
     try {
-      const result=await scanGroceryFile(file,/\b(?:kassenbon|quittung|einkaufsbon)\b/iu.test(input))
+      const result=await scanGroceryFile(file,/\b(?:kassenbon|quittung|einkaufsbon)\b/iu.test(input),false,snapshot?.cloudModel === true && confirmImageTransfer())
       const data=result.text||result.rows.map(item=>[item.name,item.quantity,item.status==='low'?'wird knapp':''].filter(Boolean).join(' · ')).join('\n')
       if(!data)throw Error('Auf dem Bild waren keine Artikel klar erkennbar.')
       if(selection===fileRevision.current) {
@@ -1687,14 +1688,14 @@ function App() {
               </section>)}
             </div>
           </> : null}
-          {page==='Vorrat & Einkauf' ? <GroceryPanel api={api} recipeVersion={recipeVersion} onAsk={()=>openDraft('Was kann ich heute mit meinem Vorrat kochen?')} refreshKey={skillRefresh('grocery')}/> : null}
+          {page==='Vorrat & Einkauf' ? <GroceryPanel cloudImages={snapshot.cloudModel === true} api={api} recipeVersion={recipeVersion} onAsk={()=>openDraft('Was kann ich heute mit meinem Vorrat kochen?')} refreshKey={skillRefresh('grocery')}/> : null}
           {page==='Finanzen & Abos' ? <>
             <MailFinance api={api} refreshKey={inboxFeed?.loadedAt??''} onUpdate={()=>void refresh()} />
             <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')} />
           </> : null}
           {page==='Urlaubsplaner' ? <TravelPlanner key={travelRequest?.run ?? 'travel'} api={api} plan={travelRequest?.plan} handoff={travelRequest?.run}
             initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection} /> : null}
-          {page === 'Outfit-Assistent' ? <OutfitAssistant key={outfitRequest?.run ?? 'studio'} api={api} initialPlan={outfitRequest?.plan} initialChoice={outfitRequest?.choice} initialError={outfitRequest?.error} fragranceNames={outfitRequest?.fragranceNames} initialRequired={outfitRequest?.required} onOrders={()=>navigate('Bestellungstracker')} /> : null}
+          {page === 'Outfit-Assistent' ? <OutfitAssistant cloudImages={snapshot.cloudModel === true} key={outfitRequest?.run ?? 'studio'} api={api} initialPlan={outfitRequest?.plan} initialChoice={outfitRequest?.choice} initialError={outfitRequest?.error} fragranceNames={outfitRequest?.fragranceNames} initialRequired={outfitRequest?.required} onOrders={()=>navigate('Bestellungstracker')} /> : null}
           {page === 'Bewerbungen' ? <Applications initialId={boardSource?.source_type==='application'?boardSource.source_id:undefined} api={api} onBack={() => setPage('Skills')} /> : null}
           {page === 'Einstellungen' ? <>
             <nav className="actions settings-tabs" aria-label="Einstellungsbereiche">

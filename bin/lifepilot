@@ -1,6 +1,26 @@
 #!/bin/sh
 set -eu
-root="$(CDPATH='' cd -- "$(dirname -- "$0")/.." && pwd)"
+root="$(CDPATH='' cd -- "$(/usr/bin/dirname -- "$0")/.." && pwd)"
+private=true
+for arg in "$@"; do
+  case "$arg" in --acceptance|--trinity-audit) private=false ;; esac
+done
+marker="$root/user-data/local/private-chat-release.json"
+if [ "$private" = true ] && { [ -e "$marker" ] || [ -L "$marker" ]; }; then
+  trust='/Library/Application Support/LifePilot'
+  for item in "$trust" "$trust/verify-release" "$trust/release-public.pem"; do
+    if [ -L "$item" ] || [ "$(/usr/bin/stat -f '%u' "$item" 2>/dev/null || true)" != 0 ] ||
+        [ -n "$(/usr/bin/find "$item" -prune \( -perm -020 -o -perm -002 \) -print 2>/dev/null)" ]; then
+      printf '%s\n' 'Der private Release braucht einen vertrauenswürdig installierten Prüfer und öffentlichen Schlüssel.' >&2
+      exit 1
+    fi
+  done
+  if [ ! -x "$root/.runtime/bin/node" ] || ! /usr/bin/env -i PATH=/usr/bin:/bin "$trust/verify-release" "$root" "$trust/release-public.pem" --require-admin-owned; then
+    printf '%s\n' 'Die Signatur oder der Inhalt des privaten LifePilot-Releases konnte nicht verifiziert werden.' >&2
+    exit 1
+  fi
+  unset NODE_OPTIONS NODE_PATH NODE_EXTRA_CA_CERTS DYLD_INSERT_LIBRARIES DYLD_LIBRARY_PATH DYLD_FRAMEWORK_PATH
+fi
 if [ -x "$root/.runtime/bin/node" ]; then
   node="$root/.runtime/bin/node"
 elif command -v node >/dev/null 2>&1; then

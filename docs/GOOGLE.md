@@ -49,3 +49,7 @@ Die CLI kann die Dateien alternativ direkt von stdin übernehmen, zum Beispiel `
 Die Prüfung der Anmeldung, der Mailtextabfrage und des Seitenwechsels verwendet simulierte Google-Antworten. Die Anmeldung und der Abruf bei Google hängen vom freigegebenen Konto, den aktivierten APIs und der Google-Konfiguration ab. Google behandelt Gmail-Metadaten als eingeschränkten OAuth-Bereich. Ein freigegebener lokaler Test ist keine Freigabe für eine öffentliche App.
 
 [OAuth für Desktop-Apps](https://developers.google.com/identity/protocols/oauth2/native-app) · [Client einrichten](https://developers.google.com/workspace/guides/create-credentials) · [Kalender-Berechtigungen](https://developers.google.com/workspace/calendar/api/v3/reference/events/list) · [Gmail-Berechtigungen](https://developers.google.com/workspace/gmail/api/auth/scopes)
+
+## Schreibzugriff auf den Hauptkalender
+
+Für den separaten Kalender-Schreibzugriff prüft LifePilot bei Google die verifizierte E-Mail-Adresse und speichert die stabile Konto-ID. Dazu werden zusätzlich **openid** und **email** benötigt. Die E-Mail muss mit dem bereits verbundenen Gmail-Hauptkonto übereinstimmen. Bei einer Aktualisierung des Tokens muss auch die Konto-ID übereinstimmen. Alte Schreibfreigaben ohne geprüfte Identität gelten als inaktiv und können über **Verbinden** neu bestätigt werden. Die anderen Google-Verbindungen bleiben nutzbar.
