@@ -2,8 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
-## Unveröffentlicht auf main
+## v1.0 · 24. November 2026
 
+- Google-Kalender-Schreibzugriff wird an das bestätigte Google-Konto gebunden. Private Starts prüfen die Release-Signatur und das Dateimanifest.
+- Modellgestützte Bildanalyse läuft über Codex CLI mit Freigabe. Das Testprofil sperrt externe Modellaufrufe und den Cloud-Reiseguide.
 - Fünf Kernansichten direkt in der README und eine verlinkte Galerie mit allen 13 Aufnahmen.
 - Skill-Beschreibungen um Entscheidungskriterien, Beispiele und Zuständigkeiten ergänzt. Der Reisechat lädt seine Anweisungen aus dem Urlaubsplaner-Skill.
 - Planungsentscheidungen und Abnahmekriterien in der Roadmap dokumentiert.
