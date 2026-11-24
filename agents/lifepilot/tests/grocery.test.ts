@@ -97,3 +97,32 @@ test('One confirmed recipe saves the recipe, requested stock and missing ingredi
     assert.equal(listRecipes(store).length,1)
   } finally {store.db.close()}
 })
+
+test('Recipe choices are independent, scale ingredients and preserve the decision on retry',()=>{
+  const store=new Store(':memory:','private')
+  try{
+    putGrocery(store,'stock',{name:'Eier',quantity:'4 Stück'})
+    const plan:GroceryPlan={groceryIntent:'recipe',title:'Muster-Omelett',servings:2,totalCents:null,
+      items:[{name:'Eier',quantity:'4 Stück',status:null},{name:'Olivenöl',quantity:'1½ EL',status:null}],
+      steps:['Eier verquirlen und braten.']}
+    function propose(){
+      const run=store.create('Muster-Omelett für zwei Portionen','lifepilot',randomUUID(),'ui')
+      store.next()
+      store.finish(run.id,{tasks:[],questions:[],skill:'grocery',skillData:plan},null,{wallMs:0,model:null,usage:null,cost:null})
+      return run.id
+    }
+    const saveOnly=propose()
+    assert.equal(store.decideRecipe(saveOnly,0,{save:true,shop:false,servings:1},'ui')?.save,true)
+    assert.deepEqual(listRecipes(store).map(recipe=>[recipe.servings,recipe.ingredientChecks,recipe.ingredients[1].quantity]),
+      [[1,[true,false],'0,75 EL']])
+    assert.equal(groceryOverview(store).shopping.length,0)
+    const shopOnly=propose()
+    assert.equal(store.decideRecipe(shopOnly,0,{save:false,shop:true,servings:3},'ui')?.added,2)
+    assert.equal(listRecipes(store).length,1)
+    assert.equal(store.decideRecipe(shopOnly,0,{save:true,shop:true,servings:3},'ui')?.save,false)
+    const cancel=propose()
+    store.decideRecipe(cancel,0,{save:false,shop:false,servings:2,cancelled:true},'ui')
+    assert.equal(store.present(store.run(cancel)).groceryChange?.recipeDecision?.cancelled,true)
+    assert.equal(groceryOverview(store).shopping.length,2)
+  }finally{store.db.close()}
+})

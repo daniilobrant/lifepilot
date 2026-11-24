@@ -1,3 +1,4 @@
+import {BulkApproval,approveEach} from './bulk-approval.tsx'
 import {DateInput} from './presentation.tsx'
 import { useEffect, useState, type FormEvent } from 'react'
 import { applicationGroups, applicationStatuses, emptyApplication, type Application,
@@ -5,6 +6,7 @@ import { applicationGroups, applicationStatuses, emptyApplication, type Applicat
 
 type Api = <T>(path: string, value?: object, timeout?: number) => Promise<T>
 type Editor = { draft: ApplicationDraft, existing?: Application, source?: ApplicationSource }
+const applicationKey=(item:Pick<ApplicationDraft,'company'|'role'>)=>JSON.stringify([item.company,item.role].map(value=>value.trim().toLocaleLowerCase('de-DE')))
 const fields = [
   ['company','Firma',120,true], ['role','Stelle oder Jobbeschreibung',160,true], ['location','Ort',120,true],
   ['salary','Gehalt oder Gehaltsspanne',100,false], ['link','Link zur Stelle',500,false],
@@ -18,6 +20,7 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [imageText, setImageText] = useState('')
+  const [batchReviewed,setBatchReviewed]=useState(false)
   const [history, setHistory] = useState<{ status: keyof typeof applicationStatuses, changed_at: string }[]>([])
   useEffect(() => {
     let active = true
@@ -58,6 +61,32 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
       await reload()
       setEditor(undefined); setImageText(''); setNotice('Bewerbung gespeichert.')
     })
+  }
+  const sources=data?.sources??[]
+  const sourceCounts=new Map<string,number>()
+  for(const source of sources) {
+    const key=applicationKey(source)
+    sourceCounts.set(key,(sourceCounts.get(key)??0)+1)
+  }
+  const eligible=sources.flatMap(source=>{
+    const key=applicationKey(source)
+    const matching=data?.items.filter(item=>applicationKey(item)===key)??[]
+    const existing=source.application_id?data?.items.find(item=>item.id===source.application_id):matching[0]
+    if(sourceCounts.get(key)!==1||matching.length>1||source.application_id&&!existing||
+      !existing&&![source.company,source.role,source.location].every(value=>value.trim()))return []
+    const {company,role,location,status}=source
+    return [{id:source.id,title:source.title,existing,draft:existing?{...existing,status}:{...emptyApplication,company,role,location,status}}]
+  })
+  async function approveSources(items:readonly (typeof eligible)[number][]){
+    setBusy(true);setError('');setBatchReviewed(true)
+    try{
+      const result=await approveEach(items,item=>api('/applications/save',{
+        draft:item.draft,source:item.id,existing:item.existing?.id,revision:item.existing?.revision,confirm:true,
+      }))
+      await reload()
+      if(items.some(item=>item.id===editor?.source?.id)&&result.approved)setEditor(undefined)
+      return result
+    }finally{setBusy(false)}
   }
   async function upload(file: File) {
     await act(async () => {
@@ -130,14 +159,17 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
         <li key={index}>{applicationStatuses[event.status]} · {new Date(event.changed_at).toLocaleDateString('de-DE',{timeZone:'Europe/Berlin'})}</li>)}</ul></details> : null}
       <button className="primary" disabled={busy}>Bewerbung speichern</button>
     </form> : null}
-    {data?.sources.length ? <section className="card settings"><h3>Vorschläge aus Gmail</h3>
-      {data.sources.map(source => <article className="application-source" key={source.id}>
+    {(sources.length||batchReviewed) ? <section className="card settings"><h3>Vorschläge aus Gmail</h3>
+      {sources.map(source => <article className="application-source" key={source.id}>
         <div><strong>{source.title}</strong><p>{applicationStatuses[source.status]}</p></div>
         <div className="actions"><button disabled={busy} onClick={() => open(source)}>Prüfen</button>
           <button className="quiet" disabled={busy} onClick={() => void act(async () => {
             await api('/applications/deny', { source: source.id, confirm: true }); await reload()
           })}>Ablehnen</button></div>
       </article>)}
+      {eligible.length<sources.length?<p>Vorschläge mit fehlenden Angaben oder mehreren möglichen Zuordnungen brauchen eine Einzelprüfung.</p>:null}
+      <BulkApproval items={eligible} disabled={busy} approve={approveSources}
+        description="LifePilot speichert vollständige Bewerbungen und übernimmt neue Status für eindeutig zugeordnete Bewerbungen."/>
     </section> : null}
     <label className="application-search">Bewerbungen suchen<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Firma, Stelle oder Ort" /></label>
     <div className="application-board">

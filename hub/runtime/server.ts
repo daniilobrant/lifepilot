@@ -15,6 +15,7 @@ import type { FragranceDraft } from './wardrobe-extras-types.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
 import { bookOrderFinance,clothingOrders, changeClothingOrder, clothingPhotoTargets,scanClothingOrders, updateClothingTask } from './clothing-orders.ts'
 import { transcribeDictation, maxDictationBytes } from '../connectors/local-dictation.ts'
+import { validRecipeServings } from './recipe-portions.ts'
 import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe } from './grocery.ts'
 import { scanGroceries } from './grocery-scan.ts'
 import { decideMailFinance, pendingMailFinances } from './mail-finance.ts'
@@ -451,8 +452,19 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const operation=[fingerprint.slice(0,8),fingerprint.slice(8,12),fingerprint.slice(12,16),fingerprint.slice(16,20),fingerprint.slice(20)].join('-')
     return reply(res,200,{...result,operation})
   }
-  if (path === '/api/grocery/recipes/ideas' && method === 'GET') return reply(res,200,groceryIdeas(store))
+  if (path === '/api/grocery/recipes/ideas' && method === 'GET') {
+    const servings=Number(url.searchParams.get('servings')??1)
+    if(!validRecipeServings(servings))throw new Problem(400,'Wähle zwischen 1 und 24 Portionen.')
+    return reply(res,200,groceryIdeas(store,undefined,undefined,servings))
+  }
   if (path === '/api/grocery/recipes' && method === 'GET') return reply(res,200,listRecipes(store))
+  if (path === '/api/grocery/recipes/decision' && method === 'POST') {
+    const {run,turn,save,shop,cancelled,servings,confirm}=await body(req,['run','turn','save','shop','cancelled','servings','confirm'])
+    confirmLocalChange(confirm)
+    if(typeof turn!=='number'||!Number.isSafeInteger(turn)||turn<0||typeof save!=='boolean'||typeof shop!=='boolean'||
+      typeof cancelled!=='boolean'||cancelled&&(save||shop)||!validRecipeServings(servings))throw new Problem(400,'Ungültige Rezeptentscheidung.')
+    return reply(res,200,store.decideRecipe(id(run),turn,{save,shop,cancelled,servings},client))
+  }
   if (path === '/api/grocery/recipes' && method === 'POST') {
     const input=await body(req,['action','recipe','run','recipeId','part','index','checked','confirm'])
     confirmLocalChange(input.confirm)
@@ -564,7 +576,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const address=acceptance?'fixture':await confirmedMailAccount(google)
     if(!address)throw new Problem(409,'Das Gmail-Konto ist nicht verbunden.')
     decideProjectMail(store,id(suggestion),acceptance?address:mailAccountKey(address),revision,approved)
-    return reply(res,200,{ok:true})
+    return reply(res,200,{ok:true,revision:approved?revision+1:revision})
   }
   if (path === '/api/profile' && method === 'GET') return reply(res, 200, personalProfile(store))
   if (path === '/api/profile' && method === 'POST') {
@@ -1037,6 +1049,36 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (path==='/api/inbox/finance' && method==='GET') {
     const account=acceptance ? 'fixture' : await confirmedMailAccount(google)
     return reply(res,200,account ? pendingMailFinances(store,acceptance ? account : mailAccountKey(account)) : [])
+  }
+  if (path==='/api/inbox/finance/bulk' && method==='POST') {
+    const {proposals,confirm}=await body(req,['proposals','confirm'],180_000)
+    confirmLocalChange(confirm)
+    if(!Array.isArray(proposals)||proposals.length<1||proposals.length>100)throw new Problem(400,'Wähle bis zu 100 offene Finanzvorschläge.')
+    const selected=new Map(proposals.map(value=>{
+      if(!value||typeof value!=='object'||Array.isArray(value)||typeof value.expected!=='string')throw new Problem(400,'Ungültiger Finanzvorschlag.')
+      return [id(value.id),value.expected] as const
+    }))
+    if(selected.size!==proposals.length)throw new Problem(400,'Ein Finanzvorschlag wurde doppelt ausgewählt.')
+    const address=acceptance?'fixture':await confirmedMailAccount(google)
+    if(!address)throw new Problem(409,'Gmail ist nicht verbunden.')
+    const account=acceptance?address:mailAccountKey(address)
+    const current=new Map(pendingMailFinances(store,account).map(({id,...draft})=>[id,draft]))
+    const accepted:string[]=[]
+    const failed:{id:string,reason:string}[]=[]
+    for(const [id,expected] of selected){
+      const draft=current.get(id)
+      if(!draft||JSON.stringify(draft)!==expected){
+        failed.push({id,reason:'Der Vorschlag hat sich geändert. Prüfe ihn erneut.'})
+        continue
+      }
+      try{
+        decideMailFinance(store,account,id,true,draft)
+        accepted.push(id)
+      }catch(cause){
+        failed.push({id,reason:cause instanceof Problem?cause.message:'Übernahme fehlgeschlagen.'})
+      }
+    }
+    return reply(res,200,{accepted,failed})
   }
   if (path==='/api/inbox/finance' && method==='POST') {
     const {proposal,approved,draft,confirm}=await body(req,['proposal','approved','draft','confirm'])
