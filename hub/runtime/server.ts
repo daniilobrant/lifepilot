@@ -164,7 +164,10 @@ let attentionFeed:ReturnType<typeof readInboxFeed>|undefined
 async function runAutomaticMailSync() {
   if(acceptance || scanningInbox || stopping) return
   scanningInbox=true
-  try { await syncCategorizedMail(store,google);queueOrderPhotos() }
+  try {
+    const synced = await syncCategorizedMail(store,google)
+    if (synced) queueOrderPhotos()
+  }
   catch (error) {
     if (!(error instanceof Problem && error.status===503)) console.warn('LifePilot-Mailabgleich pausiert.',error instanceof Problem ? error.status : '')
   } finally { scanningInbox=false }
@@ -1058,10 +1061,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path==='/api/clothing-orders' && method==='GET') {
     const month=url.searchParams.get('month'), focus=url.searchParams.get('focus')
-    const orders=clothingOrders(store,month===null?undefined:financeMonth(month),focus===null?undefined:id(focus))
-    const missing=orders.find(order=>!clothingPhotoJobs.has(order.id) && order.items.some(item=>item.canLoadPhoto&&!item.hasPhoto))
-    if (missing) queueOrderPhotos(missing.id)
-    return reply(res,200,orders)
+    return reply(res,200,clothingOrders(store,month===null?undefined:financeMonth(month),focus===null?undefined:id(focus)))
   }
   if (path==='/api/clothing-orders/change' && method==='POST') {
     const {order,item,action,value,confirm}=await body(req,['order','item','action','value','confirm'])
