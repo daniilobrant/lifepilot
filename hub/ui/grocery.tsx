@@ -1,7 +1,7 @@
 import { confirmImageTransfer } from './image-consent.ts'
 import {DateInput} from './presentation.tsx'
 import { GroceryIcon } from './grocery-icon.tsx'
-import {legacyRecipeServings,maxRecipeServings,scaleRecipeIngredients,stockedIngredients,validRecipeServings} from '../runtime/recipe-portions.ts'
+import {legacyRecipeServings,maxRecipeServings,scaleRecipeIngredients,ingredientStock,hasRecipeQuantity,measured,validRecipeServings,type RecipeStockStatus} from '../runtime/recipe-portions.ts'
 import { canonicalGroceryName, groceryCategory, groceryKey, grocerySuggestions } from '../runtime/grocery-catalog.ts'
 import { useEffect, useState, type FormEvent } from 'react'
 import { groceryCategories, locations, stockStates, type GroceryAnswer, type GroceryInput, type GroceryOverview, type StockItem, type ShoppingItem, type SavedRecipe, type RecipeChoice } from '../runtime/grocery-types.ts'
@@ -26,13 +26,19 @@ export async function scanGroceryFile(file:File, receipt=false, item=false,codex
   return data
 }
 
-export function GroceryAnswerCard({answer,hideTitle=false}:{answer:GroceryAnswer,hideTitle?:boolean}) {
+function RecipeStockLabel({item,status}:{item:GroceryInput,status?:RecipeStockStatus}){
+  const label=!hasRecipeQuantity(item.quantity)?'Rezeptmenge fehlt':!measured(item.quantity)?null:
+    status==='short'?'Zu wenig im Vorrat':status==='unknown'?'Vorratsmenge prüfen':status==='missing'?'Fehlt im Vorrat':null
+  return label?<small className="recipe-stock-label">{label}</small>:null
+}
+
+export function GroceryAnswerCard({answer,hideTitle=false,statuses}:{answer:GroceryAnswer,hideTitle?:boolean,statuses?:RecipeStockStatus[]}) {
   const available=new Set(answer.available.map(name=>name.split(' · ')[0]))
   return <section className="note grocery-answer" aria-label="Ergebnis">
     {!hideTitle&&<strong>{answer.title}</strong>}
-    {answer.ingredients?.length?<ul className="recipe-ingredient-status">{answer.ingredients.map(item=><li key={item.name}>
-      <input type="checkbox" checked={available.has(item.name)} disabled aria-label={item.name+' im Vorrat'}/>
-      <span>{[item.name,item.quantity].filter(Boolean).join(' · ')}</span>
+    {answer.ingredients?.length?<ul className="recipe-ingredient-status">{answer.ingredients.map((item,index)=><li key={item.name}>
+      <input type="checkbox" checked={statuses?statuses[index]==='enough':available.has(item.name)} disabled aria-label={item.name+' im Vorrat'}/>
+      <span>{[item.name,item.quantity].filter(Boolean).join(' · ')}<RecipeStockLabel item={item} status={statuses?.[index]}/></span>
     </li>)}</ul>:null}
     {!answer.ingredients?.length&&answer.available.length>0&&<div><h4>{answer.steps.length||answer.missing.length?'Vorhanden':'Artikel'}</h4>
       <p>{answer.available.join(' · ')}</p></div>}
@@ -56,8 +62,8 @@ function RecipePortions({value,onChange,disabled=false}:{value:number,onChange:(
 
 export function ChatRecipe({answer,api,disabled,decide}:{answer:GroceryAnswer,api:Api,disabled:boolean,
   decide:(choice:RecipeChoice)=>Promise<unknown>}){
-  const base=answer.servings??legacyRecipeServings
-  const [servings,setServings]=useState(answer.recipeDecision?.servings??base)
+  const base=answer.baseServings??answer.servings??legacyRecipeServings
+  const [servings,setServings]=useState(answer.recipeDecision?.servings??answer.servings??base)
   const [stock,setStock]=useState<StockItem[]>()
   const [save,setSave]=useState<boolean>()
   const [shop,setShop]=useState<boolean>()
@@ -68,10 +74,10 @@ export function ChatRecipe({answer,api,disabled,decide}:{answer:GroceryAnswer,ap
     void api<GroceryOverview>('/grocery').then(view=>{if(active)setStock(view.stock)}).catch(()=>{})
     return ()=>{active=false}
   },[api])
-  const ingredients=scaleRecipeIngredients(answer.ingredients??[],base,servings)
-  const present=stock?stockedIngredients(ingredients,stock):ingredients.map(item=>answer.available.some(name=>name.split(' · ')[0]===item.name))
-  const preview={...answer,stockRows:undefined,ingredients,available:ingredients.filter((_,index)=>present[index]).map(item=>item.name)}
-  const hasMissing=present.some(checked=>!checked)
+  const ingredients=scaleRecipeIngredients(answer.baseIngredients??answer.ingredients??[],base,servings)
+  const statuses=stock?ingredientStock(ingredients,stock):ingredients.map(()=>'unknown' as const)
+  const preview={...answer,stockRows:undefined,ingredients}
+  const hasMissing=ingredients.some((item,index)=>Boolean(measured(item.quantity))&&['missing','short'].includes(statuses[index]))
   async function submit(cancelled=false){
     if(busy||disabled)return
     setBusy(true);setError('')
@@ -89,7 +95,7 @@ export function ChatRecipe({answer,api,disabled,decide}:{answer:GroceryAnswer,ap
   }
   const done=answer.recipeDecision
   return <div className="chat-recipe">
-    <GroceryAnswerCard answer={preview}/>
+    <GroceryAnswerCard answer={preview} statuses={statuses}/>
     {done?<p role="status">{done.cancelled?'Rezeptvorgang abgebrochen.':
       [done.save?'Rezept gespeichert.':'',done.shop?(done.added?done.added+(done.added===1?' Zutat':' Zutaten')+' zur Einkaufsliste hinzugefügt.':
         'Alle fehlenden Zutaten stehen bereits auf der Einkaufsliste.'):''].filter(Boolean).join(' ')||'Rezeptvorschlag abgeschlossen.'}</p>:<>
@@ -215,6 +221,8 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
   changed:()=>void,refreshKey:string}) {
   const [portions,setPortions]=useState(1)
   const [recipePortions,setRecipePortions]=useState<Record<string,number>>({})
+  const [ideaPortions,setIdeaPortions]=useState<Record<string,number>>({})
+  const [quantityEdit,setQuantityEdit]=useState<{id:string,values:string[]}>()
   const [recipes,setRecipes]=useState<SavedRecipe[]>([])
   const [ideas,setIdeas]=useState<GroceryAnswer[]>([])
   const [busy,setBusy]=useState(false)
@@ -229,13 +237,13 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
   },[api,refreshKey,version])
   async function act(payload:object,feedback?:string) {
     setBusy(true);setError('')
-    try {await api('/grocery/recipes',{...payload,confirm:true});setVersion(value=>value+1);if(feedback)notice(feedback)}
+    try {await api('/grocery/recipes',{...payload,confirm:true});setVersion(value=>value+1);if(feedback)notice(feedback);return true}
     catch(cause){setError(errorText(cause))}
     finally{setBusy(false)}
   }
   async function getIdeas(servings:number) {
     setBusy(true);setError('')
-    try {setIdeas(await api<GroceryAnswer[]>('/grocery/recipes/ideas?'+new URLSearchParams({servings:String(servings)})))}
+    try {setIdeas(await api<GroceryAnswer[]>('/grocery/recipes/ideas?'+new URLSearchParams({servings:String(servings)})));setIdeaPortions({})}
     catch(cause){setError(errorText(cause))}
     finally{setBusy(false)}
   }
@@ -247,11 +255,13 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
   }
   const shoppingKeys=new Set(shopping.map(item=>groceryKey(item.name)))
   const previews=ideas.map(idea=>{
-    const ingredients=scaleRecipeIngredients(idea.ingredients??[],idea.servings??1,portions)
-    const checks=stockedIngredients(ingredients,stock)
-    const missing=ingredients.filter((_,index)=>!checks[index])
-    return {...idea,servings:portions,ingredients,missing,available:ingredients.filter((_,index)=>checks[index]).map(item=>item.name),
-      rows:missing.filter(item=>!shoppingKeys.has(groceryKey(item.name)))}
+    const servings=ideaPortions[idea.title]??idea.servings??portions
+    const ingredients=scaleRecipeIngredients(idea.baseIngredients??idea.ingredients??[],idea.baseServings??idea.servings??1,servings)
+    const statuses=ingredientStock(ingredients,stock)
+    const missing=ingredients.filter((item,index)=>statuses[index]!=='enough'&&
+      (Boolean(measured(item.quantity))||!hasRecipeQuantity(item.quantity)))
+    return {...idea,servings,ingredients,missing,statuses,
+      rows:ingredients.filter((item,index)=>['missing','short'].includes(statuses[index])&&Boolean(measured(item.quantity))&&!shoppingKeys.has(groceryKey(item.name)))}
   })
   return <section className="card settings grocery-recipes">
     <div className="grocery-recipe-actions">
@@ -261,27 +271,50 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
     <RecipePortions value={portions} disabled={busy} onChange={setPortions}/>
     {error&&<p role="alert">{error}</p>}
     {previews.length>0&&<div className="grocery-recipe-ideas"><h2>Rezeptideen</h2>{previews.map(idea=><details key={idea.title}>
-      <summary><strong>{idea.title}</strong><small>{idea.missing.length?idea.missing.length+' Zutaten fehlen':'Mit Vorrat machbar'}</small></summary>
-      <GroceryAnswerCard answer={idea} hideTitle/>
+      <summary><strong>{idea.title}</strong><small>{idea.missing.length?idea.missing.length+(idea.missing.length===1?' Zutat offen':' Zutaten offen'):'Mit Vorrat machbar'}</small></summary>
+      <RecipePortions value={idea.servings} disabled={busy} onChange={value=>setIdeaPortions(previous=>({...previous,[idea.title]:value}))}/>
+      <GroceryAnswerCard answer={idea} hideTitle statuses={idea.statuses}/>
       <div className="actions"><button type="button" disabled={busy} onClick={()=>void act({action:'save',recipe:idea},'Rezept gespeichert.')}>Rezept speichern</button>
         {idea.rows.length>0&&<button type="button" disabled={busy} onClick={()=>void shop(idea)}>Fehlende Zutaten auf die Liste</button>}</div>
     </details>)}</div>}
     {recipes.map(recipe=>{
-      const base=recipe.servings??legacyRecipeServings
-      const servings=recipePortions[recipe.id]??base
-      const ingredients=scaleRecipeIngredients(recipe.ingredients,base,servings)
-      const inStock=stockedIngredients(ingredients,stock)
-      const checks=inStock.map((value,index)=>recipe.ingredientOverrides?
-        recipe.ingredientOverrides[index]??value:recipe.ingredientChecks[index]||value)
+      const base=recipe.baseServings??recipe.servings??legacyRecipeServings
+      const servings=recipePortions[recipe.id]??recipe.servings??base
+      const originals=recipe.baseIngredients??recipe.ingredients
+      const ingredients=scaleRecipeIngredients(originals,base,servings)
+      const statuses=ingredientStock(ingredients,stock)
+      const checks=statuses.map((status,index)=>recipe.ingredientOverrides?.[index]??(status==='enough'))
+      const edits=quantityEdit?.id===recipe.id?quantityEdit:undefined
+      async function savePortions(){
+        if(await act({action:'portions',recipeId:recipe.id,servings,quantities:edits?.values},'Rezept aktualisiert.')){
+          setQuantityEdit(undefined)
+        }
+      }
       return <details className="grocery-saved-recipe" key={recipe.id}>
-      <summary><strong>{recipe.title}</strong><small>{checks.filter(Boolean).length}/{recipe.ingredients.length} Zutaten</small></summary>
+      <summary><strong>{recipe.title}</strong><small>{statuses.filter(status=>status==='enough').length}/{recipe.ingredients.length} Zutaten ausreichend</small></summary>
       <RecipePortions value={servings} disabled={busy} onChange={value=>setRecipePortions(previous=>({...previous,[recipe.id]:value}))}/>
+      {edits?<div className="recipe-quantity-editor">
+        <p>Gib die Mengen für die Rezeptbasis von {base} {base===1?'Portion':'Portionen'} ein.</p>
+        <div className="profile-grid">{originals.map((item,index)=><label key={index}>{item.name}
+          <input value={edits.values[index]} maxLength={50} placeholder="z. B. 100 g" onChange={event=>{
+            const value=event.currentTarget.value
+            setQuantityEdit({...edits,values:edits.values.map((quantity,i)=>i===index?value:quantity)})
+          }}/></label>)}</div>
+      </div>:null}
+      <div className="actions recipe-submit">
+        {servings!==(recipe.servings??base)||edits?<button type="button" className="primary" disabled={busy} onClick={()=>void savePortions()}>
+          {edits?'Rezept speichern':'Portionen speichern'}
+        </button>:null}
+        <button type="button" disabled={busy} onClick={()=>setQuantityEdit(edits?undefined:{id:recipe.id,values:originals.map(item=>item.quantity??'')})}>
+          {edits?'Abbrechen':'Zutatenmengen bearbeiten'}
+        </button>
+      </div>
       <div className="grocery-recipe-checklists">
         <div><h3>Zutaten</h3><ul>{ingredients.map((item,index)=><li key={index}><label>
           <input type="checkbox" checked={checks[index]} disabled={busy} onChange={event=>void act({
             action:'check',recipeId:recipe.id,part:'ingredients',index,checked:event.target.checked,
           })}/><span>{[item.name,item.quantity].filter(Boolean).join(' · ')}</span>
-        </label></li>)}</ul></div>
+        </label><RecipeStockLabel item={item} status={statuses[index]}/></li>)}</ul></div>
         <div><h3>Zubereitung</h3><ol>{recipe.steps.map((step,index)=><li key={index}><label>
           <input type="checkbox" checked={recipe.stepChecks[index]} disabled={busy} onChange={event=>void act({
             action:'check',recipeId:recipe.id,part:'steps',index,checked:event.target.checked,

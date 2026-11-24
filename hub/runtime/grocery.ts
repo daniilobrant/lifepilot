@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { dateInBerlin, isDate, shiftDay } from './values.ts'
-import {covers, measured, stockedIngredients, scaleRecipeIngredients, validRecipeServings, legacyRecipeServings} from './recipe-portions.ts'
+import {covers, measured, recipeStockStatus, ingredientStock, hasRecipeQuantity, stockedIngredients, scaleRecipeIngredients, validRecipeServings, legacyRecipeServings} from './recipe-portions.ts'
 import { saveFinance } from './finance.ts'
 import { groceryCategories, locations, stockStates, type GroceryInput, type StockItem, type ShoppingItem,
   type GroceryOverview, type GroceryPlan, type GroceryAnswer, type GroceryCategory, type SavedRecipe, type RecipeChoice } from './grocery-types.ts'
@@ -142,6 +142,28 @@ const meals: { title:string, items:[string,string][], steps:string[] }[] = [
   {title:'Bananen-Porridge',items:[['Haferflocken','50 g'],['Milch','200 ml'],['Banane','1 Stück']],steps:['Haferflocken mit Milch unter Rühren aufkochen.','Banane schneiden und zum Porridge geben.']},
   {title:'Kartoffel-Gemüse-Pfanne',items:[['Kartoffeln','250 g'],['Zucchini','½ Stück'],['Paprika','½ Stück'],['Zwiebel','½ Stück'],['Olivenöl','1 EL']],steps:['Kartoffeln würfeln und in Öl anbraten.','Geschnittenes Gemüse dazugeben und zusammen garen.']},
 ]
+function recoverRecipeQuantities(title:string,ingredients:GroceryInput[],base:number,steps:string[]){
+  const meal=meals.find(entry=>groceryKey(entry.title)===groceryKey(title))
+  const known=new Map(scaleRecipeIngredients((meal?.items??[]).map(([name,quantity])=>({name,quantity})),1,base)
+    .map(item=>[groceryKey(item.name),item.quantity]))
+  const mentions=steps.flatMap(step=>Array.from(step.matchAll(
+    /(?<![\p{L}\p{N}.,])((?:\d+(?:[,.]\d+)?[½¼¾⅓⅔⅛]?|[½¼¾⅓⅔⅛])\s*(?:kg|g|ml|l|el|tl|stück|zehen?|scheiben?|dosen?))\s+([^,.;:]+)/giu)))
+  return ingredients.map(item=>{
+    if(item.quantity?.trim())return item
+    const name=groceryKey(item.name)
+    const explicit=new Set(mentions.filter(([, ,after])=>(' '+groceryKey(after)+' ').startsWith(' '+name+' '))
+      .map(([,quantity])=>quantity))
+    const quantity=explicit.size===1?[...explicit][0]:explicit.size===0?known.get(name):undefined
+    return quantity?{...item,quantity}:item
+  })
+}
+export function normalizeRecipeAnswer(answer:GroceryAnswer):GroceryAnswer {
+  if(!answer.ingredients?.length)return answer
+  const base=answer.baseServings??answer.servings??legacyRecipeServings
+  const source=recoverRecipeQuantities(answer.title,answer.baseIngredients??answer.ingredients,base,answer.steps)
+  return {...answer,baseServings:base,baseIngredients:source,
+    ingredients:scaleRecipeIngredients(source,base,answer.servings??base)}
+}
 function unique(items:GroceryInput[]) {
   return [...new Map(items.map(item=>[groceryKey(item.name),item])).values()]
 }
@@ -163,24 +185,25 @@ export function groceryAnswer(store:Store,plan:GroceryPlan,day=dateInBerlin()):G
     rows:proposed,write:proposed.length?plan.groceryIntent==='receipt'?'receipt':'stock':null,
     ...(plan.totalCents!==null&&plan.groceryIntent==='receipt'?{totalCents:plan.totalCents}:{})}
   if(plan.groceryIntent==='ideas') return {...groceryIdeas(store,day,stock,plan.servings??1)[0],write:null}
-  const requested=proposed
+  const recipe=plan.groceryIntent==='recipe' && plan.steps.length>0
+  const servings=plan.servings??legacyRecipeServings
+  const requested=recipe?recoverRecipeQuantities(plan.title??'',proposed,servings,plan.steps):proposed
   const mentioned = new Map((plan.onHand ?? []).map(item=>[groceryKey(item.name),item]))
   const has = (item:GroceryInput) => {
     const supplied=mentioned.get(groceryKey(item.name))
     if (supplied) {
       const have=measured(supplied.quantity ?? ''), need=measured(item.quantity)
-      if (!have || !need || have.kind!==need.kind || have.value>=need.value) return true
+      if (need?have&&have.kind===need.kind&&have.value>=need.value:!item.quantity) return true
     }
-    return covers(candidate(item.name),item,day)
+    return recipe&&item.quantity?recipeStockStatus(candidate(item.name),item,day)==='enough':covers(candidate(item.name),item,day)
   }
   const stockRows = unique((plan.onHand ?? []).filter(item=>item.save)
     .map(item=>({name:item.name,quantity:item.quantity??''})))
-  const recipe=plan.groceryIntent==='recipe' && plan.steps.length>0
   const queued=new Set(shopping.map(item=>groceryKey(item.name)))
   const have=requested.filter(has).map(x=>x.name+(candidate(x.name)?.status==='low'?' · Menge prüfen':''))
   const missing=requested.filter(x=>!has(x))
   const rows=missing.filter(x=>!queued.has(groceryKey(x.name)))
-  return {...empty,title:plan.title??'Einkaufsliste prüfen',available:have,missing,rows,write:recipe?'recipe':rows.length?'shop':null,steps:plan.steps,...(recipe?{ingredients:requested,stockRows,servings:plan.servings??legacyRecipeServings}:{})}
+  return {...empty,title:plan.title??'Einkaufsliste prüfen',available:have,missing,rows,write:recipe?'recipe':rows.length?'shop':null,steps:plan.steps,...(recipe?{ingredients:requested,stockRows,servings}:{})}
 }
 export function adoptGrocery(store:Store,answer:GroceryAnswer,day=dateInBerlin()) {
   if(answer.write==='stock'||answer.write==='receipt') {
@@ -220,56 +243,89 @@ export function groceryIdeas(store:Store,day=dateInBerlin(),stock=groceryOvervie
     const ingredients=scaleRecipeIngredients(meal.items.map(([name,quantity])=>({name,quantity})),1,servings)
     const present=ingredients.map(ingredient=>{
       const item=available.get(groceryKey(ingredient.name))
-      return covers(item,ingredient,day)?item:undefined
+      return recipeStockStatus(item,ingredient,day)==='enough'?item:undefined
     }).filter(Boolean)
     return {meal,ingredients,missing:meal.items.length-present.length,priority:present.filter(item=>item?.status==='low'||item?.expiry&&item.expiry<=soon).length}
   }).sort((a,b)=>a.missing-b.missing||b.priority-a.priority)
-  return ranked.slice(0,3).map(({meal,ingredients})=>groceryAnswer(store,{
+  return ranked.slice(0,3).map(({meal,ingredients})=>({...groceryAnswer(store,{
     groceryIntent:'recipe',title:meal.title,items:ingredients.map(({name,quantity})=>({name,quantity:quantity??null,status:null})),
     steps:meal.steps,totalCents:null,servings,
-  },day))
+  },day),baseServings:1,baseIngredients:meal.items.map(([name,quantity])=>({name,quantity}))}))
 }
 
 function recipeFields(value:unknown) {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Problem(400,'Ungültiges Rezept.')
-  const {title,ingredients,steps,servings}=value as Record<string,unknown>
-  if(!Array.isArray(ingredients)||ingredients.length<1||ingredients.length>30||!Array.isArray(steps)||steps.length<1||steps.length>12) {
+  const {title,ingredients,baseIngredients,steps,servings,baseServings}=value as Record<string,unknown>
+  const originals=baseIngredients??ingredients
+  if(!Array.isArray(originals)||originals.length<1||originals.length>30||!Array.isArray(steps)||steps.length<1||steps.length>12) {
     throw new Problem(400,'Das Rezept braucht Zutaten und Zubereitungsschritte.')
   }
-  if(servings!==undefined&&!validRecipeServings(servings))throw new Problem(400,'Wähle zwischen 1 und 24 Portionen.')
+  if([servings,baseServings].some(count=>count!==undefined&&!validRecipeServings(count)))throw new Problem(400,'Wähle zwischen 1 und 24 Portionen.')
   const name=text(title,120)
   const instructions=steps.map(step=>text(step,280))
   if(!name||instructions.some(step=>!step)) throw new Problem(400,'Rezeptname und Schritte sind erforderlich.')
-  return {title:name,ingredients:ingredients.map(item=>{
+  const portions=validRecipeServings(servings)?servings:legacyRecipeServings
+  const base=validRecipeServings(baseServings)?baseServings:portions
+  return {title:name,ingredients:recoverRecipeQuantities(name,originals.map(item=>{
     const {name,quantity}=normalizeGrocery(item)
     return {name,quantity}
-  }),steps:instructions,servings:validRecipeServings(servings)?servings:legacyRecipeServings}
+  }),base,instructions),steps:instructions,servings:portions,baseServings:base}
+}
+function recipeFromRow(row:{id:unknown, data:unknown, created_at:unknown}):SavedRecipe {
+  const recipe=JSON.parse(String(row.data)) as SavedRecipe
+  const base=recipe.baseServings??recipe.servings??legacyRecipeServings
+  return {...recipe,id:String(row.id),savedAt:String(row.created_at),baseServings:base,servings:recipe.servings??base,
+    ingredients:recoverRecipeQuantities(recipe.title,recipe.ingredients,base,recipe.steps)}
 }
 export function listRecipes(store:Store):SavedRecipe[] {
+  const {stock}=groceryOverview(store)
   return store.db.prepare('SELECT id,data,created_at FROM grocery_recipes ORDER BY created_at DESC,rowid DESC LIMIT 200').all()
-    .map(row=>({...JSON.parse(String(row.data)),id:row.id,savedAt:row.created_at}))
+    .map(row=>{
+      const recipe=recipeFromRow({id:row.id,data:row.data,created_at:row.created_at})
+      const ingredients=scaleRecipeIngredients(recipe.ingredients,recipe.baseServings??legacyRecipeServings,recipe.servings??legacyRecipeServings)
+      return {...recipe,baseIngredients:recipe.ingredients,ingredients,ingredientChecks:stockedIngredients(ingredients,stock)
+        .map((enough,index)=>recipe.ingredientOverrides?.[index]??(enough||!recipe.ingredientOverrides&&recipe.ingredientChecks[index]))}
+    })
 }
 export function saveRecipe(store:Store,value:unknown) {
   const data=recipeFields(value)
   const past=listRecipes(store)
   const repeated=past.find(recipe=>recipe.title===data.title &&
-    JSON.stringify([recipe.ingredients,recipe.steps,recipe.servings??legacyRecipeServings])===JSON.stringify([data.ingredients,data.steps,data.servings]))
-  if(repeated)return {id:repeated.id}
+    recipe.baseServings===data.baseServings&&JSON.stringify([recipe.baseIngredients,recipe.steps])===JSON.stringify([data.ingredients,data.steps]))
+  if(repeated)return updateRecipePortions(store,repeated.id,data.servings)
   if(past.length>=200)throw new Problem(409,'Hier sind bereits 200 Rezepte gespeichert.')
   const id=randomUUID()
   store.db.prepare('INSERT INTO grocery_recipes VALUES (?,?,?)').run(id,JSON.stringify({...data,
-    ingredientChecks:stockedIngredients(data.ingredients,groceryOverview(store).stock),ingredientOverrides:data.ingredients.map(()=>null),stepChecks:data.steps.map(()=>false)}),new Date().toISOString())
+    ingredientChecks:stockedIngredients(scaleRecipeIngredients(data.ingredients,data.baseServings,data.servings),groceryOverview(store).stock),ingredientOverrides:data.ingredients.map(()=>null),stepChecks:data.steps.map(()=>false)}),new Date().toISOString())
+  return {id}
+}
+export function updateRecipePortions(store:Store,id:string,servings:number,quantities?:unknown){
+  if(!validRecipeServings(servings))throw new Problem(400,'Wähle zwischen 1 und 24 Portionen.')
+  const row=store.db.prepare('SELECT data,created_at FROM grocery_recipes WHERE id=?').get(id)
+  if(!row)throw new Problem(404,'Rezept nicht gefunden.')
+  const recipe=recipeFromRow({id,data:row.data,created_at:row.created_at})
+  const {id:_,savedAt:__,...data}=recipe
+  if(quantities!==undefined){
+    if(!Array.isArray(quantities)||quantities.length!==data.ingredients.length)throw new Problem(400,'Prüfe die Zutatenmengen.')
+    data.ingredients=data.ingredients.map((item,index)=>{
+      const quantity=text(quantities[index],50)
+      if(!hasRecipeQuantity(quantity))throw new Problem(400,'Gib eine messbare Menge für '+item.name+' ein.')
+      return {...item,quantity}
+    })
+  }
+  store.db.prepare('UPDATE grocery_recipes SET data=? WHERE id=?').run(JSON.stringify({...data,servings}),id)
   return {id}
 }
 export function applyRecipeChoice(store:Store,answer:GroceryAnswer,choice:RecipeChoice) {
   if(!choice.save&&!choice.shop)return {...choice,added:0}
   const recipe=recipeFields(answer)
-  const ingredients=scaleRecipeIngredients(recipe.ingredients,recipe.servings,choice.servings)
+  const ingredients=scaleRecipeIngredients(recipe.ingredients,recipe.baseServings,choice.servings)
   const view=groceryOverview(store)
-  const checks=stockedIngredients(ingredients,view.stock)
+  const statuses=ingredientStock(ingredients,view.stock)
   const queued=new Set(view.shopping.map(item=>groceryKey(item.name)))
-  const missing=ingredients.filter((item,index)=>!checks[index]&&!queued.has(groceryKey(item.name)))
-  if(choice.save)saveRecipe(store,{...recipe,ingredients,servings:choice.servings})
+  const missing=ingredients.filter((item,index)=>['short','missing'].includes(statuses[index])&&
+    Boolean(measured(item.quantity))&&!queued.has(groceryKey(item.name)))
+  if(choice.save)saveRecipe(store,{...recipe,servings:choice.servings})
   if(choice.shop&&missing.length)adoptGrocery(store,{...answer,write:'shop',rows:missing})
   return {...choice,added:choice.shop?missing.length:0}
 }

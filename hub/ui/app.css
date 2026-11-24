@@ -1499,3 +1499,7 @@ input[type=file]::file-selector-button {
 .recipe-choice .actions button { min-width:3.5rem; }
 .recipe-choice button[aria-pressed=true] { color:var(--card); background:var(--mint); border-color:var(--mint); }
 .recipe-submit { margin-block-start:.65rem; }
+
+.recipe-stock-label { display:block; font-size:.8rem; color:var(--muted); }
+.grocery-recipe-checklists .recipe-stock-label { margin-inline-start:1.55rem; }
+.recipe-quantity-editor { margin-block:.8rem; }
