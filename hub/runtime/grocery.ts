@@ -1,12 +1,13 @@
+import {matchesRecipe} from './recipe-preferences.ts'
 import { canonicalGroceryName, groceryCategory, groceryKey } from './grocery-catalog.ts'
 import { randomUUID } from 'node:crypto'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
-import { dateInBerlin, isDate, shiftDay } from './values.ts'
+import { dateInBerlin, isDate } from './values.ts'
 import {covers, measured, recipeStockStatus, ingredientStock, hasRecipeQuantity, stockedIngredients, scaleRecipeIngredients, validRecipeServings, legacyRecipeServings} from './recipe-portions.ts'
 import { saveFinance } from './finance.ts'
 import { groceryCategories, locations, stockStates, type GroceryInput, type StockItem, type ShoppingItem,
-  type GroceryOverview, type GroceryPlan, type GroceryAnswer, type GroceryCategory, type SavedRecipe, type RecipeChoice } from './grocery-types.ts'
+  type GroceryOverview, type GroceryPlan, type GroceryAnswer, type GroceryCategory, type SavedRecipe, type RecipeChoice, type RecipePreference, type RecipeSource } from './grocery-types.ts'
 
 export { groceryKey } from './grocery-catalog.ts'
 export { groceryCategory } from './grocery-catalog.ts'
@@ -141,6 +142,17 @@ const meals: { title:string, items:[string,string][], steps:string[] }[] = [
   {title:'Kichererbsensalat',items:[['Kichererbsen','150 g'],['Gurke','½ Stück'],['Tomaten','1 Stück'],['Zitrone','½ Stück'],['Olivenöl','1 EL']],steps:['Abgetropfte Kichererbsen und geschnittenes Gemüse mischen.','Zitronensaft und Olivenöl als Dressing dazugeben.']},
   {title:'Bananen-Porridge',items:[['Haferflocken','50 g'],['Milch','200 ml'],['Banane','1 Stück']],steps:['Haferflocken mit Milch unter Rühren aufkochen.','Banane schneiden und zum Porridge geben.']},
   {title:'Kartoffel-Gemüse-Pfanne',items:[['Kartoffeln','250 g'],['Zucchini','½ Stück'],['Paprika','½ Stück'],['Zwiebel','½ Stück'],['Olivenöl','1 EL']],steps:['Kartoffeln würfeln und in Öl anbraten.','Geschnittenes Gemüse dazugeben und zusammen garen.']},
+  {title:'Hähnchen mit Paprikareis',items:[['Hähnchen','150 g'],['Reis','75 g'],['Paprika','1 Stück'],['Olivenöl','1 TL']],steps:['Reis garen und Paprika würfeln.','Hähnchen in Öl vollständig durchgaren. Paprika mitbraten und den Reis dazu servieren.']},
+  {title:'Zucchini-Hack-Pfanne',items:[['Hackfleisch','150 g'],['Zucchini','1 Stück'],['Passierte Tomaten','120 g'],['Olivenöl','1 TL']],steps:['Zucchini würfeln und in Öl anbraten.','Hackfleisch vollständig durchgaren, Tomaten dazugeben und einkochen.']},
+  {title:'Ofenkartoffeln mit Kräuterquark',items:[['Kartoffeln','250 g'],['Quark','150 g'],['Olivenöl','1 TL'],['Zitrone','½ Stück']],steps:['Kartoffeln in Spalten schneiden, mit Öl mischen und im Ofen garen.','Quark mit etwas Zitronensaft glatt rühren und dazu reichen.']},
+  {title:'Würzige Linsen mit Tomaten',items:[['Linsen','80 g'],['Passierte Tomaten','150 g'],['Zwiebel','½ Stück'],['Olivenöl','1 TL']],steps:['Linsen nach Packungsangabe garen.','Zwiebel in Öl anschwitzen, Tomaten zugeben und die Linsen unterheben.']},
+  {title:'Lachs mit Zitronengemüse',items:[['Lachs','150 g'],['Brokkoli','170 g'],['Zitrone','½ Stück'],['Olivenöl','1 TL']],steps:['Brokkoli dämpfen und mit Zitrone abschmecken.','Lachs in Öl garen und mit dem Gemüse servieren.']},
+  {title:'Tofu mit Brokkoli und Reis',items:[['Tofu','130 g'],['Brokkoli','170 g'],['Reis','75 g'],['Olivenöl','1 TL']],steps:['Reis garen und den Brokkoli klein schneiden.','Tofu in Öl anbraten, Brokkoli hinzufügen und mit dem Reis servieren.']},
+  {title:'Tomaten-Mozzarella-Salat',items:[['Tomaten','2 Stück'],['Mozzarella','100 g'],['Olivenöl','1 TL']],steps:['Tomaten und Mozzarella in Scheiben schneiden.','Auf einem Teller anrichten und mit Olivenöl beträufeln.']},
+  {title:'Knusprige Kichererbsen mit Karotten',items:[['Kichererbsen','150 g'],['Karotten','150 g'],['Olivenöl','1 EL']],steps:['Karotten in Stücke schneiden und Kichererbsen abtropfen lassen.','Beides mit Öl mischen und im Ofen rösten.']},
+  {title:'Hähnchenroulade mit Spinat und Mozzarella',items:[['Hähnchenbrust','170 g'],['Spinat','70 g'],['Mozzarella','60 g'],['Knoblauch','1 Zehe'],['Olivenöl','1 EL']],steps:['Spinat mit Knoblauch in etwas Öl zusammenfallen lassen und abtropfen lassen.','Hähnchenbrust flach aufschneiden, mit Spinat und Mozzarella füllen und aufrollen.','Roulade rundum anbraten und anschließend vollständig durchgaren.']},
+  {title:'Pilzrisotto mit Parmesan',items:[['Reis','85 g'],['Champignons','150 g'],['Zwiebel','½ Stück'],['Gemüsebrühe','300 ml'],['Parmesan','25 g'],['Butter','10 g']],steps:['Pilze in Scheiben schneiden und kräftig anbraten.','Zwiebel und Reis in Butter anschwitzen. Brühe nach und nach unter Rühren zugeben, bis der Reis cremig ist.','Pilze und geriebenen Parmesan unterheben.']},
+  {title:'Linsenragout mit gerösteter Aubergine',items:[['Linsen','80 g'],['Aubergine','1 Stück'],['Passierte Tomaten','180 g'],['Zwiebel','½ Stück'],['Olivenöl','1 EL']],steps:['Aubergine würfeln, mit Öl vermengen und im Ofen rösten.','Zwiebel anbraten, Linsen und Tomaten dazugeben und leise garen.','Geröstete Aubergine unter das Ragout heben und kurz ziehen lassen.']},
 ]
 function recoverRecipeQuantities(title:string,ingredients:GroceryInput[],base:number,steps:string[]){
   const meal=meals.find(entry=>groceryKey(entry.title)===groceryKey(title))
@@ -184,7 +196,10 @@ export function groceryAnswer(store:Store,plan:GroceryPlan,day=dateInBerlin()):G
   if(plan.groceryIntent==='stock_add'||plan.groceryIntent==='receipt')return {...empty,title:plan.title??'Vorrat aktualisieren',
     rows:proposed,write:proposed.length?plan.groceryIntent==='receipt'?'receipt':'stock':null,
     ...(plan.totalCents!==null&&plan.groceryIntent==='receipt'?{totalCents:plan.totalCents}:{})}
-  if(plan.groceryIntent==='ideas') return {...groceryIdeas(store,day,stock,plan.servings??1)[0],write:null}
+  if(plan.groceryIntent==='ideas') {
+    const options=groceryIdeas(store,day,stock,plan.servings??1,plan.preferences)
+    return {...empty,title:'Rezeptideen aus deinem Vorrat',options}
+  }
   const recipe=plan.groceryIntent==='recipe' && plan.steps.length>0
   const servings=plan.servings??legacyRecipeServings
   const requested=recipe?recoverRecipeQuantities(plan.title??'',proposed,servings,plan.steps):proposed
@@ -236,26 +251,69 @@ export function adoptGrocery(store:Store,answer:GroceryAnswer,day=dateInBerlin()
   }
 }
 
-export function groceryIdeas(store:Store,day=dateInBerlin(),stock=groceryOverview(store).stock,servings=1) {
-  const available=new Map(stock.map(item=>[groceryKey(item.name),item]))
-  const soon=shiftDay(day,2)
-  const ranked=meals.map(meal=>{
-    const ingredients=scaleRecipeIngredients(meal.items.map(([name,quantity])=>({name,quantity})),1,servings)
-    const present=ingredients.map(ingredient=>{
-      const item=available.get(groceryKey(ingredient.name))
-      return recipeStockStatus(item,ingredient,day)==='enough'?item:undefined
-    }).filter(Boolean)
-    return {meal,ingredients,missing:meal.items.length-present.length,priority:present.filter(item=>item?.status==='low'||item?.expiry&&item.expiry<=soon).length}
-  }).sort((a,b)=>a.missing-b.missing||b.priority-a.priority)
-  return ranked.slice(0,3).map(({meal,ingredients})=>({...groceryAnswer(store,{
-    groceryIntent:'recipe',title:meal.title,items:ingredients.map(({name,quantity})=>({name,quantity:quantity??null,status:null})),
-    steps:meal.steps,totalCents:null,servings,
-  },day),baseServings:1,baseIngredients:meal.items.map(([name,quantity])=>({name,quantity}))}))
+const sideRecipes:Record<string,{name:string,quantity:string,step:string}>={
+  kartoffel:{name:'Kartoffeln',quantity:'180 g',step:'Beilage: Kartoffeln schälen, in gleich große Stücke schneiden und in Salzwasser garen.'},
+  reis:{name:'Reis',quantity:'60 g',step:'Beilage: Reis nach Packungsangabe garen.'},
+  nudeln:{name:'Nudeln',quantity:'60 g',step:'Beilage: Nudeln nach Packungsangabe garen.'},
+  salat:{name:'Kopfsalat',quantity:'80 g',step:'Beilage: Salat waschen, abtropfen lassen und in Stücke zupfen.'},
+}
+
+export function groceryIdeas(store:Store,day=dateInBerlin(),stock=groceryOverview(store).stock,servings=1,
+  preference:RecipePreference={excluded:[]},web:RecipeSource[]=[],rotation=0){
+  const local:RecipeSource[]=meals.map(meal=>({title:meal.title,servings:1,steps:meal.steps,
+    ingredients:meal.items.map(([name,quantity])=>({name,quantity}))}))
+  const side=preference.side?sideRecipes[groceryKey(preference.side)]:undefined
+  const queue=new Set(groceryOverview(store).shopping.map(item=>groceryKey(item.name)))
+  const options=[...web,...local].flatMap((source,index)=>{
+    const original=source.ingredients
+    if(side&&original.some(item=>groceryKey(item.name)===groceryKey(side.name)))return []
+    const addition=side?scaleRecipeIngredients([side],1,source.servings).map(({name,quantity})=>({name,quantity})):[]
+    const baseIngredients=[...original,...addition]
+    const title=source.title+(side?' mit '+side.name+' als Beilage':'')
+    const steps=side?[...source.steps,side.step]:source.steps
+    const filter=preference.side&&!side?{...preference,include:[...(preference.include??[]),preference.side]}:preference
+    if(!matchesRecipe(baseIngredients,filter,title,steps))return []
+    const ingredients=scaleRecipeIngredients(baseIngredients,source.servings,servings)
+    const statuses=ingredientStock(ingredients,stock,day)
+    const available=ingredients.filter((_,i)=>statuses[i]==='enough').map(item=>item.name)
+    const missing=ingredients.filter((item,i)=>statuses[i]!=='enough'&&Boolean(measured(item.quantity)))
+    const rows=ingredients.filter((item,i)=>Boolean(measured(item.quantity))&&!queue.has(groceryKey(item.name))&&
+      ['missing','short'].includes(statuses[i]))
+    const matched=available.length
+    const priority=stock.filter(item=>item.status==='low'&&available.some(name=>groceryKey(name)===groceryKey(item.name))).length
+    const answer:GroceryAnswer={title:title.slice(0,120),write:null,rows,missing,available,steps:steps.slice(0,12),
+      ingredients,baseIngredients,servings,baseServings:source.servings,sourceUrl:source.url}
+    return [{answer,matched,priority,order:(index+rotation)%Math.max(1,web.length+local.length)}]
+  })
+  options.sort((a,b)=>a.answer.missing.length-b.answer.missing.length||
+    b.matched-a.matched||Number(Boolean(b.answer.sourceUrl))-Number(Boolean(a.answer.sourceUrl))||b.priority-a.priority||a.order-b.order)
+  const seen=new Set<string>()
+  const distinct=options.flatMap(({answer})=>{
+    const key=groceryKey(answer.title)
+    if(seen.has(key))return []
+    seen.add(key)
+    return [answer]
+  })
+  const ready=distinct.filter(idea=>!idea.missing.length)
+  const selection=(ready.length>=3?ready:distinct).slice(0,4)
+  const online=distinct.find(idea=>idea.sourceUrl&&(idea.available.length>=2||idea.missing.length<=3))
+  if(online&&!selection.some(idea=>idea.sourceUrl))return [...selection.slice(0,3),online]
+  return selection
+}
+
+export function recipeRecommendations(store:Store,plan:GroceryPlan,web:RecipeSource[],rotation=0){
+  const preference=plan.preferences??{excluded:[]}
+  const options=groceryIdeas(store,undefined,undefined,plan.servings??1,preference,web,rotation)
+  const recipeNotice=[
+    !options.length?'Es gibt aktuell keinen Treffer für diese Zutatenwünsche. Passe die Auswahl an.':'',
+    preference.allergy?'Prüfe bei Allergien die Produktetiketten und mögliche Kreuzkontakte.':'',
+  ].filter(Boolean).join(' ')
+  return {title:'Rezeptideen aus deinem Vorrat',available:[],missing:[],steps:[],write:null,rows:[],options,recipeNotice} satisfies GroceryAnswer
 }
 
 function recipeFields(value:unknown) {
   if(!value||typeof value!=='object'||Array.isArray(value))throw new Problem(400,'Ungültiges Rezept.')
-  const {title,ingredients,baseIngredients,steps,servings,baseServings}=value as Record<string,unknown>
+  const {title,ingredients,baseIngredients,steps,servings,baseServings,sourceUrl}=value as Record<string,unknown>
   const originals=baseIngredients??ingredients
   if(!Array.isArray(originals)||originals.length<1||originals.length>30||!Array.isArray(steps)||steps.length<1||steps.length>12) {
     throw new Problem(400,'Das Rezept braucht Zutaten und Zubereitungsschritte.')
@@ -266,7 +324,14 @@ function recipeFields(value:unknown) {
   if(!name||instructions.some(step=>!step)) throw new Problem(400,'Rezeptname und Schritte sind erforderlich.')
   const portions=validRecipeServings(servings)?servings:legacyRecipeServings
   const base=validRecipeServings(baseServings)?baseServings:portions
-  return {title:name,ingredients:recoverRecipeQuantities(name,originals.map(item=>{
+  let source:string|undefined
+  if(typeof sourceUrl==='string'&&sourceUrl.length<=500){
+    try{
+      const url=new URL(sourceUrl)
+      if(url.protocol==='https:'&&!url.username&&!url.password)source=url.href
+    }catch{ /* Recipe data can be saved without a source link. */ }
+  }
+  return {title:name,...(source&&{sourceUrl:source}),ingredients:recoverRecipeQuantities(name,originals.map(item=>{
     const {name,quantity}=normalizeGrocery(item)
     return {name,quantity}
   }),base,instructions),steps:instructions,servings:portions,baseServings:base}

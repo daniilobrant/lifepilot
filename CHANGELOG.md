@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.9 · 24. November 2026
+
+- Pilot empfiehlt mehrere Gerichte mit Mengenabgleich, wählbaren Portionen, Zutatenwünschen, Beilagen und Ausschlüssen. Bei unzureichendem Vorrat zeigt er die noch benötigten Zutaten.
+- Die private Rezeptrecherche ergänzt lokale Vorschläge um verlinkte Online-Rezepte. Die Entscheidung für Rezept und Einkaufsliste bleibt beim ausgewählten Gericht.
+
 ## v1.0.8 · 24. November 2026
 
 - Jedes Rezept hat eigene speicherbare Portionen. LifePilot berechnet Zutatenmengen aus der Rezeptbasis und prüft vergleichbare Vorratsmengen.
