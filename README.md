@@ -1,8 +1,8 @@
-# LifePilot
+# LifePilot 1.0
 
-LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor. Der erste öffentliche Release **v1.0.0** enthält den Quellstand der Runtime **0.25.16**.
+LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
-[Installation](#installation) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](docs/ROADMAP.md)
+[Aktueller Release](https://github.com/daniilobrant/lifepilot/releases/tag/v1.0) · [Installation](#installation) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](docs/ROADMAP.md)
 
 ![LifePilot-Startseite mit Wochenbriefing und Pilot-Freigabe](docs/screenshots/01-start.png)
 
@@ -25,7 +25,7 @@ Alle Aufnahmen stammen aus dem isolierten Testprofil mit fiktiven Daten. Die Gal
 
 Vorausgesetzt sind macOS, Node.js 24 ab 24.13, npm, Git und die Xcode Command Line Tools. Dieser Stand wurde auf einem Mac mit Apple Silicon geprüft. Der Download enthält Quellcode, aus dem auch die nativen Helfer gebaut werden.
 
-    git clone --branch v1.0.0 https://github.com/daniilobrant/lifepilot.git
+    git clone --branch v1.0 https://github.com/daniilobrant/lifepilot.git
     cd lifepilot
     xcode-select -p
     node --version
@@ -40,7 +40,7 @@ Fehlen die Xcode Command Line Tools, installiere sie mit **xcode-select --instal
     ./bin/lifepilot --acceptance start
     ./bin/lifepilot --acceptance open
 
-Öffne **Projekte**, lege ein fiktives Projekt mit Unterpunkten an und setze für einen Punkt eine Frist. Die Frist erscheint in **Aufgaben & Fristen**. Probiere danach eine erfundene Frage als Pilot-Entwurf aus. Die Galerie verwendet keinen Modellaufruf. Das Testprofil trennt die Daten lokal. Der hier dokumentierte Audit-Stand sperrt externe Modellaufrufe und den Cloud-Reiseguide. Der getaggte Stand v1.0.0 aus dem Installationsbeispiel stammt von vor dieser Änderung. Lokale Planung und Reisevorschauen sind in beiden Ständen verfügbar. Einzelne andere Funktionen können weiterhin externe Dienste nutzen. Verwende im Testprofil ausschließlich fiktive Daten.
+Öffne **Projekte**, lege ein fiktives Projekt mit Unterpunkten an und setze für einen Punkt eine Frist. Die Frist erscheint in **Aufgaben & Fristen**. Probiere danach eine erfundene Frage als Pilot-Entwurf aus. Das Testprofil speichert seine Daten getrennt und sperrt externe Modellaufrufe und den Cloud-Reiseguide. Lokale Planung und Reisevorschauen stehen im Testprofil zur Verfügung. Verwende dort ausschließlich fiktive Daten.
 
     ./bin/lifepilot --acceptance stop
 
