@@ -7,14 +7,14 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { setTimeout as delay } from 'node:timers/promises'
 
-assert.ok(process.argv.slice(2).every(arg => arg === '--codex'), 'Nur --codex ist als Option zulässig.')
-const withModel = process.argv.includes('--codex')
+assert.ok(process.argv.slice(2).every(arg => arg === '--local-model'), 'Nur --local-model ist als Option zulässig.')
+const withModel = process.argv.includes('--local-model')
 const root = realpathSync(fileURLToPath(new URL('../', import.meta.url)))
 const manifest = readFileSync(join(root, 'SHA256SUMS'), 'utf8')
 const sha = value => createHash('sha256').update(value).digest('hex')
 const scratch = mkdtempSync(join(tmpdir(), 'lifepilot-restore-check-'))
 const origin = 'http://127.0.0.1:45139'
-const env = { ...process.env, PATH: dirname(process.execPath) + ':' + process.env.PATH }
+const env = { ...process.env, LIFEPILOT_LOCAL_MODEL: withModel ? '1' : '0', PATH: dirname(process.execPath) + ':' + process.env.PATH }
 const owner = () => ({ Authorization: 'Bearer ' + readFileSync(join(scratch, 'user-data/trinity-audit/adapter-token'), 'utf8') })
 const invoke = (program, args) => execFileSync(program, args, {
   cwd: scratch, env, encoding: 'utf8', timeout: 30_000, stdio: ['ignore', 'pipe', 'pipe'],

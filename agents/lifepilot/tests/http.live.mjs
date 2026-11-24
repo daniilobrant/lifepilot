@@ -134,12 +134,13 @@ test('Google connection is owner-only and external reads require an explicit req
   await request(primary, '/google/status', 403, { ...local, Origin: 'https://example.invalid' })
   await request(trial, '/google/status', 403, bearer('acceptance'))
   const status = await (await request(primary, '/google/status', 200, local)).json()
-  assert.deepEqual(status.map(item => item.service), ['calendar', 'gmail', 'gmail-content', 'calendar-test', 'gmail-sort'])
+  assert.deepEqual(status.map(item => item.service), ['calendar', 'calendar-write', 'gmail', 'gmail-content', 'calendar-test', 'gmail-sort'])
   assert.ok(status.every(item => Object.keys(item).sort().join(',') === 'configured,connected,service'))
   await request(primary, '/google/calendar', 403, local)
   await request(primary, '/google/calendar', 403, local, { days: 7 })
   await request(primary, '/google/gmail', 400, local, { limit: 11, confirm: true })
   await request(primary, '/google/connect', 403, local, { service: 'gmail' })
+  await request(primary, '/google/connect', 409, local, { service: 'calendar-write', confirm: true })
   await request(primary, '/google/configure', 400, local, { service: 'calendar', confirm: true, credentials: { web: {} } })
   const offer = await (await request(primary, '/ticket', 200, local, {})).json()
   const uiSession = await request(primary, '/session', 200, { Origin: primary }, { ticket: new URL(offer.url).hash.slice(1) })
@@ -149,4 +150,44 @@ test('Google connection is owner-only and external reads require an explicit req
   await request(primary, '/google/configure', 400, { ...cookie, Origin: primary }, invalidConfig)
   await request(primary, '/google/send', 403, local, { confirm: true })
   assert.equal((await fetch(primary + '/oauth/google/callback?state=unknown&code=fixture')).status, 400)
+})
+
+test('Order views are available without invoking the confirmed photo operation', async () => {
+  const local = bearer('local')
+  const rows = await (await request(primary, '/clothing-orders?month=2090-01', 200, local)).json()
+  assert.ok(Array.isArray(rows))
+  await request(primary, '/clothing-orders/photos', 404, local)
+  await request(primary, '/clothing-orders/photos', 403, local, { order: randomUUID() })
+})
+
+test('A synthetic chat approval cannot invoke a cloud model', async () => {
+  const cli = bearer('acceptance')
+  const state = await (await request(trial, '/state', 200, cli)).json()
+  assert.equal(state.cloudModel, false)
+  const run = await (await request(trial, '/runs', 201, cli, {
+    agent: 'lifepilot', input: 'Erkläre die Farbe Grün in einem Satz.', synthetic: true, key: randomUUID(),
+  })).json()
+  const route = '/runs/' + run.id
+  await request(trial, route + '/decision', 200, cli, { approval: run.approvals[0].id, decision: 'approve' })
+  for (let attempt = 0; attempt < 25; attempt++) {
+    const current = await (await request(trial, route, 200, cli)).json()
+    if (current.state === 'failed') {
+      assert.match(current.error, /Im Testprofil sind externe Modelle gesperrt/)
+      assert.equal(current.metrics.model, null)
+      return
+    }
+    await new Promise(resolve => setTimeout(resolve, 100))
+  }
+  assert.fail('Der synthetische Auftrag wurde nicht mit der lokalen Sperre beendet.')
+})
+
+test('Synthetic travel proposals can be saved without the external guide', async () => {
+  const cli = bearer('acceptance')
+  const draft = { destination: 'Lissabon', departure: 'Hamburg', start: '2090-05-04', end: '2090-05-06',
+    people: 2, interests: 'Museen', transport: 'open', luggage: 'open', stay: '' }
+  const preview = await (await request(trial, '/trips/preview', 200, cli, { draft, confirm: true })).json()
+  assert.equal(preview.plan.days.length, 3)
+  await request(trial, '/trips/guide', 423, cli, { preview: preview.id, confirm: true })
+  const saved = await (await request(trial, '/trips/save', 200, cli, { preview: preview.id, confirm: true })).json()
+  assert.equal(saved.draft.destination, draft.destination)
 })

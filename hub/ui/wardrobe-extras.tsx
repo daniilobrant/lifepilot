@@ -179,7 +179,7 @@ export function FragrancePanel({api,names=[]}:{api:Api,names?:string[]}) {
     </label>)}</div></fieldset>
   }
   return <section className="outfit-form wardrobe-extras fragrance-panel">
-    <h2>Parfüm & Düfte</h2>
+    <h2>Parfüm &amp; Düfte</h2>
     {pendingNames.length>0 ? <section className="wardrobe-extra-card" aria-label="Aus Pilot übernehmen">
       <h3>Aus Pilot übernehmen</h3>
       <div className="outfit-chips">{pendingNames.map(name=><button type="button" key={name} disabled={busy}
