@@ -102,7 +102,7 @@ function saleRow(store:Store,id:string) {
     LEFT JOIN wardrobe_sales sale ON sale.wardrobe_id=w.id WHERE w.id=?`).get(id)
 }
 export function resaleList(store:Store):ResaleDraft[] {
-  return store.db.prepare("SELECT wardrobe_id FROM wardrobe_sales ORDER BY state!='selling',created DESC").all().map(row=>{
+  return store.db.prepare("SELECT wardrobe_id FROM wardrobe_sales WHERE state IN ('selling','sold') ORDER BY state!='selling',created DESC").all().map(row=>{
     const id=String(row.wardrobe_id), item=saleRow(store,id)!
     const condition=String(item.condition), flaws=String(item.flaws), originalPrice=item.original_price===null?null:Number(item.original_price)
     const category=String(item.category) as WardrobeCategory
