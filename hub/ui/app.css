@@ -472,7 +472,8 @@ progress { display: block; width: 100%; height: 8px; accent-color: var(--mint); 
 .outfit-options > summary { color: var(--ink); }
 .outfit-options > .outfit-form-grid { margin: 10px 0; }
 
-.composer-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.composer-actions { display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-width:0; }
+.composer textarea { box-sizing:border-box; width:100%; min-width:0; max-width:100%; }
 .composer .composer-tool, .composer .composer-send { display: grid; place-items: center; width: 38px; min-height: 38px; padding: 0; border-radius: 50%; }
 .composer .composer-tool[aria-pressed=true] { background: var(--accent-soft); color: var(--mint); }
 .composer .composer-send { margin-left: auto; font-size: 1.25rem; }
@@ -579,10 +580,6 @@ progress { display: block; width: 100%; height: 8px; accent-color: var(--mint); 
 .grocery-answer p { margin:.2rem 0 .55rem; }
 @media (max-width:1250px) { .grocery-columns { grid-template-columns:minmax(0,1fr); } }
 @media (max-width:550px) { .grocery-metrics { gap:.45rem; } .grocery-metrics article { padding:.65rem; } }
-.grocery-chat-upload { position:relative; cursor:pointer; display:inline-grid; place-items:center; }
-.grocery-chat-upload input { position:absolute; inset:0; width:100%; opacity:0; cursor:pointer; padding:0; }
-.grocery-chat-upload:focus-within { outline:2px solid currentColor; outline-offset:2px; }
-.grocery-chat-upload:has(input:disabled) { opacity:.5; cursor:default; }
 .chat-groups { display:grid; gap:.9rem; }
 .chat-groups > section { padding:.85rem; border:1px solid color-mix(in srgb,currentColor 16%,transparent); border-radius:1rem; }
 
@@ -889,6 +886,9 @@ input::selection, textarea::selection { color:var(--ink); background:var(--accen
   padding:.35rem; border:1px solid var(--control-line); border-radius:var(--radius-detail); background:var(--card); box-shadow:0 12px 30px #27282222; }
 .wardrobe-menu[open] .wardrobe-menu-actions { display:grid; }
 .wardrobe-menu-actions button { min-height:32px; width:100%; border-color:transparent; background:transparent; text-align:left; font-size:.83rem; }
+.wardrobe-menu-actions .wardrobe-remove-action,.wardrobe-remove-dialog .wardrobe-remove-action { color:var(--error); }
+.wardrobe-remove-dialog { max-width:min(28rem,calc(100vw - 2rem)); }
+.wardrobe-remove-dialog .outfit-actions { justify-content:flex-end; }
 .wardrobe-edit-actions { margin-bottom:var(--section-gap); }
 .fragrance-panel { border:0; box-shadow:none; background:none; padding:0; }
 .fragrance-collection { display:grid; grid-template-columns:repeat(auto-fill,minmax(min(100%,210px),1fr)); gap:var(--section-gap); align-items:start; }
