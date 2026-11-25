@@ -8,8 +8,9 @@ export type FragranceDraft = {
   name:string, brand:string, description:string, notes:string, pairing?:string, containerMl:number|null, source:string,
   profile:typeof fragranceProfiles[number], occasions:string[], seasons:string[], times:string[],
 }
-export type Fragrance = FragranceDraft & {id:string}
-export type ScentChoice = {id:string,name:string,brand:string,reason:string,pairing?:string}
+export type ScentUsage = {character:string,purpose:string,intensity:string,timing:string,seasonText:string}
+export type Fragrance = FragranceDraft & {id:string, tagsConfirmed?:boolean, guide?:ScentUsage}
+export type ScentChoice = {id:string,name:string,brand:string,reason:string,pairing?:string,usage?:ScentUsage}
 export type ResaleDraft = {
   id:string,name:string,state:'selling'|'sold',condition:string,flaws:string,originalPrice:number|null,askingPriceCents:number|null,
   created:string,sold:string|null,hasPhoto:boolean, hasOwnPhoto:boolean,listing:{title:string,description:string,minimum:number,maximum:number,start:number},

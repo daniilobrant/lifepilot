@@ -3,6 +3,7 @@ import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
 import { productAddress } from '../connectors/outfit-import.ts'
 import { dateInBerlin } from './values.ts'
+import { withScentGuide } from './scent-profile.ts'
 import { wardrobeCategories, type WardrobeCategory, type OutfitDaypart } from './outfit-types.ts'
 import { saleConditions, fragranceProfiles, fragranceOccasions, fragranceSeasons, fragranceTimes, type Fragrance, type FragranceDraft,
   type ResaleDraft, type ScentChoice } from './wardrobe-extras-types.ts'
@@ -26,7 +27,11 @@ function choices(value:unknown,available:readonly string[]) {
 
 export function fragranceList(store:Store):Fragrance[] {
   return store.db.prepare('SELECT id,details FROM wardrobe_fragrances ORDER BY rowid DESC').all()
-    .map(row=>({...JSON.parse(String(row.details)),id:String(row.id)}))
+    .map(row=>{
+      const {guide,...fragrance}=withScentGuide(JSON.parse(String(row.details)) as FragranceDraft)
+      const {character,purpose,intensity,timing,seasonText}=guide
+      return {...fragrance,guide:{character,purpose,intensity,timing,seasonText},id:String(row.id)}
+    })
 }
 export function normalizeFragrance(value:unknown):FragranceDraft {
   const input=record(value)
@@ -54,12 +59,13 @@ export function saveFragrance(store:Store,value:unknown,photo:Uint8Array,mime:st
   return {id,...draft}
 }
 export function updateFragranceTags(store:Store,id:string,occasions:unknown,seasons:unknown) {
-  const item=fragranceList(store).find(row=>row.id===id)
-  if (!item) throw new Problem(404,'Duft nicht gefunden.')
-  const {id:_,...details}=item
-  const draft={...details,occasions:choices(occasions,fragranceOccasions),seasons:choices(seasons,fragranceSeasons)}
+  const row=store.db.prepare('SELECT details FROM wardrobe_fragrances WHERE id=?').get(id)
+  if (!row) throw new Problem(404,'Duft nicht gefunden.')
+  const details=JSON.parse(String(row.details)) as FragranceDraft
+  // Gespeicherte Tags gelten ab jetzt als bewusst gewählt und werden nicht mehr abgeleitet.
+  const draft={...details,occasions:choices(occasions,fragranceOccasions),seasons:choices(seasons,fragranceSeasons),tagsConfirmed:true}
   store.db.prepare('UPDATE wardrobe_fragrances SET details=? WHERE id=?').run(JSON.stringify(draft),id)
-  return {...draft,id}
+  return fragranceList(store).find(item=>item.id===id)!
 }
 
 export function fragrancePhoto(store:Store,id:string) {
@@ -89,12 +95,17 @@ export function recommendFragrance(fragrances:Fragrance[],context:{occasion?:str
       if (item.profile==='Frisch') {score+=6;reasons.push('warmem Wetter')}
       if (item.profile==='Warm & intensiv') score-=3
     }
-    if (temperature!==undefined && temperature<=12 && item.profile==='Warm & intensiv') {score+=4;reasons.push('kühlem Wetter')}
+    if (temperature!==undefined && temperature<=12 && (item.profile==='Warm & intensiv' || item.seasons.includes('Winter'))) {score+=4;reasons.push('kühlem Wetter')}
+    // Sehr kräftige Düfte nicht tagsüber empfehlen.
+    if (time==='Tagsüber' && /^Sehr kräftig/u.test(item.guide?.intensity??'')) score-=4
     return {item,score,reasons}
   }).sort((a,b)=>b.score-a.score)[0]
   if (!winner) return
   const {item,reasons}=winner
-  return {id:item.id,name:item.name,brand:item.brand,...(item.pairing && {pairing:item.pairing}),reason:reasons.length ? 'Passt zu '+reasons.join(' · ')+'.' : item.description}
+  const usage=item.guide
+  const today=reasons.length ? 'Heute passend: '+reasons.join(', ')+'.' : ''
+  return {id:item.id,name:item.name,brand:item.brand,...(item.pairing && {pairing:item.pairing}),...(usage && {usage}),
+    reason:usage ? [usage.character+'. Ideal für '+usage.purpose+'.',today].filter(Boolean).join(' ') : today || item.description}
 }
 
 function saleRow(store:Store,id:string) {

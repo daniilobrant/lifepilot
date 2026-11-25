@@ -8,7 +8,7 @@ import { outfitGarment, productColorName, productWardrobeFields } from '../runti
 import { FragrancePanel, ResalePanel, TravelOutfits, scentPhotoPath } from './wardrobe-extras.tsx'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { bodyProportions, bodyShapes, emptyWardrobe, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, wardrobeTypes, type Outfit, type OutfitChoice, type OutfitOverview,
+import { bodyProportions, bodyShapes, emptyWardrobe, itemOccasion, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, wardrobeTypes, type Outfit, type OutfitChoice, type OutfitOverview,
   type OutfitChatPlan, type OutfitQuery, type StyleProfile, type WardrobeDraft, type WardrobeItem } from '../runtime/outfit-types.ts'
 
 type Api = <T>(path: string, payload?: object, timeout?: number) => Promise<T>
@@ -53,6 +53,7 @@ function Piece({ item, imageVersion }: { item: WardrobeItem, imageVersion: numbe
         <div className="outfit-piece-placeholder">{color.label || slotLabel}</div>}
     </div>
     <div className="outfit-piece-info"><small>{slotLabel}</small><h3 title={title}>{title}</h3>
+      <p className="outfit-piece-occasion"><span>Anlass</span> {itemOccasion(item)}</p>
       <p className="outfit-piece-attributes" title={attributes}>{item.orderState ? (item.orderState==='ordered'?'Bestellt':'Behalten oder zurückgeben?') : <>
         {color.swatch&&<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeOpacity=".3" fill={color.swatch}/></svg>}
         <span>{attributes}</span>
@@ -95,7 +96,8 @@ function Board({ look, wardrobe, imageVersion, actions }: { look: Outfit, wardro
   const pieces = look.itemIds.map(id => wardrobe.find(item => item.id === id)).filter((item): item is WardrobeItem => Boolean(item))
   if (!pieces.length && !look.rationale) return <div className="outfit-actions">{actions}</div>
   return <article className="outfit-board">
-    <header className="outfit-board-head"><small>{look.occasion} · {look.style}</small><h2>{look.title}</h2><p>{look.rationale}</p></header>
+    <header className="outfit-board-head">{look.occasion && !/^(?:rund um |freie inspiration)/iu.test(look.occasion) ? <small>{look.occasion}</small> : null}
+      <h2>{/^rund um /iu.test(look.title) ? 'Dein Outfit' : look.title.replace(/\s+·\s+(?:Schlicht|Auffällig|Eleganz|Streetwear)$/u,'')}</h2>{look.rationale ? <p>{look.rationale}</p> : null}</header>
     {look.date ? <div className="outfit-weather">
       <strong>{new Intl.DateTimeFormat('de-DE',{dateStyle:'long',timeZone:'UTC'}).format(new Date(look.date+'T12:00Z'))}</strong>
       {look.weather ? <>
@@ -108,7 +110,14 @@ function Board({ look, wardrobe, imageVersion, actions }: { look: Outfit, wardro
       </> : <span>Ohne Wetterdaten</span>}
     </div> : null}
     {look.fragrance ? <section className="outfit-scent"><img src={scentPhotoPath(look.fragrance.id)} alt="" loading="lazy"/>
-      <div><h3>{[look.fragrance.brand,look.fragrance.name].filter(Boolean).join(' · ')}</h3><p>{look.fragrance.reason}</p>{look.fragrance.pairing ? <small>{look.fragrance.pairing}</small>:null}</div>
+      <div><h3>{[look.fragrance.brand,look.fragrance.name].filter(Boolean).join(' · ')}</h3>
+        {look.fragrance.usage ? <dl className="scent-usage">
+          <div><dt>Wofür</dt><dd>{look.fragrance.usage.purpose}</dd></div>
+          <div><dt>Intensität</dt><dd>{look.fragrance.usage.intensity}</dd></div>
+          <div><dt>Wann</dt><dd>{look.fragrance.usage.timing}</dd></div>
+          <div><dt>Jahreszeit</dt><dd>{look.fragrance.usage.seasonText}</dd></div>
+        </dl> : <p>{look.fragrance.reason}</p>}
+        {look.fragrance.pairing && !/sakko/iu.test(look.fragrance.pairing) ? <small>{look.fragrance.pairing}</small>:null}</div>
     </section>:null}
     <div className="outfit-look-grid">{outfitSlotOrder.map(slot=>{
       const items=pieces.filter(item=>outfitSlot(item)===slot)
@@ -722,33 +731,37 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
                     onChange={event=>{setPlace(event.target.value);change('variant',0)}} /></label>
                 </div>
                 {place.trim()&&day>lastWeatherDay&&<small>Die Wettervorhersage reicht bis zu 15 Tage im Voraus.</small>}
-                <fieldset className="outfit-anchors"><legend>Teile, die dabei sein sollen (max. 1 pro Kategorie)</legend>
-                  <div className="outfit-anchor-groups">
-                    {outfitSlotOrder.map(slot=>{
-                      const items=overview.wardrobe.filter(item=>!item.orderState && !item.saleState && outfitSlot(item)===slot)
-                      if (!items.length) return null
-                      const selectedId=items.find(item=>query.required.includes(item.id))?.id
-                      return <div key={slot} className="outfit-anchor-group">
-                        <strong>{outfitSlots[slot]}</strong>
-                        <div className="outfit-anchor-list">
-                          {items.map(item=>{
-                            const checked=selectedId===item.id
-                            return <label key={item.id} className="outfit-check" data-checked={checked||undefined}>
-                              <input type="checkbox" checked={checked}
-                                onChange={event=>{
-                                  const others=query.required.filter(id=>{
-                                    const found=overview.wardrobe.find(entry=>entry.id===id)
-                                    return found && outfitSlot(found)!==slot
-                                  })
-                                  change('required',event.target.checked ? [...others,item.id] : others)
-                                }} />
-                              <span title={item.name}>{productDisplayName(item.name)}</span>
-                            </label>
-                          })}
-                        </div>
+                <fieldset className="outfit-anchors"><legend>Teile, die dabei sein sollen</legend>
+                  <p className="outfit-anchor-hint">Optional. Wähle pro Kategorie höchstens ein Teil, den Rest ergänzt der Assistent passend dazu.</p>
+                  {outfitSlotOrder.map(slot=>{
+                    const items=overview.wardrobe.filter(item=>!item.orderState && !item.saleState && outfitSlot(item)===slot)
+                    if (!items.length) return null
+                    const selected=items.find(item=>query.required.includes(item.id))
+                    return <section key={slot} className="outfit-anchor-group" aria-label={outfitSlots[slot]}>
+                      <header><strong>{outfitSlots[slot]}</strong><span>{selected ? 'Gewählt: '+productDisplayName(selected.name) : 'Frei – der Assistent wählt'}</span></header>
+                      <div className="outfit-anchor-list">
+                        {items.map(item=>{
+                          const checked=selected?.id===item.id
+                          const color=displayColor(item.color)
+                          const meta=[color.label,item.fit||item.material,item.brand].filter(Boolean).join(' · ')
+                          return <label key={item.id} className="outfit-pick" data-checked={checked||undefined} title={item.name}>
+                            <input type="checkbox" checked={checked}
+                              onChange={event=>{
+                                const others=query.required.filter(id=>{
+                                  const found=overview.wardrobe.find(entry=>entry.id===id)
+                                  return found && outfitSlot(found)!==slot
+                                })
+                                change('required',event.target.checked ? [...others,item.id] : others)
+                              }} />
+                            <span className="outfit-pick-media">{item.hasPhoto ? <img src={photoPath(item.id)+'&v='+imageVersion} alt="" loading="lazy"/> :
+                              <span className="outfit-pick-swatch" style={color.swatch ? {background:color.swatch} : undefined}/>}</span>
+                            <span className="outfit-pick-text"><span className="outfit-pick-name">{productDisplayName(item.name)}</span>
+                              {meta ? <small>{meta}</small> : null}</span>
+                          </label>
+                        })}
                       </div>
-                    })}
-                  </div>
+                    </section>
+                  })}
                 </fieldset>
               </details>
               {!validDay ? <p role="alert">Wähle heute oder ein späteres Datum.</p> : null}

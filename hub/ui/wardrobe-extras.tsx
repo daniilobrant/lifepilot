@@ -288,7 +288,13 @@ export function FragrancePanel({api,names=[]}:{api:Api,names?:string[]}) {
       <h3>{item.name}</h3>
       <img className="wardrobe-extra-image" src={scentPhotoPath(item.id)} alt={item.name} loading="lazy"/>
       <small>{[item.brand,item.containerMl && item.containerMl+' ml',item.profile].filter(Boolean).join(' · ')}</small>
-      {item.occasions.length>0 && <p>{item.occasions.join(' · ')}</p>}
+      {item.guide ? <dl className="scent-usage">
+        <div><dt>Charakter</dt><dd>{item.guide.character}</dd></div>
+        <div><dt>Wofür</dt><dd>{item.guide.purpose}</dd></div>
+        <div><dt>Intensität</dt><dd>{item.guide.intensity}</dd></div>
+        <div><dt>Wann</dt><dd>{item.guide.timing}</dd></div>
+        <div><dt>Jahreszeit</dt><dd>{item.guide.seasonText}</dd></div>
+      </dl> : item.occasions.length>0 && <p>{item.occasions.join(' · ')}</p>}
       {item.notes && <p><strong>Duftnoten</strong> · {item.notes}</p>}
       {item.pairing && <p><strong>Styling</strong> · {item.pairing}</p>}
       <div className="outfit-actions">

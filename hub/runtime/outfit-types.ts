@@ -88,3 +88,20 @@ export function outfitSlot(item: Pick<WardrobeDraft, 'name' | 'category' | 'garm
   if (item.category === 'top') return isKnitwearTop(item) ? 'knit' : 'base'
   return item.category
 }
+
+/**
+ * Wofür ein Teil gedacht ist, aus Typ, Material, Schnitt und Stil-Tags abgeleitet. Die Labels
+ * erscheinen an jedem Teil im Look und helfen bei der Auswahl passend zum angegebenen Anlass.
+ */
+export function itemOccasion(item: Pick<WardrobeDraft, 'name' | 'category' | 'garmentType' | 'material' | 'tags'> & {fit?:string}): string {
+  const text = [item.name, item.garmentType, item.material, item.tags, item.fit].filter(Boolean).join(' ').toLowerCase()
+  if (/\b(?:sport\w*|training|fitness|funktions\w*|lauf\w*|jogger)\b/u.test(text)) return 'Sport · Freizeit'
+  if (item.category === 'accessory') return /uhr|gürtel|leder/u.test(text) ? 'Büro · Dinner' : 'Alltag · Ergänzung'
+  if (/\b(?:hemd|bluse|blazer|anzug|bundfalte\w*|chino|loafer|chelsea|oxford|derby|kaschmir|merino\w*|rollkragen|polokragen|wollmantel|mantel)\b|eleganz|business/u.test(text)) return 'Büro · Dinner'
+  if (item.category === 'outer' && /\b(?:leder\w*|lederoptik)\b/u.test(text)) return 'Abends · Ausgehen'
+  if (item.category === 'outer' && /\b(?:stepp\w*|puffer|daunen|gefüttert\w*|parka|wattiert\w*)\b/u.test(text)) return 'Kalte Tage · Alltag'
+  if (/\b(?:sneakers?|jordan|asics|nike|hoodie|sweatshirt|oversize\w*|cargo|kastig\w*)\b|streetwear/u.test(text)) return 'Alltag · Streetwear'
+  if (/\b(?:strick\w*|pullover|soufflé|souffle|cardigan)\b/u.test(text)) return 'Uni · Café'
+  if (/\b(?:jeans|denim|henley|t-?shirt|langarm\w*)\b/u.test(text)) return 'Alltag · Uni'
+  return item.category === 'shoes' ? 'Alltag' : 'Alltag · Uni'
+}

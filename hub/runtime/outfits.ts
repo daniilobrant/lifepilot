@@ -1,12 +1,12 @@
 import {personalProfile} from './personal-profile.ts'
 import { fragranceList, recommendFragrance, travelWardrobe } from './wardrobe-extras.ts'
-import { paletteFit, paletteDescription, colorRelation } from './outfit-palette.ts'
+import { paletteScore, paletteDescription, colorRelation } from './outfit-palette.ts'
 import { guessedStyleTags } from './outfit-fields.ts'
 import { randomUUID } from 'node:crypto'
 import { dateInBerlin } from './values.ts'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
-import { bodyProportions, emptyStyle, isLongOrHeavyBaseTop, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
+import { bodyProportions, emptyStyle, isLongOrHeavyBaseTop, itemOccasion, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
   type OutfitSlot, type OutfitWeather, type StyleProfile, type WardrobeCategory, type WardrobeDraft, type WardrobeItem } from './outfit-types.ts'
 
 const idPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu
@@ -221,6 +221,20 @@ function sizeScore(item: WardrobeItem, profile: StyleProfile) {
   return selected.replace(/^EU/u,'') === expected.replace(/^EU/u,'') ? 7 : -5
 }
 
+function lookTitle(occasion:string,temperature:number|undefined,wet:boolean,daypart:string|undefined,seed:number) {
+  if (occasion) {
+    const short=occasion.length>42?occasion.slice(0,42).replace(/\s+\S*$/u,'')+' …':occasion
+    return 'Dein Look für '+short
+  }
+  const pick=(options:string[])=>options[Math.abs(seed)%options.length]
+  if (wet) return pick(['Gut gerüstet für Regen','Dein Look für nasses Wetter'])
+  if (daypart==='Abends') return pick(['Dein Abendlook','Bereit für den Abend'])
+  if (temperature!==undefined&&temperature<=3) return pick(['Warm durch den Frost','Dein Look für frostige Tage'])
+  if (temperature!==undefined&&temperature<=12) return pick(['Warm geschichtet','Dein Look für kühle Tage'])
+  if (temperature!==undefined&&temperature>=24) return pick(['Leicht durch den Tag','Dein Sommerlook'])
+  return pick(['Dein Outfit für heute','Dein Look des Tages'])
+}
+
 export class OutfitStudio {
   private proposals = new Map<string,{ look:Outfit, at:number }>()
   generate(store:Store, value:unknown, calendarOccasion = '', weather?: OutfitWeather) {
@@ -259,7 +273,11 @@ export class OutfitStudio {
       chosenBySlot.set(outfitSlot(item), item)
     }
     const chosen=[...chosenBySlot.values()]
-    const occasion=query.occasion || calendarOccasion || (chosen.length ? 'Rund um ' + chosen[0].name : 'Freie Inspiration')
+    const statedOccasion=query.occasion || calendarOccasion
+    const occasion=statedOccasion || (chosen.length ? 'Rund um ' + chosen[0].name : 'Freie Inspiration')
+    const occasionKind=/büro|business|arbeit|meeting|präsentation/iu.test(statedOccasion)?'Büro':
+      /dinner|restaurant|date|abend|theater|oper/iu.test(statedOccasion)?'Dinner':/sport|training|fitness|wander/iu.test(statedOccasion)?'Sport':
+      /feier|party|club|geburtstag|ausgehen|bar\b/iu.test(statedOccasion)?'Ausgehen':/uni|vorlesung|hochschule/iu.test(statedOccasion)?'Uni':undefined
     const formal=/büro|business|eleganz|feier|date|abend/iu.test(occasion+' '+query.style)
     const comparable=(value:string)=>value.toLocaleLowerCase('de-DE').split(/[^\p{L}\p{N}]+/u).filter(part=>part.length>=3)
     const personal=personalProfile(store).fields
@@ -280,7 +298,8 @@ export class OutfitStudio {
       if(/sport|training|fitness/iu.test(occasion)&&/sport|training|sneaker|funktion|jersey/iu.test(itemText))score+=6
       if(itemText.includes(query.style.toLowerCase()) || guessedStyleTags(itemText).includes(query.style))score+=4
       if(formal&&/eleganz|wolle|boots|hemd|leder|smart/u.test(itemText))score+=2
-      score+=chosen.reduce((total,other)=>total+paletteFit(other.color,item.color,query.style),0)
+      score+=paletteScore(item,chosen,query.style)
+      if(occasionKind&&itemOccasion(item).includes(occasionKind))score+=3
       if(item.material && chosen.some(other=>/wolle|wool/iu.test(other.material)) && /leder|leather/iu.test(item.material))score+=2
       if (cut && cut.test(item.fit || item.tags+' '+item.name)) score+=5
       score+=preferred.filter(word=>itemText.includes(word)).length
@@ -303,8 +322,10 @@ export class OutfitStudio {
     function pick(items:WardrobeItem[],category:WardrobeCategory) {
       const ranked=rankItems(items,category)
       if (!ranked.length) return
-      const choices=Math.min(ranked.length,3)
-      const item=ranked[variation % choices].item
+      // Varianten kommen nur aus Teilen, die fast so gut passen wie das beste. Unruhige Farbpaare fallen so heraus.
+      const close=ranked.filter(entry=>entry.score>=ranked[0].score-5)
+      const choices=Math.min(close.length,3)
+      const item=close[variation % choices].item
       chosen.push(item)
       variation=Math.floor(variation / choices)
       return item
@@ -324,9 +345,12 @@ export class OutfitStudio {
         if (!selectedBase) selectedKnit=pick(knit,'top')
       }
     }
-    if (temperature!==undefined&&temperature<=10) {
-      if (selectedKnit&&!selectedBase) pick(lightBase,'top')
-      if (selectedBase&&!selectedKnit&&!isLongOrHeavyBaseTop(selectedBase)) pick(knit,'top')
+    if (temperature!==undefined&&temperature<=10&&selectedBase&&!selectedKnit&&!isLongOrHeavyBaseTop(selectedBase)) selectedKnit=pick(knit,'top')
+    // Unter jedem Strick liegt ein T-Shirt oder Langarmshirt. Bei Kälte bevorzugt ein Langarmshirt.
+    if (selectedKnit&&!selectedBase) {
+      const cold=temperature!==undefined&&temperature<=12
+      const longBase=base.filter(isLongOrHeavyBaseTop)
+      selectedBase=pick(cold&&longBase.length?longBase:!cold&&lightBase.length?lightBase:base,'top')
     }
 
     for (const category of (['bottom','outer','shoes','accessory'] as const)) {
@@ -365,18 +389,16 @@ export class OutfitStudio {
       ...(proportionTip ? [proportionTip] : []),
       ...(cut && chosen.some(item=>cut.test(item.fit || item.tags+' '+item.name)) ? [`Dein bevorzugter Schnitt „${profile.preferredCut}“ ist im Look vertreten.`] : []),
       ...(profile.preferences ? [`Passform-Hinweis aus deinem Profil: ${profile.preferences}`] : []),
+      ...(profile.height ? [`Saum und Beinlänge für ${profile.height} prüfen.`] : []),
+      ...(profile.topSize||profile.bottomSize||profile.shoeSize ? [`Größen zum Anprobieren: ${[profile.topSize&&'Oberteil '+profile.topSize,profile.bottomSize&&'Hose '+profile.bottomSize,profile.shoeSize&&'Schuhe '+profile.shoeSize].filter(Boolean).join(' · ')}.`] : []),
       ...(core.length ? [`Für ${core.map(cat=>wardrobeCategories[cat]).join(', ')} ist kein passendes Teil hinterlegt.`] : []),
     ]
-    const title=(occasion+' · '+query.style).slice(0,125)
-    const rationale=[paletteDescription(chosen.map(item=>item.color).filter(Boolean)),
-      materials.length>1?`Materialmix aus ${materials.join(', ')}.`:'',
-      profile.height?`Saum und Beinlänge für ${profile.height} prüfen.`:'',
-      profile.shape?`Proportionen laut Profil: ${profile.shape}.`:'',
-      profile.topSize||profile.bottomSize||profile.shoeSize?`Größen zum Anprobieren: ${[profile.topSize&&'Oberteil '+profile.topSize,profile.bottomSize&&'Hose '+profile.bottomSize,profile.shoeSize&&'Schuhe '+profile.shoeSize].filter(Boolean).join(' · ')}.`:'',
-    ].filter(Boolean).join(' ')
+    const title=lookTitle(statedOccasion,temperature,wet,query.daypart ?? (input.time ? (Number(String(input.time).slice(0,2))>=18?'Abends':undefined) : undefined),query.variant)
+    // Kurz halten: nur die Farbidee. Größen- und Passformhinweise stehen in den Styling-Tipps.
+    const rationale=paletteDescription(chosen.map(item=>item.color).filter(Boolean)) || (materials.length>1?`Materialmix aus ${materials.join(', ')}.`:'')
     const prompt=`Editorial wardrobe lookbook, charcoal studio backdrop, full outfit and detail panels. Anlass: ${occasion}. Stil: ${query.style}. Exakt diese Stücke und keine weiteren: ${chosen.map(item=>[item.name,item.brand,item.model,item.color,item.material,item.fit].filter(Boolean).join(' / ')).join('; ')}.`
     const fragrance=recommendFragrance(fragranceList(store),{occasion,date,time:query.time,daypart:query.daypart,temperature})
-    const look:Outfit={title,occasion,style:query.style,itemIds:chosen.map(item=>item.id),rationale,tips,prompt,...(fragrance && {fragrance}), ...(date && {date}), ...(weather && {weather})}
+    const look:Outfit={title,occasion:statedOccasion,style:query.style,itemIds:chosen.map(item=>item.id),rationale,tips,prompt,...(fragrance && {fragrance}), ...(date && {date}), ...(weather && {weather})}
     for(const [key,value] of this.proposals) if(Date.now()-value.at>proposalTtl)this.proposals.delete(key)
     if(this.proposals.size>=80) this.proposals.delete(this.proposals.keys().next().value!)
     const proposal=randomUUID()

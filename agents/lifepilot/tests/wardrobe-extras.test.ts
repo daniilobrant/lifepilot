@@ -179,7 +179,7 @@ test('Fragrance research corrects the MYSLF spelling and attaches researched not
   assert.equal(result.draft.name,'MYSLF Eau de Parfum')
   assert.equal(result.draft.brand,'Yves Saint Laurent')
   assert.match(result.draft.notes,/Orangenblüte/)
-  assert.match(result.draft.pairing??'',/Sakko/)
+  assert.doesNotMatch(result.draft.pairing??'',/Sakko/)
   assert.equal(result.draft.containerMl,null)
   assert.ok(result.images[0]?.startsWith('https://'))
 })
@@ -196,3 +196,26 @@ test('Fragrance metadata reads notes from the product section and ignores review
   assert.equal(draft.profile,'Frisch')
   assert.equal(draft.containerMl,null)
 })
+
+test('Scent guides describe purpose, intensity, timing and season from the notes and never suggest a blazer',async()=>{
+  const {scentGuide,scentPairing,withScentGuide}=await import('../../../hub/runtime/scent-profile.ts')
+  const base={brand:'Test',description:'',profile:'Ausgewogen' as const,containerMl:null,source:'https://example.com/d'}
+  const oud=scentGuide({...base,name:'Oud Rose Parfum',notes:'Rose, Vanille, Oud, Moschus'})
+  assert.match(oud.intensity,/^Sehr kräftig/u)
+  assert.deepEqual(oud.seasons,['Herbst','Winter'])
+  assert.ok(!oud.occasions.includes('Büro'))
+  const fresh=scentGuide({...base,name:'Aqua Eau de Toilette',notes:'Zitrone, Grapefruit, Bergamotte, Lavendel'})
+  assert.match(fresh.intensity,/^Dezent/u)
+  assert.ok(fresh.seasons.includes('Sommer')&&fresh.times.includes('Tagsüber'))
+  const iris=scentGuide({...base,name:'Homme Intense Eau de Parfum',notes:'Lavendel, Iris, Ambrette, Birne, Zedernholz'})
+  assert.equal(iris.character,'Pudrig und elegant')
+  assert.doesNotMatch(scentPairing('Zu einem schlichten Freizeitlook oder einem Hemd mit Sakko.',fresh),/Sakko/u)
+  assert.doesNotMatch(scentPairing('Zu Jeans oder einem schlichten Sakko.',fresh),/Sakko/u)
+  const templated=withScentGuide({...base,name:'Aqua Eau de Toilette',notes:'Zitrone, Grapefruit',occasions:['Alltag','Büro','Date'],
+    seasons:['Frühling','Sommer','Herbst','Winter'],times:['Tagsüber','Abends']})
+  assert.ok(templated.occasions.includes('Sport & Freizeit'))
+  const confirmed=withScentGuide({...base,name:'Aqua',notes:'Zitrone',occasions:['Alltag','Büro','Date'],
+    seasons:['Frühling','Sommer','Herbst','Winter'],times:['Tagsüber','Abends'],tagsConfirmed:true})
+  assert.deepEqual(confirmed.occasions,['Alltag','Büro','Date'])
+})
+

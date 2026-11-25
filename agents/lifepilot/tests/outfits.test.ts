@@ -75,7 +75,7 @@ test('Outfit wardrobe, photo, fit profile and archived look survive a SQLite res
     saveStyle(store,{height:'181 cm',preferences:'Layering'})
     const studio = new OutfitStudio()
     const {look,proposal} = studio.generate(store,{...query,temperature:5},'Büro')
-    assert.match(look.rationale,/181 cm/u)
+    assert.match(look.tips.join(' '),/181 cm/u)
     assert.match(look.tips.join(' '),/Layering/u)
     studio.save(store,proposal)
     store.db.close()
@@ -217,7 +217,7 @@ test('Outfit preferences default the style and rank explicit sizes and cuts, wit
     assert.deepEqual(look.itemIds,[fitting.id])
     assert.match(look.tips.join(' '),/höheren Bund/u)
     assert.match(look.tips.join(' '),/bevorzugter Schnitt/u)
-    assert.match(look.rationale,/Oberteil M/u)
+    assert.match(look.tips.join(' '),/Oberteil M/u)
     assert.notEqual(fitting.id,large.id)
     assert.equal(studio.generate(store,query).look.style,'Schlicht')
   } finally {store.db.close()}
@@ -361,3 +361,34 @@ test('Outfit slots separate T-shirts and longsleeves from knitwear, enforce max 
     assert.equal(slots[2],'outer')
   } finally {store.db.close()}
 })
+
+test('Cold looks always layer a shirt under knitwear and skip clashing colours when a calm option exists',async()=>{
+  const {outfitSlot,itemOccasion}=await import('../../../hub/runtime/outfit-types.ts')
+  const {paletteScore,isPatterned,colorRelation}=await import('../../../hub/runtime/outfit-palette.ts')
+  const store=new Store(':memory:')
+  try {
+    const knit=saveWardrobe(store,{name:'Baumwolle Pullover (soft, Rundhals)',category:'top',garmentType:'Pullover & Strick',color:'Blau'}).id
+    const henley=saveWardrobe(store,{name:'Slim Fit Langarm-Henley-T-Shirt',category:'top',garmentType:'T-Shirt',color:'Marineblau'}).id
+    saveWardrobe(store,{name:'Wide Jeans',category:'bottom',garmentType:'Jeans',color:'Grau'})
+    const red=saveWardrobe(store,{name:'Jacke (kurz, gefüttert)',category:'outer',garmentType:'Jacke',color:'Weinrot'}).id
+    const black=saveWardrobe(store,{name:'Steppjacke mit Rippkragen',category:'outer',garmentType:'Jacke',color:'Schwarz'}).id
+    saveWardrobe(store,{name:'Sneakers Retro',category:'shoes',garmentType:'Sneaker',color:'Grau',tags:'Streetwear'})
+    const studio=new OutfitStudio()
+    for (const variant of [0,1,2,3,4,5]) {
+      const look=studio.generate(store,{...query,style:'Auffällig',mode:'anchor',required:[knit],temperature:2,variant}).look
+      assert.ok(look.itemIds.includes(henley),'Langarmshirt unter dem Pullover')
+      assert.ok(look.itemIds.includes(black)&&!look.itemIds.includes(red),'keine Weinrot-Jacke zum blauen Pullover')
+      assert.doesNotMatch(look.title,/Auffällig|Rund um/u)
+      const slots=look.itemIds.map(id=>outfitSlot(outfitOverview(store).wardrobe.find(item=>item.id===id)!))
+      assert.deepEqual(slots.slice(0,2),['base','knit'])
+    }
+    assert.equal(colorRelation('Marineblau','Weinrot'),'neutral')
+    assert.ok(isPatterned('Schwarz','Bershka karierte Jacke'))
+    assert.ok(paletteScore({color:'Weinrot'},[{color:'Blau'}],'Schlicht')<paletteScore({color:'Schwarz'},[{color:'Blau'}],'Schlicht'))
+    assert.equal(itemOccasion({name:'Steppjacke',category:'outer',garmentType:'Jacke',material:'',tags:''}),'Kalte Tage · Alltag')
+    assert.equal(itemOccasion({name:'Loafer ADRIAN',category:'shoes',garmentType:'Loafer',material:'',tags:''}),'Büro · Dinner')
+    const titled=studio.generate(store,{...query,mode:'occasion',occasion:'Abendessen mit Freunden',variant:0}).look
+    assert.equal(titled.title,'Dein Look für Abendessen mit Freunden')
+  } finally {store.db.close()}
+})
+

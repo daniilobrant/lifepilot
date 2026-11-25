@@ -2,6 +2,14 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.15 · 25. November 2026
+
+- Styling-Studio: Die Auswahl der Pflichtteile zeigt je Kategorie eine übersichtliche Liste mit Foto oder Farbpunkt, vollständigem Namen, Farbe und Material. Nichts überlappt oder scrollt mehr seitlich.
+- Unter jedem Pullover liegt ein T-Shirt oder Langarmshirt, bei Kälte bevorzugt ein Langarmshirt.
+- Farben werden als Palette abgestimmt. Marine, Ecru, Camel und Denim gelten als Neutraltöne, gemusterte und mehrfarbige Teile werden erkannt. Unruhige Paare wie Blau und Weinrot fallen heraus, wenn es eine ruhige Alternative gibt.
+- Jedes Teil im Look zeigt seinen Anlass. Die Überschrift ist kurz und nennt keinen Stilnamen mehr, Größenhinweise stehen bei den Styling-Tipps.
+- Düfte beschreiben Charakter, Einsatzzweck, Intensität mit Sprühstößen, beste Tageszeit und Jahreszeiten anhand ihrer Noten. Fehlende Noten bekannter Düfte werden ergänzt, Sakko-Hinweise entfallen.
+
 ## v1.0.14 · 25. November 2026
 
 - Finanzvorschläge erkennen Händler-Erstattungen außerhalb von PayPal, etwa eine Gutschriftbestätigung zu einer Bestellung. Maßgeblich ist der genannte Gesamtbetrag, nicht Teilbeträge für Artikel, Steuer oder Versand.
