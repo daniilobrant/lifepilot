@@ -4,6 +4,7 @@ import {Store} from '../../../hub/runtime/store.ts'
 import {parseClothingMail} from '../../../hub/runtime/clothing-mail.ts'
 import {scanClothingOrders,clothingOrders,clothingPhotoTargets} from '../../../hub/runtime/clothing-orders.ts'
 import {outfitOverview} from '../../../hub/runtime/outfits.ts'
+import {outfitGarment} from '../../../hub/runtime/outfit-fields.ts'
 
 const text='Vielen Dank für deine Bestellung!\nBestellnr.\n123-4567890-1234567\n* Beispiel USB-C Ladegerät 65W\n  Menge: 1\n  29.35 EUR\n* Beispiel Herren Boxershorts 3er Pack\n  Menge: 1\n  21.47 EUR\nSumme\n50.82 EUR'
 const html='<img class="productImage" src="https://m.media-amazon.com/images/I/AAA111._SS90_.jpg" alt="Beispiel USB-C Ladegerät 65W">'+
@@ -66,4 +67,10 @@ test('The same order from two senders of one shop is merged and keeps a single w
     assert.equal(clothingOrders(store).filter(row=>row.reference==='7915991').length,1)
     assert.equal(Number(store.db.prepare("SELECT count(*) AS n FROM wardrobe_items WHERE name='Beispiel Wide Jeans'").get()?.n),1)
   }finally{store.db.close()}
+})
+
+test('Underwear and socks are recognised before shorts and never count as wardrobe pieces',()=>{
+  for (const name of ['Beispiel Herren Boxershorts, Hüft-Shorts, Baumwoll-Unterhosen','Beispiel Trunks 3er Pack','Beispiel Sneakersocken 5er Pack'])
+    assert.ok(['Unterwäsche','Socken'].includes(outfitGarment(name)!.garmentType),name)
+  assert.equal(outfitGarment('Beispiel Cargo Shorts')!.garmentType,'Shorts')
 })

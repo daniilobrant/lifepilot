@@ -2,8 +2,9 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { MailContent } from '../connectors/google.ts'
 import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
-import { parseClothingMail, shopDomain, type ClothingMail, type ClothingProduct, type OrderProductDraft } from './clothing-mail.ts'
+import { isUnderwear, parseClothingMail, shopDomain, type ClothingMail, type ClothingProduct, type OrderProductDraft } from './clothing-mail.ts'
 import { saveWardrobe } from './outfits.ts'
+import { outfitGarment } from './outfit-fields.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
 import type { TaskPatch } from './workspace.ts'
 import { financeMonth, saveFinance } from './finance.ts'
@@ -53,8 +54,8 @@ export function mergeDuplicateOrders(store:Store,account:string) {
       .run(shopDomain(keep.sender).split('.')[0].replace(/^./u,letter=>letter.toUpperCase()),shopDomain(keep.sender),keep.id)
   }
   // Unterwäsche und Socken aus Bestellungen gehören nicht in den Kleiderschrank (Looks bleiben unberührt).
-  for (const row of store.db.prepare(`SELECT i.id,i.wardrobe_id FROM clothing_order_items i WHERE i.wardrobe_id IS NOT NULL
-      AND json_extract(i.details,'$.garmentType') IN ('Socken','Unterwäsche')`).all() as {id:string,wardrobe_id:string}[]) {
+  for (const row of (store.db.prepare('SELECT id,wardrobe_id,details FROM clothing_order_items WHERE wardrobe_id IS NOT NULL').all() as {id:string,wardrobe_id:string,details:string}[])
+    .filter(row=>isUnderwear(outfitGarment(String(JSON.parse(row.details).name ?? ''))?.garmentType ?? ''))) {
     store.db.prepare("UPDATE clothing_order_items SET wardrobe_id=NULL,details=json_set(details,'$.isClothing',json('false')) WHERE id=?").run(row.id)
     const inLook=store.db.prepare("SELECT 1 FROM outfit_looks, json_each(outfit_looks.result,'$.itemIds') WHERE json_each.value=? LIMIT 1").get(row.wardrobe_id)
     if (!inLook) store.db.prepare('DELETE FROM wardrobe_items WHERE id=?').run(row.wardrobe_id)

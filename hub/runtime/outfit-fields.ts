@@ -16,6 +16,9 @@ const garments: [RegExp, WardrobeCategory, string][] = [
   [/\b(?:gürtel|belt|schal|scarf|armbanduhr|watch|mütze|cap|handbag|rucksack|backpack|tasche)\b/iu,'accessory','Accessoire'],
 ]
 const garmentTypes: [RegExp,WardrobeCategory,string][] = [
+  // Unterwäsche zuerst, damit „Boxershorts, Hüft-Shorts“ nicht als Shorts gilt.
+  [/unterwäsche|unterhose|boxershorts|boxer\b|\b(?:briefs|trunks|underwear)\b/iu,'accessory','Unterwäsche'],
+  [/\b(?:socken?|strümpfe|socks?|sneakersocken)\b/iu,'accessory','Socken'],
   [/langarmshirt|long[ -]?sleeve/iu,'top','Langarmshirt'],
   [/\b(?:t[ -]?shirt|tee)\b/iu,'top','T-Shirt'],
   [/\b(?:pullover|sweater|strickpullover|jumper|cardigan)\b/iu,'top','Pullover & Strick'],
@@ -31,8 +34,6 @@ const garmentTypes: [RegExp,WardrobeCategory,string][] = [
   [/\bblazer\b/iu,'outer','Blazer'],
   [/mantel|\bcoat\b/iu,'outer','Mantel'],
   [/jacke|\bjacket\b/iu,'outer','Jacke'],
-  [/\b(?:socken?|strümpfe|socks?)\b/iu,'accessory','Socken'],
-  [/unterwäsche|boxershorts|\b(?:briefs|underwear)\b/iu,'accessory','Unterwäsche'],
 ]
 export function outfitGarment(text:string) {
   const match=garmentTypes.find(([pattern])=>pattern.test(text))
