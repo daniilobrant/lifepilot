@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.26 · 25. November 2026
+
+- Sicherheitsprüfung: Paketrabatt ohne mehrdeutige Schreibweise, Semgrep prüft die Verkaufsregeln wieder vollständig.
+
 ## v1.0.25 · 25. November 2026
 
 - Sicherheitsprüfung: Markenmuster ohne Apostroph, damit Semgrep die Verkaufsregeln vollständig prüfen kann.

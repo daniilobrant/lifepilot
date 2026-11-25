@@ -130,10 +130,10 @@ function roundPrice(value:number) {
 export function estimateResale(category:string,condition:string,originalPrice:number|null,priceClass:string,quantity:number) {
   const fallback={top:30,bottom:45,outer:80,shoes:70,accessory:25}[category as WardrobeCategory]??30
   const base=originalPrice??fallback
-  const share=conditionShare[condition]??.3
+  const share=conditionShare[condition] ?? 0.3
   const factor=classFactor[priceClass]??1
   // Mehrere gleiche Teile im Bündel erhalten einen kleinen Paketrabatt.
-  const total=base*share*factor*quantity*(quantity>1?.9:1)
+  const total=base*share*factor*quantity*(quantity>1 ? 0.9 : 1)
   const start=roundPrice(total)
   const note=(originalPrice?'':'Ohne Neupreis mit typischem Neupreis gerechnet. ')+
     `${Math.round(share*100)} % des Neupreises für „${condition||'Gut'}“, ${priceClass}`+(quantity>1?`, ${quantity} Teile mit 10 % Paketrabatt`:'')+'.'
