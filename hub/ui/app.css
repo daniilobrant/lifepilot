@@ -1840,3 +1840,4 @@ input[type=file]::file-selector-button {
 .order-approval-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; font-size: .88rem; }
 .order-approval-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-approval-row button { height: 32px; min-height: 32px; padding: 0 10px; font-size: .82rem; }
+.workspace-editor > .editor-actions { margin-top: 16px; }

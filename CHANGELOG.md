@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.35 · 25. November 2026
+
+- Aufgabeneditor: Aufgaben und Fristen lassen sich einem Kalendertermin zuordnen; Speichern, Erledigt und Archivieren stehen ganz unten; Verlauf entfernt.
+
 ## v1.0.34 · 25. November 2026
 
 - Aufgaben: Abgaben, die eine Vorlesung oder einen Termin am selben Tag nennen, werden damit verknüpft und zur Startzeit erinnert; der Chat übernimmt den genauen Kursnamen.
