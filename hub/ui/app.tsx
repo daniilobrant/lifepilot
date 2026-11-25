@@ -12,7 +12,7 @@ import {quickReplyFor} from './chat-quick-replies.ts'
 import {DateInput,TimeInput} from './presentation.tsx'
 import {MAX_CHAT_INPUT} from '../runtime/model-payload.ts'
 import { MailFinance } from './mail-finance.tsx'
-import { OrderTracker } from './clothing-orders.tsx'
+import { OrderApprovals, OrderTracker } from './clothing-orders.tsx'
 import { ChatRecipe, ChatRecipeOptions, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
 import { FinanceForm, FinancePanel } from './finance.tsx'
@@ -1696,6 +1696,8 @@ function App() {
 
                 <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline} compact/>
                 <MailFinance api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion} onUpdate={financeMailUpdated}/>
+                <OrderApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey}
+                  onOpen={id=>{navigate('Bestellungstracker');setBoardSource({source_type:'order',source_id:id} as never)}} onUpdate={()=>void refresh()}/>
                 <LiveInbox batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
                 <button type="button" className="quiet" onClick={()=>navigate('Posteingang')}>Mailvorschläge öffnen →</button>
                 <BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}
@@ -1720,7 +1722,7 @@ function App() {
               description="LifePilot übernimmt die offenen Pilot-Vorschläge. Kalenderänderungen werden lokal ausgeführt."/></Section> : null}
             <div className="skill-grid">
               {([
-                ['E-Mail-Manager','envelope','Prüft relevante Mails und schlägt Ausgaben, Abos und Fristen vor.'],
+                ['E-Mail-Manager','envelope','Prüft relevante Mails und schlägt Ausgaben, Abos und Fristen vor.','Posteingang',()=>navigate('Posteingang')],
                 ['Projektplaner','folder','Verwaltet Projektaufgaben, Meilensteine und Fristen.','Projekte',()=>navigate('Projekte')],
                 ['Bestellungstracker','parcel','Verfolgt Lieferungen, Retouren und Erstattungen.','Bestellungen',()=>navigate('Bestellungstracker')],
                 ['Urlaubsplaner','plane','Bündelt Tagespläne, Buchungen und Reisevorbereitung.','Reisen',()=>navigate('Urlaubsplaner')],

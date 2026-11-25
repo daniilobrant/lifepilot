@@ -4,6 +4,7 @@ import {useEffect,useState,type FormEvent} from 'react'
 import type {ClothingOrderView,OrderStage} from '../runtime/clothing-orders.ts'
 import {money} from '../runtime/finance-types.ts'
 import {dateInBerlin} from '../runtime/values.ts'
+import {orderDecisions} from './order-decisions.ts'
 
 type Api=<T>(path:string,payload?:object,timeout?:number)=>Promise<T>
 type Editor=(order?:ClothingOrderView)=>Promise<void>
@@ -197,4 +198,42 @@ export function OrderTracker({api,refreshKey,onTask,onUpdate,focusId}:{
       onUpdate()
     }}/></div>)}
   </section>
+}
+
+export function OrderApprovals({api,refreshKey,onOpen,onUpdate}:{api:Api,refreshKey:string,onOpen:(id:string)=>void,onUpdate:()=>void}){
+  const [orders,setOrders]=useState<ClothingOrderView[]>([])
+  const [busy,setBusy]=useState(false)
+  const [error,setError]=useState('')
+  useEffect(()=>{
+    let active=true
+    void api<ClothingOrderView[]>('/clothing-orders').then(value=>{if(active){setOrders(value);setError('')}})
+      .catch(reason=>{if(active)setError(errorText(reason))})
+    return ()=>{active=false}
+  },[api,refreshKey])
+  const open=orderDecisions(orders)
+  if(!open.length&&!error)return null
+  const count=open.reduce((sum,entry)=>sum+entry.pending.length+entry.returns.length+(entry.due?1:0),0)
+  async function change(order:string,action:string,item?:string){
+    setBusy(true);setError('')
+    try{
+      const updated=await api<ClothingOrderView>('/clothing-orders/change',{order,item,action,confirm:true})
+      setOrders(current=>current.map(entry=>entry.id===updated.id?updated:entry))
+      onUpdate()
+    }catch(reason){setError(errorText(reason))}finally{setBusy(false)}
+  }
+  return <details className="card settings mail-finance disclosure order-approvals" aria-label="Bestellungen, die auf dich warten">
+    <summary><strong>Bestellungen</strong><span className="count-badge">{count} offen</span></summary>
+    {error?<p role="alert">{error}</p>:null}
+    <ul className="order-approval-list">{open.map(({order,pending,returns,due})=><li key={order.id}>
+      <button type="button" className="quiet order-approval-title" onClick={()=>onOpen(order.id)}>
+        <strong>{displayIdentity(order.merchant)}</strong><small>Bestellung {order.reference}{order.deadline&&returns.length?' · Rückgabe bis '+day(order.deadline):''}</small></button>
+      {due&&!pending.length&&!returns.length?<div className="order-approval-row"><span>Lieferung {order.estimatedOn?'erwartet '+day(order.estimatedOn):'unterwegs'} – schon angekommen?</span>
+        <button type="button" disabled={busy} onClick={()=>void change(order.id,'received')}>Angekommen</button></div>:null}
+      {pending.map(item=><div className="order-approval-row" key={item.id}><span>{item.draft.name}</span>
+        <button type="button" disabled={busy} onClick={()=>void change(order.id,'kept',item.id)}>Behalten</button>
+        <button type="button" disabled={busy} onClick={()=>void change(order.id,'return',item.id)}>Zurücksenden</button></div>)}
+      {returns.map(item=><div className="order-approval-row" key={item.id}><span>Retoure: {item.draft.name}</span>
+        <button type="button" disabled={busy} onClick={()=>void change(order.id,'returned',item.id)}>Abgegeben</button></div>)}
+    </li>)}</ul>
+  </details>
 }

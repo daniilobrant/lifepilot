@@ -1831,3 +1831,12 @@ input[type=file]::file-selector-button {
 .schedule-add label { display: grid; gap: 4px; margin: 0; font-size: .8rem; color: var(--muted); }
 .schedule-add button { height: 40px; min-height: 40px; padding: 0 14px; }
 @media (max-width: 720px) { .workspace-editor .editor-grid, .schedule-add { grid-template-columns: 1fr; } }
+
+.order-approval-list { list-style: none; padding: 0; margin: 10px 0 0; display: grid; gap: 10px; }
+.order-approval-list > li { display: grid; gap: 6px; padding-bottom: 10px; border-bottom: 1px solid var(--line); }
+.order-approval-list > li:last-child { border-bottom: 0; padding-bottom: 0; }
+.order-approval-title { display: grid; justify-items: start; gap: 2px; padding: 0; min-height: 0; text-align: left; }
+.order-approval-title small { color: var(--muted); font-size: .8rem; }
+.order-approval-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 6px; align-items: center; font-size: .88rem; }
+.order-approval-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order-approval-row button { height: 32px; min-height: 32px; padding: 0 10px; font-size: .82rem; }
