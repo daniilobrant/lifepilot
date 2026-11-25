@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.34 · 25. November 2026
+
+- Aufgaben: Abgaben, die eine Vorlesung oder einen Termin am selben Tag nennen, werden damit verknüpft und zur Startzeit erinnert; der Chat übernimmt den genauen Kursnamen.
+
 ## v1.0.33 · 25. November 2026
 
 - Meine Looks: Look-Fotos werden ohne erneute Rückfrage per Codex analysiert (auf Wunsch, in SICHERHEIT.md vermerkt).

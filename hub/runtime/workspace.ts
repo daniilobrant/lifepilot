@@ -25,6 +25,11 @@ export type TaskContext = Pick<TaskRow, 'id' | 'title' | 'detail' | 'kind' | 'du
 type RawTask = Omit<TaskRow, 'steps'> & { steps: string }
 const decode = ({ steps, ...task }: RawTask): TaskRow => ({ ...task, steps: JSON.parse(steps) as Step[] })
 
+const appointmentStop=new Set(['und','and','vorlesung','übung','uebung','seminar','tutorium','praktikum','termin','in','der','die','das','im','am','zum','zur','für','fuer','mit','von','halten','vorstellen','präsentation','praesentation','projekt','abgabe'])
+export function appointmentWords(text:string){
+  return new Set(text.toLocaleLowerCase('de-DE').replace(/&/gu,' und ').split(/[^\p{L}\p{N}]+/u).filter(word=>word.length>1&&!appointmentStop.has(word)))
+}
+
 export class Workspace {
   readonly db: DatabaseSync
   constructor(db: DatabaseSync) { this.db = db }
@@ -81,7 +86,24 @@ export class Workspace {
     )
     if(task.projectId)this.db.prepare('UPDATE tasks SET project_id=? WHERE id=?').run(task.projectId,id)
     this.event(id, actor, 'Erstellt')
+    if(task.kind==='task'&&task.date)this.linkAppointment(id,task.title+' '+task.detail,task.date,actor)
     return this.get(id)
+  }
+
+  /** Eine Abgabe, die eine Vorlesung oder einen Termin am selben Tag nennt, wird damit verknüpft und zur Startzeit erinnert. */
+  private linkAppointment(id:string,text:string,date:string,actor:string){
+    const candidates=this.db.prepare(`SELECT t.id,t.title,min(s.at) AS at FROM tasks t JOIN schedule s ON s.task_id=t.id
+      WHERE t.kind='appointment' AND t.status='open' AND s.kind='slot' AND s.state<>'dismissed'
+        AND date(s.at) BETWEEN date(?,'-1 day') AND ? GROUP BY t.id,s.at`).all(date,date) as {id:string,title:string,at:string}[]
+    const sameDay=[...new Map(candidates.filter(item=>dateInBerlin(new Date(item.at))===date).map(item=>[item.id,item])).values()]
+    const words=appointmentWords(text)
+    const scored=sameDay.map(item=>{const own=appointmentWords(item.title);return {item,hits:[...own].filter(word=>words.has(word)).length,size:own.size}})
+      .filter(entry=>entry.hits>=Math.min(2,entry.size)).sort((a,b)=>b.hits-a.hits)
+    if(!scored.length||scored[1]?.hits===scored[0].hits)return
+    const match=scored[0].item
+    this.db.prepare('UPDATE tasks SET related_id=? WHERE id=?').run(match.id,id)
+    this.event(id,actor,'Mit Termin verknüpft: '+match.title)
+    if(match.at>utcNow())this.db.prepare("INSERT OR IGNORE INTO schedule VALUES (?,?,'reminder',?,NULL,'pending')").run(randomUUID(),id,match.at)
   }
 
   private checkProject(id:string,kind:TaskRow['kind']){
