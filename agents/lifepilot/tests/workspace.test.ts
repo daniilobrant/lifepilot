@@ -93,7 +93,7 @@ test('Priority Engine and Daily Briefing cite only known tasks and are read-only
   assert.ok(!store.present(store.run(run.id)).approvals.some(item=>item.action==='adopt'))
   assert.equal(store.workspace.get(task.id).priority, 'normal')
   assert.equal(store.workspace.get(task.id).revision, 1)
-  assert.throws(() => verifyOutput({ ...result, advice: [{ target: randomUUID(), reason: 'Unbekannt.' }] }, input, store.workspace.context()))
+  assert.deepEqual(verifyOutput({ ...result, advice: [{ target: randomUUID(), reason: 'Unbekannt.' }] }, input, store.workspace.context()).advice, [])
 }))
 
 test('Personal Memory stores only the approved quoted preference and omits unapproved entries', () => withStore(store => {

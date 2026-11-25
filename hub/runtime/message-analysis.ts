@@ -10,17 +10,18 @@ import {shiftDay} from './values.ts'
 const separators=/(?:(?<=\b\p{Ll}{3,}[.!?;])\s+|(?<=[!?;])\s+|\n+|\s*,?\s+(?=(?:und\s+)?(?:außerdem|ausserdem|zusätzlich|danach|anschließend|anschliessend|ach ja|ach und|noch was|und dann|dann noch|und noch|auch noch|nebenbei|übrigens|uebrigens|und bitte|bitte noch|und setz|und trag|und erinner|und merk|und plan|und such|und schau)\b))/giu
 
 const topics:[string,RegExp][]=[
-  ['vorrat_einkauf',/(?<![\p{L}\p{N}])(?:einkaufsliste|einkaufen|einkauf|vorrat|kühlschrank|kaufen|besorgen|leer|aufgebraucht|kassenbon|milch|eier|brot|nudeln)(?![\p{L}\p{N}])/iu],
+  ['vorrat_einkauf',/(?<![\p{L}\p{N}])(?:einkaufsliste|liste|einkaufen|einkauf|vorrat|kühlschrank|kaufen|besorgen|leer|aufgebraucht|kassenbon|milch|eier|brot|nudeln)(?![\p{L}\p{N}])/iu],
   ['kochen',/(?<![\p{L}\p{N}])(?:rezept\w*|kochen|koche|kochst|gericht|abendessen|mittagessen|portion\w*|zutaten)(?![\p{L}\p{N}])/iu],
   ['finanzen',/(?:\d+(?:[.,]\d{1,2})?\s*(?:€|euro)\b|(?<![\p{L}\p{N}])(?:ausgegeben|bezahlt|überwiesen|gutschrift|erstattung|budget|abo|abos|abonnement|kündigen|gehalt|einnahme\w*|ausgabe\w*|sparen)(?![\p{L}\p{N}]))/iu],
   ['termin',/(?<![\p{L}\p{N}])(?:termin\w*|um\s+\d{1,2}(?::\d{2})?|\d{1,2}(?::\d{2})?\s*uhr|treffen|meeting|arzt|zahnarzt|friseur|geburtstag|training|vorlesung|seminar|übung)(?![\p{L}\p{N}])/iu],
   ['serie',/(?<![\p{L}\p{N}])(?:jeden|jede|jeder|wöchentlich|täglich|monatlich|immer\s+(?:montags|dienstags|mittwochs|donnerstags|freitags|samstags|sonntags)|montags|dienstags|mittwochs|donnerstags|freitags|samstags|sonntags)(?![\p{L}\p{N}])/iu],
-  ['aufgabe_frist',/(?<![\p{L}\p{N}])(?:abgabe|abgeben|frist|deadline|bis\s+(?:zum|spätestens)|muss\s+ich|erledigen|präsentation|präsentieren|vorstellen|vortrag|hausarbeit|klausur|anmelden)(?![\p{L}\p{N}])/iu],
+  ['aufgabe_frist',/(?<![\p{L}\p{N}])(?:abgabe|abgeben|einreichen|frist|deadline|muss\s+bis|bis\s+(?:zum|spätestens)|muss\s+ich|erledigen|präsentation|präsentieren|vorstellen|vortrag|hausarbeit|klausur|anmelden)(?![\p{L}\p{N}])/iu],
   ['projekt',/(?<![\p{L}\p{N}])(?:projekt\w*|meilenstein|schritt\w*|bachelorarbeit|masterarbeit|thesis)(?![\p{L}\p{N}])/iu],
-  ['reise',/(?<![\p{L}\p{N}])(?:reise\w*|urlaub|flug|flüge|hotel|unterkunft|packliste|trip|städtetrip|wochenende\s+in)(?![\p{L}\p{N}])/iu],
+  ['reise',/(?<![\p{L}\p{N}])(?:reise\w*|urlaub|flug|flüge|hotel|unterkunft|packliste|einpacken|packen|trip|städtetrip|wochenende\s+in)(?![\p{L}\p{N}])/iu],
   ['outfit',/(?<![\p{L}\p{N}])(?:outfit\w*|anziehen|anzieh\w*|look|kleidung|kleiderschrank|parfüm|parfum|duft|klamotten)(?![\p{L}\p{N}])/iu],
   ['bestellung',/(?<![\p{L}\p{N}])(?:bestellung\w*|bestellt|paket|lieferung|retoure|zurückschicken|zurücksenden|rücksendung|sendung)(?![\p{L}\p{N}])/iu],
   ['bewerbung',/(?<![\p{L}\p{N}])(?:bewerbung\w*|beworben|bewerben|vorstellungsgespräch|jobinterview|stelle|praktikum|werkstudent\w*|absage|zusage)(?![\p{L}\p{N}])/iu],
+  ['freie_zeit',/(?<![\p{L}\p{N}])(?:freie\s+zeit|such\s+mir|finde\s+mir|zeit\s+(?:für|zum)|wann\s+habe\s+ich\s+(?:zeit|\w+\s+stunden))(?![\p{L}\p{N}])/iu],
   ['erinnerung',/(?<![\p{L}\p{N}])(?:erinner\w*|nicht vergessen|denk\s+dran|merk\s+dir)(?![\p{L}\p{N}])/iu],
   ['frage',/(?:\?\s*$|^\s*(?:was|wann|wie|wo|welche\w*|wieviel|wie viel|hab\s+ich|habe\s+ich|steht)(?![\p{L}\p{N}]))/iu],
 ]

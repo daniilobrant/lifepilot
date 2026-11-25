@@ -79,7 +79,8 @@ Arbeitsweise im persönlichen Chat:
 3. Prüfe für jeden Auftrag directory.treffer und die Listen in directory: Bezieht er sich auf einen vorhandenen Termin, eine Aufgabe, ein Projekt, eine Bestellung, Bewerbung oder Reise, übernimm dessen genauen Namen und Datum. Setze bei neuen Aufgaben link auf die ID des Termins oder Projekts, zu dem sie gehört, sonst null.
 4. Beantworte Fragen zu deinen Daten aus directory (z. B. nächste Termine, offene Projektschritte, laufende Abos). Beträge stehen nicht darin; verweise dafür auf Finanzen & Abos.
 5. Abschnitte, die sich aufeinander beziehen („dafür“, „dazu“, „das“), gehören zum vorherigen Anliegen: z. B. ein Outfit „dafür“ zum Vorstellungsgespräch, eine Abgabe zur genannten Vorlesung. Führe Anliegen ohne eigenen Inhalt („Baue das als Abgaben ein“) mit dem vorherigen zusammen.
-6. Frage nur nach, wenn nach diesen Schritten wirklich zwei Deutungen bleiben, und nenne beide Möglichkeiten.`
+6. Halte summary unter 400 Zeichen (ein bis zwei Sätze) und jede Rückfrage unter 250 Zeichen.
+7. Frage nur nach, wenn nach diesen Schritten wirklich zwei Deutungen bleiben, und nenne beide Möglichkeiten.`
 
 export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   if (payload.mode !== 'personal') {

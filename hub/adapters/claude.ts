@@ -135,7 +135,8 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
         ['input_tokens', 'output_tokens', 'cache_read_input_tokens', 'cache_creation_input_tokens'].includes(key) && typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)) as ModelMetrics['usage']
     }
     if (code !== 0 || !final || final.is_error === true) {
-      const detail = typeof final?.result === 'string' && /login|auth|anmeld|credit|limit/iu.test(final.result) ? ' Prüfe Anmeldung oder Nutzungslimit der Claude Code CLI.' : ''
+      const said = typeof final?.result === 'string' ? final.result.replace(/\s+/gu, ' ').slice(0, 240) : ''
+      const detail = /login|auth|anmeld|credit|limit/iu.test(said) ? ' Prüfe Anmeldung oder Nutzungslimit der Claude Code CLI.' : said ? ' Meldung: ' + said : ''
       throw new Error('Claude konnte den Auftrag nicht abschließen.' + detail)
     }
     const structured = final.structured_output

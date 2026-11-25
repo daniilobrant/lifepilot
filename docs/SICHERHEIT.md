@@ -9,9 +9,6 @@ LifePilot bindet an 127.0.0.1. Die CLI öffnet den Browser mit einem einmaligen 
 
 Für eine lokale Sicherung verwende **./bin/lifepilot backup --confirm**. Der CLI-Hilfetext erklärt Status und Wiederherstellung. Prüfe Wiederherstellungen mit einer Testkopie.
 
-## Wiederkehrende Prüfung
-
-Mit Gitleaks und Semgrep im PATH führt `npm run security:check` den Quellcode-, Historien- und npm-Audit aus. Die Prüfungen laufen auch bei Pull Requests. [Auditbericht](../SECURITY_REPORT.md)
 
 
 ## Privaten Chat lokal freigeben
@@ -30,4 +27,3 @@ Seit 1.0.36 (auf Wunsch des Nutzers, 25. November 2026) erhält jede freigegeben
 
 Ohne Übertragung verwendet LifePilot die native Fotoaufbereitung und Texterkennung. Für modellgestützte Vorschläge zeigt die App vor jeder Übertragung einen Hinweis. Ausnahme auf Wunsch des Nutzers (25. November 2026): Die Analyse eigener Look-Fotos unter „Meine Looks“ sendet das aufbereitete Foto im freigegebenen Hauptprofil ohne erneute Rückfrage an Codex; Kleiderschrank- und Vorratsfotos fragen weiterhin. In der CLI bedeutet **--codex-image** zusammen mit **--confirm**, dass das Bild extern verarbeitet werden darf. Die Befehle dafür sind **outfit-analyze**, **outfit-look-analyze** und **grocery-scan**. Testprofile und Hauptprofile ohne lokale Freigabe weisen diese Freigabe serverseitig ab.
 
-Den Restore aus einem öffentlichen Checkout prüft **node scripts/trinity-restore-check.mjs --checkout** in einer temporären Kopie mit synthetischen Daten. Der lokale Testport 45139 muss frei sein.

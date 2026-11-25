@@ -1,6 +1,13 @@
 # Versionsverlauf
 
-Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
+Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
+
+## v1.0.41 · 26. November 2026
+
+- Claude Code CLI vollständig angebunden und live geprüft; zu lange Zusammenfassungen werden gekürzt, Hinweise außerhalb des Kontexts verworfen statt die Antwort abzulehnen.
+- Testsatz mit 48 Beispielsätzen (`npm run eval:chat`) für einzelne Skills, Kombinationen, Diktatfehler und Rückfragen; Vorzerlegung erkennt Liste, Einreichen, Einpacken und freie Zeit.
+- README: Anleitung zur KI-Anbindung mit Codex oder Claude Code.
+- Repository aufgeräumt: GitHub-Workflow, interne Berichte, Roadmap und Prüfskripte entfernt.
 
 ## v1.0.40 · 26. November 2026
 

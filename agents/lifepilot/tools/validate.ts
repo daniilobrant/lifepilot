@@ -234,6 +234,16 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
     throw new Error('Ein Termin benötigt Datum, Uhrzeit und Dauer oder eine Rückfrage.')
   }
   if (totalBlocks > 32) throw new Error('Der Vorschlag enthält zu viele Terminwiederholungen.')
+  // Zu lange Texte werden am Satzende gekürzt statt den ganzen Vorschlag zu verwerfen.
+  const clip = (text: string, max: number) => {
+    const clean = text.trim()
+    if (clean.length <= max) return clean
+    const cut = clean.slice(0, max - 1)
+    const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '))
+    return (end > max / 2 ? cut.slice(0, end + 1) : cut.trimEnd() + '…')
+  }
+  if (typeof candidate.summary === 'string') candidate.summary = clip(candidate.summary, 420) || null
+  candidate.questions = candidate.questions.map(question => typeof question === 'string' ? clip(question, 280) : question)
   if (candidate.questions.some(question => !bounded(question, 280)) ||
       (candidate.summary != null && !bounded(candidate.summary, 420))) throw new Error('Ungültiger Antworttext.')
   const ids = new Set(context.map(task => task.id))
@@ -261,6 +271,8 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       throw new Error('Ungültige Dauer.')
     }
   }
+  // Hinweise zu Einträgen außerhalb des Bearbeitungskontexts (z. B. nur im Verzeichnis) werden verworfen, nicht der ganze Vorschlag.
+  if (candidate.advice) candidate.advice = candidate.advice.filter(item => ids.has(item.target))
   if (candidate.advice?.some(item => !ids.has(item.target) || !bounded(item.reason, 280))) {
     throw new Error('Die Empfehlung verweist auf eine unbekannte Aufgabe.')
   }
