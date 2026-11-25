@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.22 · 25. November 2026
+
+- Sicherheitsprüfung: Uniqlo-Farbbilder und Kleidungsvorlagen der Packliste kommen ohne aus Daten gebaute reguläre Ausdrücke aus. Die Semgrep-Prüfung in der Pull-Request-Pipeline läuft wieder durch.
+
 ## v1.0.21 · 25. November 2026
 
 - Urlaubsplaner: Währungsrechner zwischen Euro und Landeswährung neben der Unterkunft, mit Tauschknopf und manuellem Aktualisieren (EZB-Referenzkurs, sonst Tageskurs).

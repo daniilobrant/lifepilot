@@ -195,7 +195,7 @@ function clothingTemplates(plan:TripPlan,days:number) {
   const cold=known && temperature<=8, cool=!known || temperature<=18, warm=known && temperature>=22
   const beach=/strand|beach|meer|küste|pool|baden|insel|island|surf/iu.test(plan.draft.interests+' '+plan.draft.destination+' '+(plan.draft.brief??''))
   const item=(key:string,label:string,count:number,detail:string,enabled=true)=>
-    ({key,pattern:new RegExp('^'+label.replace(/[.*+?^${}()|[\]\\]/gu,'\\$&')+'$','iu'),label,category:'Kleidung' as const,count,detail,enabled})
+    ({key,pattern:{test:(text:string)=>text.trim().toLocaleLowerCase('de-DE')===label.toLocaleLowerCase('de-DE')},label,category:'Kleidung' as const,count,detail,enabled})
   return [
     item('pants','Hosen',Math.max(2,Math.ceil(pieces/3)),warm?'Leichte Stoffe, eine kurze Hose':'Eine bequeme, eine schickere'),
     item('knit','Pullover & Strick',cold?3:2,'Zum Schichten an kühlen Abenden',cool),
@@ -230,7 +230,7 @@ function packingDefaults(store:Store,plan:TripPlan,tripID:string):TripPlan {
   const perfume=scent ? (ranked.length>1 ? 'Vorschläge: '+ranked.join(' · ')+'. ' : '')+[scent.brand,scent.name].filter(Boolean).join(' ')+' · '+scent.reason :
     fallback ? [fallback.brand,fallback.name].filter(Boolean).join(' ')+' wäre passend. Fürs Handgepäck einen Reiseflakon bis 100 ml verwenden.' :
     cabin ? 'Flakon mit höchstens 100 ml wählen. Größere Flakons ins Aufgabegepäck.' : 'Duft passend zur Reise auswählen.'
-  const templates:{key:string,pattern:RegExp,label:string,category:TripPack['category'],count:number,detail:string,enabled:boolean}[]=[
+  const templates:{key:string,pattern:{test:(text:string)=>boolean},label:string,category:TripPack['category'],count:number,detail:string,enabled:boolean}[]=[
     {key:'headphones',pattern:/kopfhörer|earbuds|airpods|headphones/iu,label:'Kopfhörer',category:'Technik',count:1,detail:'',enabled:true},
     {key:'perfume',pattern:/parfum|parfüm|duftflakon|eau de/iu,label:'Parfüm',category:'Toilettenartikel',count:1,detail:perfume,enabled:true},
     ...clothingTemplates(plan,days),

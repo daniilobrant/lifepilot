@@ -179,8 +179,10 @@ export function uniqloVariants(html:string,url:URL,selectedColor='') {
   if (!/(?:^|\.)uniqlo\.com$/iu.test(url.hostname)) return
   const item=/eugoods_\d{2}_(\d{6})/u.exec(html)?.[1]
   if (!item) return
-  const base=new RegExp('(https://[^"\'\\s]+/)eugoods_\\d{2}_'+item,'u').exec(html)?.[1] ?? `https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/${item}/item/`
-  const pictured=new Set([...html.matchAll(new RegExp('eugoods_(\\d{2})_'+item,'gu'))].map(match=>match[1]))
+  // Feste Muster, der Artikel wird danach verglichen (keine aus Seitendaten gebauten regulären Ausdrücke).
+  const found=[...html.matchAll(/(https:\/\/[^"'\s]+\/)?eugoods_(\d{2})_(\d{6})/gu)].filter(match=>match[3]===item)
+  const base=found.find(match=>match[1])?.[1] ?? `https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/${item}/item/`
+  const pictured=new Set(found.map(match=>match[2]))
   const colors:{code:string,name:string}[]=[]
   for (const [,code,raw] of html.matchAll(/"displayCode":"(\d{2})","name":"([^"]{2,30})"/gu)) {
     if (!pictured.has(code) || colors.some(color=>color.code===code)) continue
