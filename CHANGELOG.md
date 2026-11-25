@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.18 · 25. November 2026
+
+- Der Bestelltracker erkennt Amazon-Bestellungen („Bestellt:“, „Versendet:“, „Zugestellt:“) mit Artikeln, Menge, Preis und Produktbild aus der Mail.
+- Jeder Bestellposten bekommt ein Bild, auch stornierte und Artikel, die keine Kleidung sind. Ohne Bild in der Mail sucht LifePilot über Produktname oder -nummer.
+- Behalten oder zurückgeben gilt für alle Artikel. Nur Kleidung kommt in den Kleiderschrank.
+
 ## v1.0.17 · 25. November 2026
 
 - Produktlinks von Uniqlo zeigen das Bild der Farbe aus dem Link. Die Farbauswahl im Dialog lädt das passende Farbbild.

@@ -16,7 +16,7 @@ import { addTravelWardrobeItem, changeResale, fragranceList, fragrancePhoto, upd
 import { researchFragrance, normalizedFragranceQuery } from './fragrance-research.ts'
 import type { FragranceDraft } from './wardrobe-extras-types.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
-import { bookOrderFinance,clothingOrders, changeClothingOrder, clothingPhotoTargets,scanClothingOrders, updateClothingTask } from './clothing-orders.ts'
+import { bookOrderFinance,clothingOrders, changeClothingOrder, clothingPhotoTargets,orderItemPhoto,scanClothingOrders, updateClothingTask } from './clothing-orders.ts'
 import { transcribeDictation, maxDictationBytes } from '../connectors/local-dictation.ts'
 import { validRecipeServings } from './recipe-portions.ts'
 import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe, updateRecipePortions } from './grocery.ts'
@@ -108,7 +108,7 @@ async function loadClothingPhotos(order:string) {
   const running=clothingPhotoJobs.get(order)
   if (running) return running
   if (clothingPhotoJobs.size>=2) throw new Problem(429,'Artikelbilder werden gerade vorbereitet.')
-  const targets=clothingPhotoTargets(store,order).filter(target=>!outfitPhoto(store,target.wardrobe)).slice(0,8)
+  const targets=clothingPhotoTargets(store,order).filter(target=>target.wardrobe ? !outfitPhoto(store,target.wardrobe) : !orderItemPhoto(store,target.id)).slice(0,8)
   const job=(async()=>{
     let loaded=0
     const deadline=Date.now()+45_000
@@ -133,9 +133,21 @@ async function loadClothingPhotos(order:string) {
           if(image){product=candidate;break}
         }
       }
+      // Kein Bild in der Mail und keine Produktseite: Bildersuche über Produktname bzw. -nummer.
+      if(!image && Date.now()<deadline) {
+        const query=[target.draft.brand,target.draft.name.slice(0,110),target.sku&&/\d{5,}/u.test(target.sku)?target.sku:'',target.merchant].filter(Boolean).join(' ')
+        const hits=await searchProductImages(query).catch(()=>[])
+        if(hits.length) image=await prepareProductImage(hits.slice(0,4).map(hit=>hit.image),deadline,true,true)
+      }
       const saved=store.transaction(()=>{
         const item=store.db.prepare('SELECT wardrobe_id,decision,details FROM clothing_order_items WHERE id=?').get(target.id)
-        if (!item || item.wardrobe_id!==target.wardrobe || item.decision==='returned') return false
+        if (!item) return false
+        if (!target.wardrobe) {
+          if (image) store.db.prepare('UPDATE clothing_order_items SET product_photo=coalesce(product_photo,?),image_checked=1 WHERE id=?').run(image.photo,target.id)
+          else store.db.prepare('UPDATE clothing_order_items SET image_checked=1 WHERE id=?').run(target.id)
+          return Boolean(image)
+        }
+        if (item.wardrobe_id!==target.wardrobe || item.decision==='returned') return false
         if (image && !outfitPhoto(store,target.wardrobe)) attachOutfitPhoto(store,target.wardrobe,image.photo,'image/png','web')
         if (product?.structured) {
           const details=JSON.parse(String(item.details)) as WardrobeDraft
@@ -831,6 +843,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (path === '/api/outfits' && method === 'GET') return reply(res, 200, {
     ...outfitOverview(store, acceptance), weatherPlace: outfitLocation(personalProfile(store).fields.location) ? personalProfile(store).fields.location : '',
   })
+  if (path === '/api/clothing-orders/photo' && method === 'GET') {
+    const photo = orderItemPhoto(store,id(url.searchParams.get('item')))
+    if (!photo) throw new Problem(404,'Kein Artikelbild vorhanden.')
+    res.writeHead(200,{ 'Content-Type':'image/png', 'Cache-Control':'private, no-store' })
+    return res.end(photo)
+  }
   if (path === '/api/outfits/prepared-photo' && method === 'GET') {
     const file = preparedPhoto(id(url.searchParams.get('token')))
     res.writeHead(200,{ 'Content-Type':'image/png', 'Cache-Control':'private, no-store' })

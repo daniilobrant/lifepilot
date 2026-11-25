@@ -86,7 +86,8 @@ function OrderCard({order,api,onChanged,onTask}:{
       {notice ? <p role="status">{notice}</p>:null}
       {order.items.length ? <ul className="order-items">{order.items.map((item,index)=><li key={item.id}>
         <div className="order-thumb">
-          {item.hasPhoto && item.wardrobeId ? <img src={'/api/outfits/photo?item='+encodeURIComponent(item.wardrobeId)} alt="" loading="lazy"/> :
+          {item.hasPhoto && item.wardrobeId && !item.hasProductPhoto ? <img src={'/api/outfits/photo?item='+encodeURIComponent(item.wardrobeId)} alt="" loading="lazy"/> :
+           item.hasProductPhoto ? <img src={'/api/clothing-orders/photo?item='+encodeURIComponent(item.id)} alt="" loading="lazy"/> :
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" aria-hidden="true"><path d="M3 7l9-4 9 4v10l-9 4-9-4z M3 7l9 4 9-4 M12 11v10"/></svg>}
         </div>
         <div className="order-item-info">

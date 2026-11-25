@@ -20,7 +20,7 @@ export type ClothingOrderView = {
   status:OrderStage, estimatedOn:string|null, shippedOn:string|null, cancelledOn:string|null, sourceKind:ClothingMail['kind'],
   totals:{purchase:number|null,refund:number|null,refundOn:string|null,purchaseBooked:boolean,refundBooked:boolean}, tracking:string[],
   id:string, merchant:string, reference:string, orderedOn:string, deliveredOn:string|null, deadline:string|null, taskId:string|null,
-  items:{id:string, draft:OrderProductDraft, wardrobeId:string|null, arrived:boolean, decision:Decision, hasPhoto:boolean, canLoadPhoto:boolean, hasExpectedPhoto:boolean}[],
+  items:{id:string, draft:OrderProductDraft, wardrobeId:string|null, arrived:boolean, decision:Decision, hasPhoto:boolean, canLoadPhoto:boolean, hasExpectedPhoto:boolean, hasProductPhoto?:boolean}[],
 }
 const digest=(value:string)=>createHash('sha256').update(value).digest('hex')
 function fingerprint(product:ClothingProduct) {
@@ -34,16 +34,19 @@ function loadOrder(store:Store,key:string) {
   if (!order) throw new Problem(404,'Bestellung nicht gefunden.')
   return order
 }
-function hasOrderPhotoSource(draft:OrderProductDraft,image:string,merchant:string) {
-  return Boolean(image || draft.source || draft.color && merchant==='Weekday')
+function hasOrderPhotoSource(draft:OrderProductDraft,image:string,_merchant:string) {
+  // Ohne Bild in der Mail sucht LifePilot über Produktnamen oder -nummer.
+  return Boolean(image || draft.source || draft.name)
 }
 function asView(store:Store,order:OrderRow):ClothingOrderView {
+  const productPhoto=store.db.prepare('SELECT 1 FROM clothing_order_items WHERE id=? AND product_photo IS NOT NULL')
   const hasPhoto=store.db.prepare('SELECT 1 FROM wardrobe_items WHERE id=? AND photo IS NOT NULL')
   const items=orderItems(store,order.id).map(item=>{
       const draft=JSON.parse(item.details) as OrderProductDraft
       return {id:item.id,draft,wardrobeId:item.wardrobe_id,arrived:Boolean(item.arrived),decision:item.decision,
-        hasPhoto:Boolean(item.wardrobe_id && hasPhoto.get(item.wardrobe_id)),
-        canLoadPhoto:Boolean(item.wardrobe_id && !item.image_checked && item.decision!=='returned' && !order.cancelled_on && hasOrderPhotoSource(draft,item.image_url,order.merchant)),hasExpectedPhoto:Boolean(item.image_url)}
+        hasPhoto:Boolean(item.wardrobe_id && hasPhoto.get(item.wardrobe_id) || productPhoto.get(item.id)),
+        hasProductPhoto:Boolean(productPhoto.get(item.id)),
+        canLoadPhoto:Boolean(!item.image_checked && hasOrderPhotoSource(draft,item.image_url,order.merchant)),hasExpectedPhoto:Boolean(item.image_url)}
   })
   const status:OrderStage=order.cancelled_on?'cancelled':items.some(item=>item.decision==='return')?'return':
     items.some(item=>item.arrived && item.decision==='pending')?'review':
@@ -289,13 +292,16 @@ export function changeClothingOrder(store:Store,key:string,action:unknown,itemId
     return asView(store,loadOrder(store,key))
   })
 }
+export function orderItemPhoto(store:Store,id:string) {
+  return store.db.prepare('SELECT product_photo AS photo FROM clothing_order_items WHERE id=? AND product_photo IS NOT NULL').get(id)?.photo as Uint8Array|undefined
+}
 export function clothingPhotoTargets(store:Store,id:string) {
   const order=loadOrder(store,id)
-  if(order.cancelled_on) return []
-  return orderItems(store,id).filter(item=>item.wardrobe_id && item.decision!=='returned' && !item.image_checked)
+  // Auch stornierte und nicht in den Kleiderschrank übernommene Artikel bekommen ein Bild am Bestellposten.
+  return orderItems(store,id).filter(item=>!item.image_checked)
     .map(item=>{
       const draft=JSON.parse(item.details) as OrderProductDraft
-      return {id:item.id,wardrobe:item.wardrobe_id!,image:item.image_url,source:draft.source,draft,merchant:order.merchant,
+      return {id:item.id,wardrobe:item.decision!=='returned' && !order.cancelled_on ? item.wardrobe_id : null,image:item.image_url,source:draft.source,draft,merchant:order.merchant,
         sku:item.item_key.split('|')[0]}
     }).filter(item=>hasOrderPhotoSource(item.draft,item.image,item.merchant))
 }

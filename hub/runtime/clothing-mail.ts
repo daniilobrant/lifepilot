@@ -189,6 +189,23 @@ function retailerItems(lines:string[],html:string,merchant:string) {
   return items
 }
 
+/** Amazon-Bestellmails: Artikel mit Menge und Preis aus dem Text, Produktbild aus dem zugehörigen <img alt>. */
+function amazonItems(text:string,html:string):ClothingProduct[] {
+  const images=[...html.matchAll(/<img\b[^>]*>/giu)].map(([tag])=>attributes(tag))
+    .filter(image=>/^https:\/\/m\.media-amazon\.com\/images\/I\//iu.test(image.get('src')??''))
+  const items:ClothingProduct[]=[]
+  for (const match of text.matchAll(/^\s*\*\s+(.{3,200}?)\s*\n\s*Menge:\s*(\d{1,2})\s*\n\s*(\d{1,6}[.,]\d{2})\s*EUR/gimu)) {
+    const name=match[1].trim()
+    const picture=images.find(image=>{
+      const alt=(image.get('alt')??'').trim()
+      return alt && (alt===name || name.startsWith(alt.replace(/…$/u,'')) || alt.startsWith(name))
+    })?.get('src')?.replace(/\._[A-Z]{2}\d+_\./u,'._SL800_.')
+    const product=garment(name,{image:picture,cents:Math.round(Number(match[3].replace(',','.'))*100)},Number(match[2]),true)
+    if (product) items.push(product)
+  }
+  return items.slice(0,30)
+}
+
 export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const sender=/@([a-z0-9.-]+\.[a-z]{2,})>?\s*$/iu.exec(mail.from)?.[1].toLowerCase()
   if (!sender || /newsletter|rabatt|sonderangebot|black friday/iu.test(mail.subject) ||
@@ -197,12 +214,16 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const text=(mail.text+'\n'+cleaned).slice(0,30_000)
   const lines=(cleaned.length>60?cleaned:mail.text).split(/\r?\n/u).map(line=>line.trim()).filter(Boolean)
   const asos=/(?:^|\.)asos\.com$/u.test(sender), uniqlo=/(?:^|\.)uniqlo\.(?:com|eu)$/u.test(sender)
-  const merchant=asos?'ASOS':uniqlo?'UNIQLO':''
+  const amazon=/(?:^|\.)amazon\.(?:de|com|co\.uk|fr|it|es|nl)$/u.test(sender)
+  const merchant=asos?'ASOS':uniqlo?'UNIQLO':amazon?'Amazon':''
   let kind:ClothingMail['kind']|undefined=cancelledSubject.test(mail.subject)?'cancel':refundSubject.test(mail.subject)?'refund':returnSubject.test(mail.subject)?'return':deliveredSubject.test(mail.subject)?'delivery':
     orderSubject.test(mail.subject)?'order':shippingSubject.test(mail.subject)?'shipping':undefined
   if(uniqlo && /rechnung von uniqlo/iu.test(mail.subject)) kind='order'
+  if(amazon) kind=/^\s*bestellt\s*:/iu.test(mail.subject)?'order':/^\s*versendet\s*:/iu.test(mail.subject)?'shipping':
+    /^\s*(?:zugestellt|geliefert)\s*:/iu.test(mail.subject)?'delivery':/storniert/iu.test(mail.subject)?'cancel':kind
   let code='', tracking=''
-  if(merchant){
+  if(amazon) code=reference(/\bBestellnr\.?\s*:?\s*(\d{3}-\d{7}-\d{7})/u.exec(mail.text+'\n'+cleaned)?.[1])
+  else if(merchant){
     const header=lines.findIndex(line=>uniqlo ? /^übergeordnete bestellnummer\s*:/iu.test(line) : /^bestell[- ]?nr\.?\s*:/iu.test(line))
     if(header>=0) code=reference(lines[header].split(':')[1]?.trim()||lines[header+1])
   }
@@ -250,7 +271,7 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   if (kind==='return' && !deadline && !receivedReturn.test(mail.subject)) return
   const htmlItems=structured.length?structured:linkedRows(html)
   const plain=plainItems(mail.text || text)
-  const retailer=merchant ? retailerItems(lines,html,merchant) : []
+  const retailer=amazon ? amazonItems(mail.text||text,html) : merchant ? retailerItems(lines,html,merchant) : []
   const items=retailer.length ? retailer : structured.length ? structured : htmlItems.length ? htmlItems.map(item=>{
     const fromText=plain.find(row=>row.draft.name.toLowerCase()===item.draft.name.toLowerCase())
     return {...item,quantity:fromText?.quantity??item.quantity,
@@ -271,6 +292,6 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const estimated=deliveryMonth && estimate ? date(estimate[3]+'-'+String(deliveryMonth).padStart(2,'0')+'-'+estimate[1].padStart(2,'0')) : undefined
   const dated=uniqlo && kind==='order'?fieldDate(/^bestellung erhalten:/iu):undefined
   const shipped=uniqlo && kind==='order'?fieldDate(/^bestellung versandt:/iu):undefined
-  return {reference:code,sender:(asos?'asos.com':uniqlo?'uniqlo.com':sender.replace(/^(?:www|mail|shop|orders|news|notifications|service|email)\./u,'')),merchant:merchant||vendor,kind,tracking,partial:/teillieferung|teil deiner bestellung|part of your order|split shipment|separat(?:e|en) paket/iu.test(text),
+  return {reference:code,sender:(asos?'asos.com':uniqlo?'uniqlo.com':amazon?'amazon.de':sender.replace(/^(?:www|mail|shop|orders|news|notifications|service|email)\./u,'')),merchant:merchant||vendor,kind,tracking,partial:/teillieferung|teil deiner bestellung|part of your order|split shipment|separat(?:e|en) paket/iu.test(text),
     items,...(estimated && {estimated}),...(totalCents && {totalCents}),...(refundCents && {refundCents}),...(shipped && {shipped}),day:dated ?? (mail.at && Number.isFinite(Date.parse(mail.at)) ? dateInBerlin(new Date(mail.at)) : dateInBerlin()),deadline}
 }
