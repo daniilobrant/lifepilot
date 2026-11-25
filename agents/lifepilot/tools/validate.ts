@@ -20,7 +20,9 @@ export type Proposal = {
   target: string | null, value: string, duration: number | null, reason: string, tags?: string[]
 }
 export type Advice = { target: string, reason: string }
-export type Result = { skill?: 'inbox_refresh' | 'appointment' | 'deadline_guardian' | 'smart_planning' | 'applications' | 'outfit' | 'travel' | 'finance' | 'grocery' | 'orders' | 'calendar_series' | 'projects' | null, skillData?: FreeQuery | OutfitChatPlan | FragranceChatPlan | TripChatPlan | FinanceChat | FinanceBatch | GroceryPlan | SeriesPlan | ProjectPlan | null, parts?: Result[], tasks: Task[], questions: string[], actions?: Proposal[], advice?: Advice[], summary?: string | null, correctedInput?: string | null }
+export type OrderDecisionPlan = { orderIntent:'decide', order:string, item:string|null, decision:'kept'|'return'|'returned'|'received' }
+export type ApplicationPlan = { applicationIntent:'create'|'update', application:string|null, company:string, role:string, status:'applied'|'reply'|'interview'|'offer'|'rejected'|'withdrawn', appliedOn:string|null, interviewDate:string|null, interviewTime:string|null, note:string|null }
+export type Result = { skill?: 'inbox_refresh' | 'appointment' | 'deadline_guardian' | 'smart_planning' | 'applications' | 'outfit' | 'travel' | 'finance' | 'grocery' | 'orders' | 'calendar_series' | 'projects' | null, skillData?: FreeQuery | OutfitChatPlan | FragranceChatPlan | TripChatPlan | FinanceChat | FinanceBatch | GroceryPlan | SeriesPlan | ProjectPlan | OrderDecisionPlan | ApplicationPlan | null, parts?: Result[], tasks: Task[], questions: string[], actions?: Proposal[], advice?: Advice[], summary?: string | null, correctedInput?: string | null }
 export const schemaFile = new URL('../output.schema.json', import.meta.url)
 const ajv = new Ajv({ allErrors: false, allowUnionTypes: true })
 const currentSchema = JSON.parse(readFileSync(schemaFile, 'utf8'))
@@ -109,7 +111,18 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
     if ((task.blocks?.length ?? 0) > 8) throw new Error('Zu viele Zeitblöcke für eine Aufgabe.')
     for (const block of task.blocks ?? []) totalBlocks += expandBlock(block).length
   }
-  if (['inbox_refresh','orders'].includes(candidate.skill ?? '') && (candidate.tasks.length || candidate.actions?.length || candidate.questions.length)) {
+  const decision = candidate.skillData && typeof candidate.skillData === 'object' && 'orderIntent' in candidate.skillData
+  const application = candidate.skillData && typeof candidate.skillData === 'object' && 'applicationIntent' in candidate.skillData
+  if ((decision && candidate.skill !== 'orders') || (application && candidate.skill !== 'applications')) throw new Error('Der Entwurf passt nicht zum Skill.')
+  if (application) {
+    const plan = candidate.skillData as ApplicationPlan
+    if (![plan.company, plan.role].every(value => bounded(value, 120)) || (plan.note !== null && !bounded(plan.note, 600)) ||
+      [plan.appliedOn, plan.interviewDate].some(value => value !== null && !isDate(value)) ||
+      (plan.interviewTime !== null && !/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(plan.interviewTime)) ||
+      (plan.applicationIntent === 'create' ? !plan.company.trim() : !plan.application)) throw new Error('Der Bewerbungsentwurf ist unvollständig.')
+  }
+  if (decision && (candidate.tasks.length || candidate.actions?.length)) throw new Error('Diesen Skill separat vorschlagen.')
+  if (['inbox_refresh','orders'].includes(candidate.skill ?? '') && !decision && (candidate.tasks.length || candidate.actions?.length || candidate.questions.length)) {
     throw new Error('Ein Mail-Durchlauf muss separat vorgeschlagen werden.')
   }
   if (['deadline_guardian','smart_planning','applications','outfit','travel','finance','grocery'].includes(candidate.skill ?? '') &&
@@ -207,6 +220,8 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       plan.intent!=='change' && plan.start && plan.end && plan.start>plan.end ||
       plan.people!==null && (plan.people<1 || plan.people>30) ||
       plan.maxLeave!==null && (plan.maxLeave<0 || plan.maxLeave>14)) throw new Error('Ungültige Reiseangaben.')
+  } else if (plan && ('orderIntent' in plan || 'applicationIntent' in plan)) {
+    // Bereits oben geprüft.
   } else if (plan && (candidate.skill !== 'smart_planning' || candidate.questions.length ||
       !isDate(plan.date) || plan.days < 1 || plan.days > 7 || plan.minutes < 15 || plan.minutes > 480 ||
       ![plan.start,plan.end].every(value=>/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) || plan.start >= plan.end)) {

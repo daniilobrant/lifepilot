@@ -1860,8 +1860,8 @@ function App() {
         {focus?.result?.skill==='orders' && skillResult?.orders ? <p role="status">{skillResult.orders.checked} Bestellmails geprüft.
           {skillResult.orders.limited ? ' Der Abruf hat sein Limit erreicht.' : ''}</p> : null}
         {focus?.result?.skill==='orders' ? <button className="quiet" type="button" disabled={skillBusy}
-          onClick={()=>skillResult?.orders ? openFromPilot('Bestellungstracker') : void executeChatSkill(focus)}>
-          {skillResult?.orders ? 'Bestellungstracker öffnen' : 'Bestellungen prüfen'}</button> : null}
+          onClick={()=>skillResult?.orders||(focus.result?.skillData&&'orderIntent' in focus.result.skillData) ? openFromPilot('Bestellungstracker') : void executeChatSkill(focus)}>
+          {skillResult?.orders||(focus.result?.skillData&&'orderIntent' in focus.result.skillData) ? 'Bestellungstracker öffnen' : 'Bestellungen prüfen'}</button> : null}
         {focus?.result?.skill==='finance' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Finanzen & Abos')}}>Finanzen &amp; Abos öffnen</button> : null}
         {focus && ['review','accepted'].includes(focus.state) && focus.result?.skill==='travel' && !focus.result.questions.length &&
           !(focus.result.skillData && 'intent' in focus.result.skillData && focus.result.skillData.intent==='change') ? <button type="button"

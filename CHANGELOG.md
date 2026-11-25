@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.38 · 25. November 2026
+
+- Pilot-Chat: Entscheidungstabelle (Signal → Skill) mit Ketten-Regeln; Outfit-Designer, Bewerbungsmanager und Kalenderplanung werden geladen, Mail-Erkennungsregeln nicht mehr.
+- Neue Chat-Handlungen mit Freigabe: Bestellteil behalten, zurücksenden, Retoure abgegeben, angekommen; Bewerbung anlegen oder Status ändern, Vorstellungsgespräch wird als Termin eingetragen.
+- Verschachtelte Speichervorgänge nutzen Savepoints.
+
 ## v1.0.37 · 25. November 2026
 
 - Pilot-Chat: lokale Vorzerlegung langer und diktierter Nachrichten (Abschnitte nach Signalwörtern, Themen, aufgelöste Daten wie „morgen“ oder „am Freitag“); Regeln für Bezüge wie „dafür“ und Anliegen ohne eigenen Inhalt.

@@ -1111,6 +1111,115 @@
             "startDate",
             "notes"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Entscheidung zu einer vorhandenen Bestellung aus directory.bestellungen (behalten, zurücksenden, Retoure abgegeben, angekommen).",
+          "required": [
+            "orderIntent",
+            "order",
+            "item",
+            "decision"
+          ],
+          "properties": {
+            "orderIntent": {
+              "type": "string",
+              "enum": [
+                "decide"
+              ]
+            },
+            "order": {
+              "type": "string"
+            },
+            "item": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "kept",
+                "return",
+                "returned",
+                "received"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Bewerbung anlegen oder ändern; bei einem Vorstellungsgespräch mit Datum entsteht zusätzlich ein Termin.",
+          "required": [
+            "applicationIntent",
+            "application",
+            "company",
+            "role",
+            "status",
+            "appliedOn",
+            "interviewDate",
+            "interviewTime",
+            "note"
+          ],
+          "properties": {
+            "applicationIntent": {
+              "type": "string",
+              "enum": [
+                "create",
+                "update"
+              ]
+            },
+            "application": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "company": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "applied",
+                "reply",
+                "interview",
+                "offer",
+                "rejected",
+                "withdrawn"
+              ]
+            },
+            "appliedOn": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "interviewDate": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "interviewTime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       ]
     },
@@ -2231,6 +2340,115 @@
                   "startDate",
                   "notes"
                 ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Entscheidung zu einer vorhandenen Bestellung aus directory.bestellungen (behalten, zurücksenden, Retoure abgegeben, angekommen).",
+                "required": [
+                  "orderIntent",
+                  "order",
+                  "item",
+                  "decision"
+                ],
+                "properties": {
+                  "orderIntent": {
+                    "type": "string",
+                    "enum": [
+                      "decide"
+                    ]
+                  },
+                  "order": {
+                    "type": "string"
+                  },
+                  "item": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "kept",
+                      "return",
+                      "returned",
+                      "received"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Bewerbung anlegen oder ändern; bei einem Vorstellungsgespräch mit Datum entsteht zusätzlich ein Termin.",
+                "required": [
+                  "applicationIntent",
+                  "application",
+                  "company",
+                  "role",
+                  "status",
+                  "appliedOn",
+                  "interviewDate",
+                  "interviewTime",
+                  "note"
+                ],
+                "properties": {
+                  "applicationIntent": {
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "update"
+                    ]
+                  },
+                  "application": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "company": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "applied",
+                      "reply",
+                      "interview",
+                      "offer",
+                      "rejected",
+                      "withdrawn"
+                    ]
+                  },
+                  "appliedOn": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "interviewDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "interviewTime": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
               }
             ]
           }
