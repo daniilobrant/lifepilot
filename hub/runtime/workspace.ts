@@ -45,6 +45,19 @@ export class Workspace {
     return decode(task)
   }
 
+  /** Kontext für bestimmte Aufgaben und Termine (z. B. die zur Nachricht passenden), mit ihren nächsten Zeitblöcken. */
+  contextOf(ids: readonly string[]): TaskContext[] {
+    const from = utcNow()
+    return ids.flatMap(id => {
+      const task = this.db.prepare("SELECT * FROM tasks WHERE id=? AND status='open'").get(id) as RawTask | undefined
+      if (!task) return []
+      const schedule = (this.db.prepare(`SELECT id,kind,at,ends_at FROM schedule WHERE task_id=? AND state!='dismissed'
+        AND coalesce(ends_at, at)>? ORDER BY at LIMIT 8`).all(id, from) as TaskContext['schedule'])
+      const { title, detail, due_date, kind, priority, revision, related_id } = decode(task)
+      return [{ id, title, detail, due_date, kind, priority, revision, related_id, schedule }]
+    })
+  }
+
   context(query = ''): TaskContext[] {
     const from = utcNow()
     const upcoming = this.db.prepare(`SELECT * FROM schedule WHERE state!='dismissed'
@@ -75,7 +88,7 @@ export class Workspace {
         ({ id, title, detail, due_date, kind, priority, revision, related_id, schedule: withPlans.get(id) ?? [] }))
   }
 
-  add(run: string | null, task: { title: string, detail: string, date: string | null, kind: TaskRow['kind'], steps?: string[], category?: Category | null, projectId?:string|null, priority?:Priority }, actor: string) {
+  add(run: string | null, task: { title: string, detail: string, date: string | null, kind: TaskRow['kind'], steps?: string[], category?: Category | null, projectId?:string|null, priority?:Priority, link?:string|null }, actor: string) {
     const id = randomUUID()
     if(task.projectId)this.checkProject(task.projectId,task.kind)
     this.db.prepare(`INSERT INTO tasks (id,run_id,title,detail,due_date,kind,priority,status,steps,updated_at,category)
@@ -86,7 +99,14 @@ export class Workspace {
     )
     if(task.projectId)this.db.prepare('UPDATE tasks SET project_id=? WHERE id=?').run(task.projectId,id)
     this.event(id, actor, 'Erstellt')
-    if(task.kind==='task'&&task.date)this.linkAppointment(id,task.title+' '+task.detail,task.date,actor)
+    const linked=task.link?this.db.prepare("SELECT id,kind FROM tasks WHERE id=? AND status<>'archived'").get(task.link) as {id:string,kind:string}|undefined:undefined
+    const project=task.link&&!linked&&task.kind==='task'?this.db.prepare("SELECT id FROM projects WHERE id=? AND json_extract(data,'$.status')='active'").get(task.link) as {id:string}|undefined:undefined
+    if(linked&&linked.id!==id){
+      this.db.prepare('UPDATE tasks SET related_id=? WHERE id=?').run(linked.id,id)
+      this.event(id,actor,'Verknüpft')
+      if(linked.kind==='appointment'&&task.date)this.remindAtAppointment(id,linked.id,task.date)
+    }else if(project)this.db.prepare('UPDATE tasks SET project_id=? WHERE id=?').run(project.id,id)
+    else if(task.kind==='task'&&task.date)this.linkAppointment(id,task.title+' '+task.detail,task.date,actor)
     return this.get(id)
   }
 
@@ -104,6 +124,12 @@ export class Workspace {
     this.db.prepare('UPDATE tasks SET related_id=? WHERE id=?').run(match.id,id)
     this.event(id,actor,'Mit Termin verknüpft: '+match.title)
     if(match.at>utcNow())this.db.prepare("INSERT OR IGNORE INTO schedule VALUES (?,?,'reminder',?,NULL,'pending')").run(randomUUID(),id,match.at)
+  }
+
+  private remindAtAppointment(id:string,appointment:string,date:string){
+    const slot=(this.db.prepare("SELECT at FROM schedule WHERE task_id=? AND kind='slot' AND state<>'dismissed' AND date(at) BETWEEN date(?,'-1 day') AND ? ORDER BY at")
+      .all(appointment,date,date) as {at:string}[]).find(row=>dateInBerlin(new Date(row.at))===date)
+    if(slot&&slot.at>utcNow())this.db.prepare("INSERT OR IGNORE INTO schedule VALUES (?,?,'reminder',?,NULL,'pending')").run(randomUUID(),id,slot.at)
   }
 
   private checkProject(id:string,kind:TaskRow['kind']){

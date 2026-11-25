@@ -18,6 +18,10 @@ Mit Gitleaks und Semgrep im PATH führt `npm run security:check` den Quellcode-,
 
 Die private Freigabe gilt für den installierten Build. LifePilot prüft die Versionsnummer, das Manifest **SHA256SUMS** und das Browser-Bundle gegen die lokale Freigabedatei im Hauptprofil. Mit fehlender Freigabe oder abweichenden Prüfsummen bleibt der private Chat deaktiviert. Lokale Prüfsummen erkennen Abweichungen zur Freigabe. Die Vertrauensgrenze liegt beim lokalen Benutzerkonto, das für Dateien und Freigabe Schreibrechte hat.
 
+## Verzeichnis im privaten Chat
+
+Seit 1.0.36 (auf Wunsch des Nutzers, 25. November 2026) erhält jede freigegebene Pilot-Nachricht ein kompaktes Verzeichnis: Titel, Datum und ID von Terminen der nächsten acht Wochen, offenen Aufgaben, aktiven Projekten mit offenen Schritten, Abos und Fixkosten (nur Name und Turnus), offenen Bestellungen, Bewerbungen (Firma, Stelle, Status), Reisen, Vorratskategorien mit knappen Artikeln, Einkaufsliste und Kleiderschrank-Anzahlen. Beträge, Mailinhalte, Notizen und Profilangaben gehen nicht mit. Zu Einträgen, die zur Nachricht passen, werden zusätzlich deren Zeiten, Schritte oder Bestellteile übertragen. Synthetische und Testprofile senden kein Verzeichnis.
+
 ## Optionale Fotoanalyse per Codex
 
 Ohne Übertragung verwendet LifePilot die native Fotoaufbereitung und Texterkennung. Für modellgestützte Vorschläge zeigt die App vor jeder Übertragung einen Hinweis. Ausnahme auf Wunsch des Nutzers (25. November 2026): Die Analyse eigener Look-Fotos unter „Meine Looks“ sendet das aufbereitete Foto im freigegebenen Hauptprofil ohne erneute Rückfrage an Codex; Kleiderschrank- und Vorratsfotos fragen weiterhin. In der CLI bedeutet **--codex-image** zusammen mit **--confirm**, dass das Bild extern verarbeitet werden darf. Die Befehle dafür sind **outfit-analyze**, **outfit-look-analyze** und **grocery-scan**. Testprofile und Hauptprofile ohne lokale Freigabe weisen diese Freigabe serverseitig ab.

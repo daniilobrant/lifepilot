@@ -20,6 +20,7 @@ import { boundedDialogue, MAX_CHAT_APPROVAL_BYTES, MAX_CHAT_INPUT, type ModelMes
 import { dateInBerlin } from './values.ts'
 import { relevance, searchTerms } from './relevance.ts'
 import { sourceNote, type SourceNote } from './source-note.ts'
+import { directoryWords, titleMatch } from './agent-directory.ts'
 import type { ChatMode } from './chat-release.ts'
 
 export type Channel = 'ui' | 'cli'
@@ -336,12 +337,15 @@ export class Store {
 
   private editContext(input:string):TaskContext[]{
     if(/\b(?:serie[n]?|serientermine?|wiederkehrend\w*)\b/iu.test(input)||
-      !/(?:^|\s)(?:ändere|verschiebe|korrigiere|benenne|lösche|entferne|archiviere|erledige|aktualisiere|markiere|setze|plane|erinnere|priorisiere|verlängere|hake|verlege)\b/iu.test(input))return []
-    const normalize=(text:string)=>(' '+text.toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim()+' ')
-    const query=normalize(input)
-    return this.workspace.context(input).filter(task=>task.title.trim().length>=3&&query.includes(normalize(task.title)))
-      .slice(0,4).map(task=>({...task,detail:'',schedule:task.schedule.slice(0,8)}))
+      !/(?:^|\s)(?:ändere|änder|verschiebe|verschieb|korrigiere|benenne|lösche|lösch|entferne|archiviere|erledige|aktualisiere|markiere|setze|setz|plane|erinnere|priorisiere|verlängere|hake|verlege|streiche|sag ab|absagen)\b/iu.test(input))return []
+    // Aufgaben und Termine, die die Nachricht nennt, auch bei Tipp- oder Diktatfehlern („Kai und Data Science“).
+    const words=directoryWords(input)
+    const ids=this.workspace.list().filter(task=>task.status==='open'&&task.title.trim().length>=3)
+      .map(task=>({id:task.id,score:titleMatch(words,task.title)})).filter(({score})=>score>=0.5)
+      .sort((a,b)=>b.score-a.score).slice(0,8).map(({id})=>id)
+    return this.workspace.contextOf(ids).map(task=>({...task,detail:''}))
   }
+
 
   private permits(row: Pick<Run, 'synthetic' | 'memory_snapshot' | 'context_snapshot'>) {
     if (this.chat === 'synthetic') return row.synthetic === 1

@@ -102,6 +102,13 @@
               "string",
               "null"
             ]
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ID eines Termins, einer Aufgabe oder eines Projekts aus directory, zu dem diese Aufgabe gehört; sonst null."
           }
         }
       }
@@ -460,17 +467,47 @@
             "totalCents"
           ],
           "properties": {
-            "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
+            "servings": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            },
             "preferences": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["excluded"],
+              "required": [
+                "excluded"
+              ],
               "properties": {
-                "excluded": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
-                "include": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-                "mode": {"enum": ["meat", "fish", "vegetarian", "vegan"]},
-                "allergy": {"type": "boolean"},
-                "side": {"type":"string","maxLength":70}
+                "excluded": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 12
+                },
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 6
+                },
+                "mode": {
+                  "enum": [
+                    "meat",
+                    "fish",
+                    "vegetarian",
+                    "vegan"
+                  ]
+                },
+                "allergy": {
+                  "type": "boolean"
+                },
+                "side": {
+                  "type": "string",
+                  "maxLength": 70
+                }
               }
             },
             "groceryIntent": {
@@ -1185,6 +1222,13 @@
                     "string",
                     "null"
                   ]
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ID eines Termins, einer Aufgabe oder eines Projekts aus directory, zu dem diese Aufgabe gehört; sonst null."
                 }
               }
             }
@@ -1543,17 +1587,47 @@
                   "totalCents"
                 ],
                 "properties": {
-                  "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
+                  "servings": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 24
+                  },
                   "preferences": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["excluded"],
+                    "required": [
+                      "excluded"
+                    ],
                     "properties": {
-                      "excluded": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
-                      "include": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-                      "mode": {"enum": ["meat", "fish", "vegetarian", "vegan"]},
-                      "allergy": {"type": "boolean"},
-                      "side": {"type":"string","maxLength":70}
+                      "excluded": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 12
+                      },
+                      "include": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 6
+                      },
+                      "mode": {
+                        "enum": [
+                          "meat",
+                          "fish",
+                          "vegetarian",
+                          "vegan"
+                        ]
+                      },
+                      "allergy": {
+                        "type": "boolean"
+                      },
+                      "side": {
+                        "type": "string",
+                        "maxLength": 70
+                      }
                     }
                   },
                   "groceryIntent": {

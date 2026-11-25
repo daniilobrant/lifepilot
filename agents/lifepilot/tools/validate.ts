@@ -14,7 +14,7 @@ import type { Priority, TaskContext } from '../../../hub/runtime/workspace.ts'
 import { bounded, isDate } from '../../../hub/runtime/values.ts'
 
 export type Block = { start: string, minutes: number | null, weeks: number }
-export type Task = { title: string, doneWhen: string, evidence: string, kind: 'task' | 'appointment', date: string | null, category?: Category | null, priority?:Priority, steps?: string[], blocks?: Block[] }
+export type Task = { title: string, doneWhen: string, evidence: string, kind: 'task' | 'appointment', date: string | null, category?: Category | null, priority?:Priority, steps?: string[], blocks?: Block[], link?: string | null }
 export type Proposal = {
   kind: 'deadline' | 'priority' | 'complete' | 'plan' | 'reschedule' | 'reminder' | 'remember' | 'correct_memory' | 'rename' | 'description' | 'category' | 'archive',
   target: string | null, value: string, duration: number | null, reason: string, tags?: string[]
@@ -105,6 +105,7 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       (task.steps && (task.steps.length > 12 || task.steps.some(step => !bounded(step, 120))))) {
       throw new Error('Ein Vorschlag hat einen ungültigen oder fehlenden Beleg.')
     }
+    if (task.link != null && !/^[0-9a-f-]{36}$/u.test(task.link)) task.link = null
     if ((task.blocks?.length ?? 0) > 8) throw new Error('Zu viele Zeitblöcke für eine Aufgabe.')
     for (const block of task.blocks ?? []) totalBlocks += expandBlock(block).length
   }

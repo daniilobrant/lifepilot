@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.36 · 25. November 2026
+
+- Pilot-Chat: kompaktes Verzeichnis aller Bereiche (Termine, Aufgaben, Projekte, Abos, Bestellungen, Bewerbungen, Reisen, Vorrat, Kleiderschrank) mit fehlertoleranter Trefferliste für Diktat- und Tippfehler.
+- Neue Aufgaben können per link einem Termin oder Projekt zugeordnet werden; Erinnerung zur Terminzeit.
+- Arbeitsanweisung für lange und diktierte Nachrichten: berichtigen, zerlegen, verknüpfen.
+
 ## v1.0.35 · 25. November 2026
 
 - Aufgabeneditor: Aufgaben und Fristen lassen sich einem Kalendertermin zuordnen; Speichern, Erledigt und Archivieren stehen ganz unten; Verlauf entfernt.
