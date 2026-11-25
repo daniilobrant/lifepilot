@@ -842,24 +842,35 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
               <button type="button" onClick={()=>setRemoving(look.id)}>Look löschen</button>}</div>
           </div>)}
         </section> : null}
-        {looks.length ? <div className="outfit-wardrobe-grid">{looks.map(look=>{
-          const items=look.itemIds.flatMap(id=>overview.wardrobe.filter(item=>item.id===id))
-          const firstImage=items.find(item=>item.hasPhoto)
-          const image=look.photoIds[0]?lookPhotoPath(look.photoIds[0]):firstImage?photoPath(firstImage.id):''
-          const ordered=outfitSlotOrder.map(slot=>({slot,item:items.find(item=>outfitSlot(item)===slot)}))
-          const thumb=(item:WardrobeItem|undefined,slot:string)=>item?.hasPhoto ?
-            <img src={photoPath(item.id)+'&v='+imageVersion} alt={productDisplayName(item.name)} title={productDisplayName(item.name)} loading="lazy"/> :
-            <span className="look-thumb-empty" title={item ? productDisplayName(item.name) : outfitSlots[slot as keyof typeof outfitSlots]}>{item ? displayColor(item.color).label || '·' : ''}</span>
-          return <article key={look.id} className="look-card look-tile">
-            {look.photoIds[0] ? <img className="look-cover" src={image+(image.includes('?')?'&':'?')+'v='+imageVersion} alt={look.title} loading="lazy"/> :
-              <div className="look-collage" aria-label="Teile des Looks">{ordered.map(({slot,item})=><div key={slot}>{thumb(item,slot)}</div>)}</div>}
-            {look.photoIds[0] && items.length ? <div className="look-strip">{ordered.filter(entry=>entry.item).map(({slot,item})=><div key={slot}>{thumb(item,slot)}</div>)}</div> : null}
-            <div className="look-body"><h3>{look.title}</h3>
-              {items.length>0 ? <ul>{items.map(item=><li key={item.id}>{productDisplayName(item.name)}</li>)}</ul> : <p className="look-empty">Noch keine Teile zugeordnet.</p>}
-              <button type="button" className="travel-small-button" aria-expanded={editLook===look.id} onClick={()=>{setEditLook(editLook===look.id?undefined:look.id);setRemoving('')}}>Bearbeiten</button>
-            </div>
-          </article>
-        })}</div> : <p>{overview.looks.length?'Keine Looks für diesen Filter.':'Du hast noch keine Looks gespeichert.'}</p>}
+        {looks.length ? (()=>{
+          const tile=(look:typeof looks[number])=>{
+            const items=look.itemIds.flatMap(id=>overview.wardrobe.filter(item=>item.id===id))
+            const ordered=outfitSlotOrder.map(slot=>({slot,item:items.find(item=>outfitSlot(item)===slot)}))
+            const thumb=(item:WardrobeItem|undefined,slot:string)=>item?.hasPhoto ?
+              <img src={photoPath(item.id)+'&v='+imageVersion} alt={productDisplayName(item.name)} title={productDisplayName(item.name)} loading="lazy"/> :
+              <span className="look-thumb-empty" title={item ? productDisplayName(item.name) : outfitSlots[slot as keyof typeof outfitSlots]}>{item ? displayColor(item.color).label || '·' : ''}</span>
+            const cover=look.photoIds[0]?lookPhotoPath(look.photoIds[0]):''
+            return <article key={look.id} className="look-tile">
+              <div className="look-media">{cover ? <img className="look-cover" src={cover+(cover.includes('?')?'&':'?')+'v='+imageVersion} alt={look.title} loading="lazy"/> :
+                <div className="look-collage" aria-label="Teile des Looks">{ordered.map(({slot,item})=><div key={slot}>{thumb(item,slot)}</div>)}</div>}</div>
+              {cover && items.length ? <div className="look-strip">{ordered.filter(entry=>entry.item).map(({slot,item})=><div key={slot}>{thumb(item,slot)}</div>)}</div> : null}
+              <div className="look-body">
+                <h3>{look.title}</h3>
+                {look.occasion ? <span className="look-meta">{look.occasion}{look.style?' · '+look.style:''}</span> : null}
+                {items.length>0 ? <ul>{items.map(item=><li key={item.id}>{productDisplayName(item.name)}</li>)}</ul> : <p className="look-empty">Noch keine Teile zugeordnet.</p>}
+                <button type="button" className="travel-small-button" aria-expanded={editLook===look.id} onClick={()=>{setEditLook(editLook===look.id?undefined:look.id);setRemoving('')}}>Bearbeiten</button>
+              </div>
+            </article>
+          }
+          // Vom Styling-Studio erzeugte Looks haben eine Begründung oder einen Auftrag; eigene Looks entstehen aus Fotos.
+          const generated=looks.filter(look=>Boolean(look.rationale||look.prompt))
+          const own=looks.filter(look=>!(look.rationale||look.prompt))
+          return <>{[['Vorgeschlagene Looks','Aus dem Styling-Studio gespeichert',generated],['Eigene Looks','Von dir mit Foto hinzugefügt',own]].map(([title,hint,list])=>
+            (list as typeof looks).length ? <section key={title as string} className="look-section">
+              <header><h2>{title as string}</h2><span>{hint as string} · {(list as typeof looks).length}</span></header>
+              <div className="look-grid">{(list as typeof looks).map(tile)}</div>
+            </section> : null)}</>
+        })() : <p>{overview.looks.length?'Keine Looks für diesen Filter.':'Du hast noch keine Looks gespeichert.'}</p>}
       </> : null}
     </div>
   </div>

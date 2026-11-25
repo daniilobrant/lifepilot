@@ -15,7 +15,7 @@ export const wardrobeTypes = {
   bottom:['Hose','Jeans','Shorts','Rock'],
   outer:['Jacke','Mantel','Blazer'],
   shoes:['Sneaker','Loafer','Stiefel','Sandalen'],
-  accessory:['Tasche','Gürtel','Schal','Mütze','Socken','Unterwäsche'],
+  accessory:['Tasche','Gürtel','Schal','Mütze'],
 } as const
 export const outfitStyles = ['Schlicht','Auffällig','Eleganz','Streetwear'] as const
 export type WardrobeCategory = keyof typeof wardrobeCategories

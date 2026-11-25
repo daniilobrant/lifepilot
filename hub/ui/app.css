@@ -1751,8 +1751,15 @@ input[type=file]::file-selector-button {
 .application-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 1rem 0; }
 .application-toolbar .application-search { margin: 0; flex: 1 1 320px; }
 
-.look-tile { display: grid; grid-template-rows: auto auto 1fr; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
-.look-cover { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; background: #f2efe9; }
+.look-section { display: grid; gap: 12px; margin-top: 1.4rem; }
+.look-section > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+.look-section > header h2 { margin: 0; font-size: 1.15rem; }
+.look-section > header span { color: var(--muted); font-size: .84rem; }
+.look-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; align-items: start; }
+.look-media { position: relative; overflow: hidden; }
+.look-meta { color: var(--muted); font-size: .8rem; }
+.look-tile { display: grid; grid-template-rows: auto auto 1fr; overflow: hidden; min-width: 0; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.look-cover { display: block; width: 100%; height: auto; aspect-ratio: 4 / 5; object-fit: cover; background: #f2efe9; }
 .look-collage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--line); aspect-ratio: 3 / 2.6; }
 .look-collage > div, .look-strip > div { display: grid; place-items: center; background: #f2efe9; overflow: hidden; min-width: 0; }
 .look-collage img, .look-strip img { width: 100%; height: 100%; object-fit: cover; }

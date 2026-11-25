@@ -1,4 +1,4 @@
-# LifePilot 1.0.26
+# LifePilot 1.0.27
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 

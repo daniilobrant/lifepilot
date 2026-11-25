@@ -52,6 +52,13 @@ export function mergeDuplicateOrders(store:Store,account:string) {
     if (/\./u.test(keep.merchant)) store.db.prepare('UPDATE clothing_orders SET merchant=?,sender=? WHERE id=?')
       .run(shopDomain(keep.sender).split('.')[0].replace(/^./u,letter=>letter.toUpperCase()),shopDomain(keep.sender),keep.id)
   }
+  // Unterwäsche und Socken aus Bestellungen gehören nicht in den Kleiderschrank (Looks bleiben unberührt).
+  for (const row of store.db.prepare(`SELECT i.id,i.wardrobe_id FROM clothing_order_items i WHERE i.wardrobe_id IS NOT NULL
+      AND json_extract(i.details,'$.garmentType') IN ('Socken','Unterwäsche')`).all() as {id:string,wardrobe_id:string}[]) {
+    store.db.prepare("UPDATE clothing_order_items SET wardrobe_id=NULL,details=json_set(details,'$.isClothing',json('false')) WHERE id=?").run(row.id)
+    const inLook=store.db.prepare("SELECT 1 FROM outfit_looks, json_each(outfit_looks.result,'$.itemIds') WHERE json_each.value=? LIMIT 1").get(row.wardrobe_id)
+    if (!inLook) store.db.prepare('DELETE FROM wardrobe_items WHERE id=?').run(row.wardrobe_id)
+  }
   // Fotos, die nur über eine zu ungenaue Bildersuche kamen (kein Bild, kein Link, keine Farbe), werden entfernt.
   store.db.exec(`UPDATE wardrobe_items SET photo=NULL,mime=NULL,photo_origin=NULL WHERE photo IS NOT NULL AND photo_origin='web' AND coalesce(source,'')=''
     AND id IN (SELECT wardrobe_id FROM clothing_order_items WHERE coalesce(image_url,'')='' AND coalesce(json_extract(details,'$.source'),'')=''

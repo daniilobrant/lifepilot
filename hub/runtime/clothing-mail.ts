@@ -76,6 +76,9 @@ function selectedUrl(value:unknown) {
 // Technik und Gerätezubehör gehören nicht in den Kleiderschrank, auch wenn „Tasche“ oder „Hülle“ im Namen steht.
 const technical=/\b(?:laptop|notebook|macbook|ipad|iphone|tablet|smartphone|handy|usb|usb-c|ladegerät|ladekabel|kabel|adapter|hub|powerbank|kopfhörer|earbuds|tastatur|maus|monitor|festplatte|ssd|hdmi|bildschirm|displayschutz|schutzhülle|ladeger)\w*/iu
 
+// Unterwäsche und Socken werden verfolgt, kommen aber nie in den Kleiderschrank.
+export const isUnderwear=(type:string)=>type==='Socken'||type==='Unterwäsche'
+
 function garment(name:string, details:Data={}, count=1, allowOther=false):ClothingProduct|undefined {
   const normalized=string(name)
   const detected=outfitGarment(normalized) ?? outfitFields(normalized,[],'')
@@ -84,7 +87,7 @@ function garment(name:string, details:Data={}, count=1, allowOther=false):Clothi
   const brand=typeof details.brand==='object'?asRecord(details.brand).name:details.brand
   return {sku:string(details.sku ?? details.productID,70),quantity:Number.isInteger(count) ? Math.min(20,Math.max(1,count)) : 1,
     image:publicLink(selectedUrl(details.image),true),
-    draft:{name:normalized,category:detected.category??'accessory',isClothing:Boolean(detected.category)&&!technical.test(normalized),...(typeof details.cents==='number' && details.cents>0 && {cents:details.cents}),garmentType:detected.garmentType ?? '',color:string(details.color ?? details.colour,100),
+    draft:{name:normalized,category:detected.category??'accessory',isClothing:Boolean(detected.category)&&!technical.test(normalized)&&!isUnderwear(detected.garmentType??''),...(typeof details.cents==='number' && details.cents>0 && {cents:details.cents}),garmentType:detected.garmentType ?? '',color:string(details.color ?? details.colour,100),
       size:string(asRecord(details.size).name ?? details.size,40),brand:string(brand,70)||inferred.brand,
       model:string(details.model,90),material:string(details.material,120)||inferred.material||'',fit:inferred.fit||'',
       season:inferred.season||'',tags:inferred.tags||'',source:publicLink(details.url)}}

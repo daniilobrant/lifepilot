@@ -38,6 +38,8 @@ test('Amazon prices with one decimal, tech sleeves and items missing from an exi
   assert.equal(parsed.items.length,3)
   assert.equal(parsed.items.find(item=>/Laptop/u.test(item.draft.name))!.draft.isClothing,false)
   assert.equal(parsed.items.find(item=>/Trunks/u.test(item.draft.name))!.draft.cents,2490)
+  // Unterwäsche wird verfolgt, kommt aber nicht in den Kleiderschrank.
+  assert.ok(parsed.items.filter(item=>/Boxershorts/u.test(item.draft.name)).every(item=>item.draft.isClothing===false))
   const store=new Store(':memory:')
   try{
     const first=parseClothingMail({...mail,text:'Bestellnr.\n123-4567890-1234567\n* Beispiel Herren Boxershorts 3er Pack\n  Menge: 1\n  21.47 EUR\nSumme'},'')!
@@ -45,7 +47,7 @@ test('Amazon prices with one decimal, tech sleeves and items missing from an exi
     scanClothingOrders(store,[{...full,clothing:parsed}],'account')
     const order=clothingOrders(store).find(row=>row.merchant==='Amazon')!
     assert.equal(order.items.length,3)
-    assert.equal(Number(store.db.prepare('SELECT count(*) AS n FROM wardrobe_items').get()?.n),2)
+    assert.equal(Number(store.db.prepare('SELECT count(*) AS n FROM wardrobe_items').get()?.n),0)
   }finally{store.db.close()}
 })
 
