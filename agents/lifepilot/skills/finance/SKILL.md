@@ -9,4 +9,4 @@ Wenn eine Nachricht mehrere Finanzänderungen enthält, verwende skillData mit e
 
 ## Abgrenzung anhand des Auftrags
 
-„37,50 € für das Konzert“ ergibt eine Ausgabe von 3750 Cent. „Was bleibt diesen Monat übrig?“ ist eine Budgetabfrage. Bei zwei gleichnamigen Einträgen bleibt die Änderung offen, bis der betroffene Eintrag feststeht.
+„37,50 € für das Konzert“ ergibt eine Ausgabe von 3750 Cent. „Was bleibt diesen Monat übrig?“ ist eine Budgetabfrage. Bei zwei gleichnamigen Einträgen bleibt die Änderung offen, bis der betroffene Eintrag feststeht. Eine Gutschrift oder Rückerstattung eines Händlers ist eine Erstattung und mindert die Ausgaben des Monats. Sie ist keine Einnahme.

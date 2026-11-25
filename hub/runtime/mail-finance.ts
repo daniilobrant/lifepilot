@@ -1,6 +1,7 @@
 import {readAmazonOrder,readRecurringCharge,type RecurringCharge} from './purchase-mail.ts'
 import {eventIdentity,readTicketEvent} from './event-mail.ts'
 import {paypalSender,readPayPalPayment} from './paypal-mail.ts'
+import {merchantKey,readMerchantRefund} from './refund-mail.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import { inboxLabel } from '../../agents/lifepilot/tools/classify-mail.ts'
 import type { MailContent } from '../connectors/google.ts'
@@ -10,7 +11,7 @@ import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { dateInBerlin, isDate } from './values.ts'
 
-export type MailFinanceDraft = {title:string, cents:number, date:string, refund:boolean, mailDate:boolean, direction?:'incoming'|'outgoing'|'refund', counterparty?:string, description?:string, sourceKey?:string, ticket?:{reference:string,merchants:string[]}, paypal?:{reference:string}, category?:string, orderReference?:string, subscription?:RecurringCharge, recurrenceKey?:string}
+export type MailFinanceDraft = {title:string, cents:number, date:string, refund:boolean, mailDate:boolean, direction?:'incoming'|'outgoing'|'refund', counterparty?:string, description?:string, sourceKey?:string, ticket?:{reference:string,merchants:string[]}, paypal?:{reference:string}, merchantRefund?:{reference:string}, category?:string, orderReference?:string, subscription?:RecurringCharge, recurrenceKey?:string}
 export type MailFinanceProposal = MailFinanceDraft & {id:string}
 type ProposalRow = {id:string,draft:string,state:string,entry_id:string|null,fingerprint:string}
 
@@ -25,7 +26,7 @@ function legacyFinanceFromMail(mail:MailContent) {
   const subject=mail.subject
   const label=inboxLabel(mail)
   if (label!=='finance' && label!=='returns' && label!=='orders') return
-  const refund=/rückzahlung|rückerstattung|erstattung|refunded|refund (?:sent|received)/iu.test(subject)
+  const refund=/rückzahlung|rückerstattung|erstattung|erstattet|gutschrift|gutgeschrieben|refunded|refund (?:sent|received)/iu.test(subject)
   if ((!refund && !/zahlung (?:gesendet|bestätigt)|zahlungsbestätigung|bezahlt|payment sent|payment confirmation|paid receipt|quittung|kassenbon/iu.test(subject)) ||
       /offen|ausstehend|fehlgeschlagen|storniert|fehlgeschlagene|gescheitert|betrugsverdacht|payment failed|pending|your password/iu.test(subject)) return
   const text=mail.text.split(/\r?\n/u).filter(line=>!line.trimStart().startsWith('>')).join('\n')
@@ -82,6 +83,15 @@ export function financeFromMail(mail:MailContent){
       ['ticket-expense',date,String(ticket.cents),eventIdentity(ticket.title),ticket.date,ticket.time])
     const draft:MailFinanceDraft={title:ticket.title,cents:ticket.cents,date,refund:false,mailDate:true,direction:'outgoing',sourceKey,
       ticket:{reference:ticket.reference,merchants:ticket.merchants},category:'Freizeit & Kultur'}
+    return {draft,fingerprint:sourceKey,legacyFingerprint:undefined}
+  }
+  const merchantRefund=readMerchantRefund(mail)
+  if(merchantRefund){
+    const {cents,counterparty,description,reference,date,domain}=merchantRefund
+    const sourceKey=hash(['merchant-refund',domain,reference??'',cents,mail.id])
+    const title=(description?[description,counterparty]:[counterparty??'Erstattung',reference&&'Bestellung '+reference]).filter(Boolean).join(' · ').slice(0,120)
+    const draft:MailFinanceDraft={title,cents,date,refund:true,mailDate:true,direction:'refund',sourceKey,
+      merchantRefund:{reference:reference??''},...(counterparty&&{counterparty}),...(description&&{description})}
     return {draft,fingerprint:sourceKey,legacyFingerprint:undefined}
   }
   const legacy=legacyFinanceFromMail(mail)
@@ -146,6 +156,19 @@ function inferSubscription(store:Store,account:string,draft:MailFinanceDraft){
     date:days[match],cycle:'monthly',confirmed:false})
 }
 
+// Händler und PayPal melden dieselbe Erstattung oft getrennt. Gleicher Betrag, Händler und höchstens drei Tage Abstand ergeben einen Vorschlag.
+function refundTwin(store:Store,account:string,draft:MailFinanceDraft){
+  const key=merchantKey(draft.counterparty)
+  if(key.length<3)return false
+  const rows=store.db.prepare(`SELECT draft FROM gmail_finance_suggestions WHERE account=? AND json_extract(draft,'$.refund')=1
+    AND json_extract(draft,'$.cents')=? AND abs(julianday(json_extract(draft,'$.date'))-julianday(?))<=3`)
+    .all(account,draft.cents,draft.date) as {draft:string}[]
+  return rows.some(row=>{
+    const other=JSON.parse(row.draft) as MailFinanceDraft
+    return Boolean((draft.merchantRefund&&other.paypal||draft.paypal&&other.merchantRefund)&&merchantKey(other.counterparty)===key)
+  })
+}
+
 export function scanMailFinances(store:Store,mails:MailContent[],account:string,existingOnly=false){
   return store.transaction(()=>{
     const insert=store.db.prepare('INSERT OR IGNORE INTO gmail_finance_suggestions (id,account,fingerprint,draft) VALUES (?,?,?,?)')
@@ -194,6 +217,7 @@ export function scanMailFinances(store:Store,mails:MailContent[],account:string,
           present=keep
         }
       }
+      if(!present&&draft.refund&&(draft.merchantRefund||draft.paypal)&&refundTwin(store,account,draft))continue
       if(!present){
         if(!existingOnly){
           added+=Number(insert.run(randomUUID(),account,fingerprint,JSON.stringify(draft)).changes)

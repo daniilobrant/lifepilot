@@ -101,6 +101,7 @@ export function inboxLabel(mail:Parameters<typeof classifyMail>[0], classificati
   if(amazonSender(mail.from)&&amazonOrderSubject.test(subject))return 'orders'
   if (classification.category==='jobs'||classification.category==='applications') return 'careers'
   if (classification.category==='newsletter' || ['seekingalpha.com','news.traderepublic.com','news.foto.dm.de'].some(from)) return 'newsletter'
+  if (/gutschrift|gutgeschrieben/iu.test(subject)) return 'finance'
   if (/retoure|rücksendung|rückgabe|rückzahlung|rückerstattung|\brefund\b|return label/iu.test(subject)) return 'returns'
   if (/versandbestätigung|sendungsverfolgung|dein paket|ihr paket|abholbereit|zugestellt|ausgeliefert|wurde (?:geliefert|versendet|verschickt)|kommt bald an|\bshipped\b|delivery update/iu.test(subject) ||
       ['dhl.de','hermesworld.com','dpd.de'].some(from)) return 'shipping'
