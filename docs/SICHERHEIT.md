@@ -18,6 +18,10 @@ Mit Gitleaks und Semgrep im PATH führt `npm run security:check` den Quellcode-,
 
 Die private Freigabe gilt für den installierten Build. LifePilot prüft die Versionsnummer, das Manifest **SHA256SUMS** und das Browser-Bundle gegen die lokale Freigabedatei im Hauptprofil. Mit fehlender Freigabe oder abweichenden Prüfsummen bleibt der private Chat deaktiviert. Lokale Prüfsummen erkennen Abweichungen zur Freigabe. Die Vertrauensgrenze liegt beim lokalen Benutzerkonto, das für Dateien und Freigabe Schreibrechte hat.
 
+## Modellanbieter Codex oder Claude
+
+Standard ist Codex (OpenAI über die signierte Codex CLI der ChatGPT-App). Seit 1.0.39 kann der Nutzer in Einstellungen › Übersicht auf Claude (Anthropic über die lokal installierte Claude Code CLI) umstellen. Dann gehen dieselben Daten wie bei Codex – Chatverlauf, freigegebener Kontext, Verzeichnis, Vorzerlegung, Reisedaten oder das freigegebene Bild – an Anthropic statt an OpenAI. LifePilot startet die CLI nur aus dem eigenen Konto (Datei des Nutzers oder von root, nicht fremd beschreibbar), in einem leeren Temp-Ordner, mit minimaler Umgebung, ohne Werkzeuge und MCP-Server; meldet Claude einen Werkzeugaufruf, bricht LifePilot ab. Die Antwort wird wie bei Codex gegen das Schema geprüft und erst nach Freigabe ausgeführt. Testprofile bleiben ohne externes Modell.
+
 ## Verzeichnis im privaten Chat
 
 Seit 1.0.36 (auf Wunsch des Nutzers, 25. November 2026) erhält jede freigegebene Pilot-Nachricht ein kompaktes Verzeichnis: Titel, Datum und ID von Terminen der nächsten acht Wochen, offenen Aufgaben, aktiven Projekten mit offenen Schritten, Abos und Fixkosten (nur Name und Turnus), offenen Bestellungen, Bewerbungen (Firma, Stelle, Status), Reisen, Vorratskategorien mit knappen Artikeln, Einkaufsliste und Kleiderschrank-Anzahlen. Beträge, Mailinhalte, Notizen und Profilangaben gehen nicht mit. Zu Einträgen, die zur Nachricht passen, werden zusätzlich deren Zeiten, Schritte oder Bestellteile übertragen. Synthetische und Testprofile senden kein Verzeichnis.

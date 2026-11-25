@@ -48,7 +48,7 @@ type Followup = { turn: number, input: string, previousResult: Result | null, sh
 type Run = { projectChange?:ProjectChange, seriesChange?:SeriesChange, previous_run?:string|null, parent_run?:string|null, updated_at:string, financeChanges?:FinanceChange[], groceryChange?:GroceryAnswer, financeChange?:FinanceChange, googleSync?: 'pending' | 'saved' | 'removed' | null, id: string, input: string, state: State, origin: 'ui' | 'cli', result: Result | null,
   error: string | null, turn: number, followups: Followup[], version: string, approvals: Approval[], memory: Entry[], context: TaskContext[],
   reference_day: string | null, sourceName: string | null }
-type Snapshot = { cloudModel?: boolean, directTestChat?:boolean, nightbot?:boolean, googleAppointmentWrite?: boolean, modelName?: string, version: string, acceptance: boolean, chatMode: 'disabled' | 'synthetic' | 'private', runs: Run[], tasks?: TaskRow[], schedule?: ScheduleRow[], connectors?: ConnectorEntry[],
+type Snapshot = { modelProvider?: 'codex'|'claude', claudeInstalled?: boolean, cloudModel?: boolean, directTestChat?:boolean, nightbot?:boolean, googleAppointmentWrite?: boolean, modelName?: string, version: string, acceptance: boolean, chatMode: 'disabled' | 'synthetic' | 'private', runs: Run[], tasks?: TaskRow[], schedule?: ScheduleRow[], connectors?: ConnectorEntry[],
   agents: { name: string, description: string, version: string }[],
   calendarTarget?: { name: string, account: string } | null
   fixtures: { ui: string, cli: string, memory: string } | null }
@@ -1763,7 +1763,13 @@ function App() {
             <PersonalAccountOverview version={snapshot.version} testMode={snapshot.acceptance}/>
             <div className="card settings"><h2>Erscheinungsbild</h2><p>Heller Modus</p></div>
             <div className="card settings"><h2>Agenten-Chat</h2>
-              <p>{snapshot.chatMode==='disabled' ? 'Wartet auf Freigabe' : snapshot.chatMode==='synthetic' ? 'Bereit für Testdaten' : 'Mit Codex verbunden'}</p>
+              <p>{snapshot.chatMode==='disabled' ? 'Wartet auf Freigabe' : snapshot.chatMode==='synthetic' ? 'Bereit für Testdaten' : 'Mit '+(snapshot.modelProvider==='claude'?'Claude':'Codex')+' verbunden'}</p>
+              {snapshot.chatMode==='private' ? <label className="model-provider">Modell für Pilot, Reiseguide und Bildanalyse
+                <select value={snapshot.modelProvider??'codex'} disabled={busy} onChange={event=>void mutate('/model-provider',{provider:event.target.value,confirm:true})}>
+                  <option value="codex">Codex (ChatGPT)</option>
+                  <option value="claude">Claude (Claude Code CLI){snapshot.claudeInstalled?'':' – nicht installiert'}</option>
+                </select></label> : null}
+              {snapshot.modelProvider==='claude'&&!snapshot.claudeInstalled ? <p role="alert">Die Claude Code CLI ist auf diesem Mac nicht installiert. Bis dahin schlagen Pilot-Anfragen fehl.</p> : null}
             </div>
             <details className="card settings"><summary>Verbesserung anfragen</summary>
               <form onSubmit={async event => {

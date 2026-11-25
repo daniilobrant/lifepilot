@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.39 · 26. November 2026
+
+- Modellanbieter umschaltbar: Codex (Standard) oder Claude über die lokale Claude Code CLI, ohne Werkzeuge, mit gleicher Schemaprüfung; Auswahl in Einstellungen › Übersicht.
+
 ## v1.0.38 · 25. November 2026
 
 - Pilot-Chat: Entscheidungstabelle (Signal → Skill) mit Ketten-Regeln; Outfit-Designer, Bewerbungsmanager und Kalenderplanung werden geladen, Mail-Erkennungsregeln nicht mehr.

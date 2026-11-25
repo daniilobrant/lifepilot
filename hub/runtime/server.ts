@@ -51,6 +51,7 @@ import { GoogleConnector, googleService } from '../connectors/google.ts'
 import { MacCalendar, macCalendarBridge } from '../connectors/mac-calendar.ts'
 import { analyzeCodexImage } from '../adapters/codex-image.ts'
 import { runCodex } from '../adapters/codex.ts'
+import { claudeAvailable, modelProvider, setModelProvider } from '../adapters/claude.ts'
 import { agentDirectory } from './agent-directory.ts'
 import { analyseMessage } from './message-analysis.ts'
 import { berlinInstant } from '../../agents/lifepilot/tools/validate.ts'
@@ -1222,6 +1223,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const month=url.searchParams.get('month'), focus=url.searchParams.get('focus')
     return reply(res,200,clothingOrders(store,month===null?undefined:financeMonth(month),focus===null?undefined:id(focus)))
   }
+  if (path==='/api/model-provider' && method==='POST') {
+    const {provider,confirm}=await body(req,['provider','confirm'])
+    confirmLocalChange(confirm)
+    if(acceptance)throw new Problem(403,'Im Testprofil bleibt der Modellanbieter fest.')
+    try{return reply(res,200,{provider:setModelProvider(provider)})}catch{throw new Problem(400,'Wähle Codex oder Claude.')}
+  }
   if (path==='/api/clothing-orders/change' && method==='POST') {
     const {order,item,action,value,confirm}=await body(req,['order','item','action','value','confirm'])
     confirmLocalChange(confirm)
@@ -1396,7 +1403,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (path === '/api/state') {
       store.expire()
       const target = acceptance ? undefined : macCalendar.preferred(store)
-      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? 'Codex' : 'LifePilot (lokal)', cloudModel,
+      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? (modelProvider()==='claude'?'Claude':'Codex') : 'LifePilot (lokal)', modelProvider: modelProvider(), claudeInstalled: await claudeAvailable(), cloudModel,
         googleAppointmentWrite: !acceptance && google.status().some(item => item.service === 'calendar-test' && item.connected), calendarTarget: target ? { name: target.name, account: target.account } : null,
         agents: [manifest], connectors, runs: store.list(), tasks: store.workspace.list(), schedule: store.workspace.schedule(), fixtures: acceptance ? fixtures : null })
     }

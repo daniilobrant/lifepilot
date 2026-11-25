@@ -9,6 +9,7 @@ import { outfitPlanFormatError, projectPlanFormatError, schemaFile, verifyOutput
 import { cloudModel, MODEL_MS } from '../runtime/settings.ts'
 import { MAX_CHAT_INPUT, MAX_CHAT_APPROVAL_BYTES, MAX_MODEL_PAYLOAD_BYTES, splitLongInput, modelDialogue, dialogueOrderInstruction, type ModelPayload } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
+import { modelProvider, runStructuredClaude } from './claude.ts'
 
 const codexBundle = '/Applications/ChatGPT.app/Contents/Resources/codex-cli/CodexCLI.app'
 const codex = codexBundle + '/Contents/MacOS/codex'
@@ -180,6 +181,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
   const metrics: ModelMetrics = { wallMs: 0, model: null, usage: null, cost: null }
   if (signal.aborted) return { result: null, error: 'Vorgang abgebrochen.', metrics }
   if (!cloudModel) return { result: null, error: 'Der externe Modelladapter ist in diesem Profil gesperrt.', metrics }
+  if (modelProvider() === 'claude') return runStructuredClaude(prompt, contract, signal, validate, image)
   const directory = await mkdtemp(join(tmpdir(), 'lifepilot-model-'))
   const resultPath = join(directory, 'result.json')
   let abortReason = ''
