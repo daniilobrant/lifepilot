@@ -2,6 +2,14 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.24 · 25. November 2026
+
+- Vorrat & Einkauf: Menge als Zahl mit Einheit (Stück, g, kg, ml, l, Packung, Dose, Flasche, Bund, Zehen, EL, TL), die Einheit passt sich dem Produkt an.
+- Neue Kategorien Frische Kräuter, Konserven & Hülsenfrüchte, Backen & Süßen; Schinken, Salami und Wurst zählen zu Fleisch & Fisch. Rund 150 weitere Alltagsartikel in Suche und Schnellerfassung.
+- Bestehende Vorräte und Einkaufsliste erhalten passende Kategorien und realistische Mengen.
+- Chat-Rückfragen bieten Antwortknöpfe: zwei Möglichkeiten plus „Keins von beiden“ oder Ja/Nein.
+- Freunde & Familie erfasst auch ältere PayPal-Zahlungen an Personen.
+
 ## v1.0.23 · 25. November 2026
 
 - Finanzen: Zahlungen von und an Personen (PayPal „Freunde und Familie“) bekommen die Kategorie Freunde & Familie. Bestehende Einträge werden beim nächsten Mail-Abgleich umsortiert.

@@ -1775,3 +1775,7 @@ input[type=file]::file-selector-button {
 .resale-summary button { justify-self: start; min-height: 34px; padding: 4px 14px; font-size: .84rem; }
 .resale-note { color: var(--muted); font-size: .76rem; }
 .resale-remove { color: var(--error); }
+
+.grocery-quantity { display: grid; grid-template-columns: minmax(0, 1fr) minmax(92px, auto); gap: 6px; align-items: end; }
+.grocery-quantity > span { grid-column: 1 / -1; font-size: .9rem; }
+.grocery-quantity input, .grocery-quantity select { min-height: 42px; }

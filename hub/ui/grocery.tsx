@@ -3,6 +3,7 @@ import {DateInput} from './presentation.tsx'
 import { GroceryIcon } from './grocery-icon.tsx'
 import {legacyRecipeServings,maxRecipeServings,scaleRecipeIngredients,ingredientStock,hasRecipeQuantity,measured,validRecipeServings,type RecipeStockStatus} from '../runtime/recipe-portions.ts'
 import { canonicalGroceryName, groceryCategory, groceryKey, grocerySuggestions } from '../runtime/grocery-catalog.ts'
+import { defaultUnit, formatQuantity, groceryUnits, parseQuantity } from '../runtime/grocery-units.ts'
 import { useEffect, useState, type FormEvent } from 'react'
 import { groceryCategories, locations, stockStates, type GroceryAnswer, type GroceryInput, type GroceryOverview, type StockItem, type ShoppingItem, type SavedRecipe, type RecipeChoice } from '../runtime/grocery-types.ts'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
@@ -151,6 +152,26 @@ export function ChatRecipeOptions({answer,api,disabled,decide,refine}:{answer:Gr
   </section>
 }
 
+/** Menge als Zahl plus Einheit. Die Einheit richtet sich nach dem Produkt (Gramm, Milliliter, Stück …). */
+function QuantityField({name,initial,label='Menge'}:{name:string,initial?:string,label?:string}) {
+  const parsed=parseQuantity(initial??'')
+  const free=Boolean(initial && !parsed.amount)
+  const [unit,setUnit]=useState<string>(parsed.unit || (parsed.rest&&parsed.amount ? '' : defaultUnit(name)))
+  const [amount,setAmount]=useState(parsed.amount)
+  const [text,setText]=useState(free || parsed.rest ? initial??'' : '')
+  useEffect(()=>{if(!initial)setUnit(defaultUnit(name))},[name,initial])
+  const value=text || formatQuantity(amount,unit)
+  return <div className="grocery-quantity"><span>{label}</span>
+    <input type="hidden" name="quantity" value={value}/>
+    {text ? <input aria-label={label} maxLength={50} value={text} onChange={event=>setText(event.target.value)}/> : <>
+      <input aria-label={label+' (Zahl)'} inputMode="decimal" maxLength={8} placeholder="Optional" value={amount}
+        onChange={event=>setAmount(event.target.value.replace(/[^\d.,½¼¾]/gu,''))}/>
+      <select aria-label="Einheit" value={unit} onChange={event=>setUnit(event.target.value)}>
+        <option value="">–</option>{groceryUnits.map(entry=><option key={entry}>{entry}</option>)}</select>
+    </>}
+  </div>
+}
+
 function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:GroceryInput)=>Promise<void>,
   cancel:()=>void,remove:()=>Promise<void>,busy:boolean}) {
   const item=editor.item
@@ -172,7 +193,7 @@ function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:Gro
   return <form className="card settings grocery-edit" onSubmit={submit}><h2>{item?'Artikel bearbeiten':'Artikel hinzufügen'}</h2>
     <div className="grocery-fields">
       <label>Name <input name="name" required maxLength={90} autoFocus defaultValue={draft?.name}/></label>
-      <label>Menge <input name="quantity" maxLength={50} placeholder="Optional" defaultValue={draft?.quantity}/></label>
+      <QuantityField key={draft?.name??'neu'} name={draft?.name??''} initial={draft?.quantity}/>
       <label>Kategorie <select name="category" defaultValue={draft?.category??''}><option value="">Automatisch</option>
         {groceryCategories.map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>
       {stock&&<><label>Lagerort <select name="location" defaultValue={details?.location??''}><option value="">Automatisch</option>
@@ -500,9 +521,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{a
           void act({action:'put',place:'shopping',draft:{name:quickArticle,quantity}})
             .then(()=>{setQuick('');setQuickArticle('');setQuickIndex(-1)}).catch(()=>{})
         }}>
-          <label>Menge für {quickArticle} <small>(optional)</small>
-            <input name="quantity" maxLength={50} placeholder={groceryCategory(quickArticle)==='meat'?'z. B. 500 g':'z. B. 2 Stück'}/>
-          </label>
+          <QuantityField name={quickArticle} label={'Menge für '+quickArticle+' (optional)'}/>
           <div className="actions"><button type="submit" className="primary" disabled={busy}>Hinzufügen</button>
             <button type="button" className="quiet" onClick={()=>setQuickArticle('')}>Abbrechen</button></div>
         </form>}

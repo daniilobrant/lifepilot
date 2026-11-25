@@ -10,3 +10,9 @@ Wenn beim Eintragen von Hackfleisch ohne Menge nachgefragt werden muss, frage ge
 ## Vorrat oder Einkaufsliste
 
 „Zwei Dosen Bohnen sind noch da“ beschreibt Vorrat. „Zwei Dosen Bohnen kaufen“ beschreibt die Einkaufsliste. Bei einem Beleg mit einem Pfandbetrag gehört Pfand nicht zu den vorgeschlagenen Vorratsartikeln.
+
+## Mengen, Einheiten und Kategorien
+
+Jede Menge besteht aus Zahl und Einheit: Stück, g, kg, ml, l, Packung, Dose, Flasche, Bund, Zehen, EL oder TL. Gewichtsware wie Fleisch, Käse, Nudeln oder Reis steht in Gramm, Flüssigkeiten wie Milch, Öl oder Soßen in Milliliter, Obst und Gemüse in Stück, frische Kräuter im Bund. Übernimm genannte Mengen genau. Fehlt die Menge, frage höchstens einmal gezielt nach („Wie viel Schinken, etwa 100 g?“) oder lass sie leer, wenn die Menge unwichtig ist. Rate keine Mengen.
+Ordne jeden Artikel einer passenden Kategorie zu, etwa Schinken und Salami zu Fleisch & Fisch, Basilikum und Koriander zu Frische Kräuter, Bohnen aus der Dose zu Konserven & Hülsenfrüchte, Backpulver und Hefe zu Backen & Süßen. Bei einem unklaren Wort frage mit zwei konkreten Möglichkeiten („Meinst du Rapsöl oder Rapssamen?“), damit LifePilot Antwortknöpfe anbieten kann.
+

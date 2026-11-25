@@ -67,11 +67,14 @@ export function personalTransfer(draft:Pick<MailFinanceDraft,'paypal'|'counterpa
   return /^\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}?[\p{L}'’-]+){1,3}$/u.test(name) && !company.test(name)
 }
 export function recategorizePersonal(store:Store,account:string) {
-  const rows=store.db.prepare(`SELECT id,draft,entry_id FROM gmail_finance_suggestions WHERE account=? AND json_extract(draft,'$.paypal') IS NOT NULL
+  const rows=store.db.prepare(`SELECT id,draft,entry_id FROM gmail_finance_suggestions WHERE account=?
     AND coalesce(json_extract(draft,'$.category'),'')<>'Freunde & Familie'`).all(account) as {id:string,draft:string,entry_id:string|null}[]
   for (const row of rows) {
     const draft=JSON.parse(row.draft) as MailFinanceDraft
-    if (!personalTransfer(draft)) continue
+    // Ältere PayPal-Vorschläge tragen noch keine PayPal-Markierung, aber Richtung und Gegenpartei.
+    const legacy=!draft.paypal && Boolean(draft.direction && draft.counterparty && !draft.ticket && !draft.orderReference &&
+      !draft.merchantPayment && !draft.merchantRefund && !draft.subscription)
+    if (!personalTransfer(legacy ? {...draft,paypal:{reference:''}} : draft)) continue
     store.db.prepare('UPDATE gmail_finance_suggestions SET draft=? WHERE id=?').run(JSON.stringify({...draft,category:'Freunde & Familie'}),row.id)
     if (row.entry_id) store.db.prepare(`UPDATE finance_entries SET data=json_set(data,'$.category','Freunde & Familie'),revision=revision+1
       WHERE id=? AND coalesce(json_extract(data,'$.category'),'') IN ('','Shopping & Alltag','Sonstiges')`).run(row.entry_id)
