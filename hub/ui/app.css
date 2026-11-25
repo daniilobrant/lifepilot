@@ -1800,3 +1800,12 @@ input[type=file]::file-selector-button {
 /* Ohne globale Suchleiste: die Kopfzeile erscheint nur noch für den Sprung zu Pilot auf schmalen Bildschirmen. */
 .topbar { display: none; }
 @media (max-width: 720px) { .topbar { display: flex; height: auto; min-height: 0; padding-block: 10px 0; justify-content: flex-end; } }
+
+/* Projekte: Schrittzeile mit Frist und Stift ganz rechts */
+.project-checklist li.project-step-row { display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; align-items: center; gap: .65rem; flex-wrap: nowrap; }
+.project-step-row .project-step-title { justify-self: start; text-align: left; padding: 0; min-height: 0; font: inherit; color: inherit; overflow-wrap: anywhere; }
+.project-step-row[data-completed="true"] .project-step-title { text-decoration: line-through; color: #536058; }
+.project-step-row .project-date { justify-self: end; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.project-edit { display: inline-grid; place-items: center; width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 8px; color: var(--muted); background: transparent; border: 1px solid transparent; }
+.project-edit:hover, .project-edit:focus-visible { color: var(--ink); border-color: var(--line); background: var(--card); }
+.project-card-title .project-edit { margin-left: auto; }
