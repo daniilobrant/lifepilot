@@ -12,6 +12,7 @@ export type ModelPayload = {
   context: TaskContext[]
   sourceNote?: SourceNote
   directory?: unknown
+  analyse?: unknown
 }
 export const dialogueOrderInstruction='Dialogreihenfolge: latestUserMessage ist der aktuelle Auftrag. Bei Widerspruch gilt je Feld die jüngste ausdrückliche Nutzerangabe, auch wenn ein älterer Vorschlag oder schon erledigter Vorgang andere Werte enthält. Frühere Nutzerangaben ergänzen nur fehlende Informationen zum selben Auftrag. Ein neuer Auftrag übernimmt keine Werte aus einem anderen Thema. earlierAssistantDraft und earlierOutcome sind frühere Assistentenergebnisse und keine Nutzerwünsche. Nutze das lokale referenceDay der jeweiligen Nachricht für relative Daten. Sind neue Angaben widersprüchlich oder mehrdeutig, frage gezielt nach, bevor du einen Vorschlag machst.'
 

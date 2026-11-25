@@ -74,10 +74,11 @@ async function prepareLongDialogue(payload:ModelPayload,signal:AbortSignal){
 const personalDirectoryRules=`
 Arbeitsweise im persönlichen Chat:
 1. Lies die ganze Nachricht. Sie ist oft diktiert: Berichtige falsch erkannte Wörter mit Hilfe von directory (Kursnamen, Personen, Projekte, Shops, Orte), z. B. „Kai und Data Science“ → „KI & Data Science“, „B2Bar.“ → „B2B“. Schreibe die bereinigte Nachricht in correctedInput, wenn du etwas berichtigt hast.
-2. Zerlege lange Nachrichten anhand von Signalwörtern („außerdem“, „und dann“, „noch“, „morgen“, „muss ich“, „trag ein“, „setz auf die Liste“, „merk dir“) in einzelne Aufträge. Gehören sie zu verschiedenen Skills, liefere je Skill einen Eintrag in parts.
+2. analyse enthält eine lokale Vorzerlegung (Abschnitte, Themen, aufgelöste Daten wie morgen → Datum). Prüfe sie und übernimm die aufgelösten Daten. Zerlege lange Nachrichten anhand von Signalwörtern („außerdem“, „und dann“, „noch“, „morgen“, „muss ich“, „trag ein“, „setz auf die Liste“, „merk dir“) in einzelne Aufträge. Gehören sie zu verschiedenen Skills, liefere je Skill einen Eintrag in parts.
 3. Prüfe für jeden Auftrag directory.treffer und die Listen in directory: Bezieht er sich auf einen vorhandenen Termin, eine Aufgabe, ein Projekt, eine Bestellung, Bewerbung oder Reise, übernimm dessen genauen Namen und Datum. Setze bei neuen Aufgaben link auf die ID des Termins oder Projekts, zu dem sie gehört, sonst null.
 4. Beantworte Fragen zu deinen Daten aus directory (z. B. nächste Termine, offene Projektschritte, laufende Abos). Beträge stehen nicht darin; verweise dafür auf Finanzen & Abos.
-5. Frage nur nach, wenn nach diesen Schritten wirklich zwei Deutungen bleiben, und nenne beide Möglichkeiten.`
+5. Abschnitte, die sich aufeinander beziehen („dafür“, „dazu“, „das“), gehören zum vorherigen Anliegen: z. B. ein Outfit „dafür“ zum Vorstellungsgespräch, eine Abgabe zur genannten Vorlesung. Führe Anliegen ohne eigenen Inhalt („Baue das als Abgaben ein“) mit dem vorherigen zusammen.
+6. Frage nur nach, wenn nach diesen Schritten wirklich zwei Deutungen bleiben, und nenne beide Möglichkeiten.`
 
 export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   if (payload.mode !== 'personal') {

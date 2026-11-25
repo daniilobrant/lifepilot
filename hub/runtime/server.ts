@@ -52,6 +52,7 @@ import { MacCalendar, macCalendarBridge } from '../connectors/mac-calendar.ts'
 import { analyzeCodexImage } from '../adapters/codex-image.ts'
 import { runCodex } from '../adapters/codex.ts'
 import { agentDirectory } from './agent-directory.ts'
+import { analyseMessage } from './message-analysis.ts'
 import { berlinInstant } from '../../agents/lifepilot/tools/validate.ts'
 import type { TaskPatch, Step } from './workspace.ts'
 import { bounded, dateInBerlin, isDate, mondayOf, shiftDay } from './values.ts'
@@ -403,7 +404,7 @@ async function work() {
     }:null
     const recurring=projectFromChat(store,next.payload)??seriesFromChat(next.payload)??taskBoardFromChat(next.payload)
     const model=recurring ? {result:recurring,error:null,metrics:offlineMetrics} : cloudModel ?
-      await runCodex({...next.payload,directory:agentDirectory(store,latest)},controller.signal) : {result:fallback,error:null,metrics:offlineMetrics}
+      await runCodex({...next.payload,directory:agentDirectory(store,latest),analyse:analyseMessage(latest,next.payload.messages.at(-1)?.referenceDay??dateInBerlin())},controller.signal) : {result:fallback,error:null,metrics:offlineMetrics}
     const result=model.result??fallback
     const {error,metrics}=model
     if (!stopping) {
