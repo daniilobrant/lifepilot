@@ -58,3 +58,24 @@ test('A merchant refund and the PayPal refund for the same money produce a singl
     assert.equal(pendingMailFinances(store,'account').length,2)
   }finally{store.db.close()}
 })
+
+test('Merchant payment confirmations outside PayPal become one expense with the paid total',()=>{
+  const booking=mail('booking','Zahlung erfolgreich','Bestätigungsnummer: 1234567890\nwir haben Ihre Zahlung für Ihre Buchung in der Unterkunft Beispiel Bungalow erhalten.\nGesamtkosten\n€ 499,31\nInsgesamt bezahlt\n€ 499,31','Booking.com <noreply-payments@booking.com>')
+  const draft=financeFromMail(booking)!.draft
+  assert.equal(draft.cents,49931)
+  assert.equal(draft.direction,'outgoing')
+  assert.equal(draft.category,'Freizeit & Kultur')
+  const park=financeFromMail(mail('park','i-Park - Payment confirmation','<body><h3>Payment Receipt</h3><span>Payment Date: 26/08/2026</span><span><b>Amount: </b></span><span>4.00 €</span></body>','no-reply@mail.parkalot.example'))!.draft
+  assert.equal(park.cents,400)
+  assert.equal(park.title,'i-Park')
+  const flight=financeFromMail(mail('flight','Zahlung erfolgreich','Buchungsnr. 1234 Wir haben deine Zahlung erhalten. Stuttgart - Barcelona ｜ 13. Nov. Gesamt 45,67 € Ticketpreis 24,06 € Steuern und Gebühren 21,61 €','Trip.com <noreply@trip.com>'))!.draft
+  assert.equal(flight.cents,4567)
+  for(const [subject,text] of [['Payment Accepted Notification','The payment has succeeded. Amount: 75 MAD'],['Deine Zahlung steht an','Die Abbuchung von 617,00 € erfolgt in 3 Tagen']] as const)
+    assert.equal(financeFromMail(mail(subject,subject,text)),undefined,subject)
+  const store=new Store(':memory:')
+  try{
+    const paypal=mail('pp','Beleg für Ihre Zahlung an Trip.com Netherlands','Sie haben 45,67 € EUR an Trip.com Netherlands gezahlt\nHändler\nTrip.com Netherlands\nTransaktionscode\nABCD12345678','PayPal <service@paypal.de>')
+    scanMailFinances(store,[mail('flight','Zahlung erfolgreich','Wir haben deine Zahlung erhalten. Gesamt 45,67 €','Trip.com <noreply@trip.com>'),paypal],'account')
+    assert.equal(pendingMailFinances(store,'account').filter(item=>item.cents===4567).length,1)
+  }finally{store.db.close()}
+})

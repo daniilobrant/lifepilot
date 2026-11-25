@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.16 · 25. November 2026
+
+- Finanzvorschläge erkennen Zahlungsbestätigungen von Händlern ohne PayPal, etwa „Zahlung erfolgreich“ von Buchungsportalen, Flugbuchungen und zweisprachige Parkbelege. Maßgeblich ist der bezahlte Gesamtbetrag.
+- Meldet PayPal dieselbe Zahlung, entsteht nur ein Vorschlag. Angekündigte Abbuchungen und Beträge ohne Euro bleiben ohne Vorschlag.
+
 ## v1.0.15 · 25. November 2026
 
 - Styling-Studio: Die Auswahl der Pflichtteile zeigt je Kategorie eine übersichtliche Liste mit Foto oder Farbpunkt, vollständigem Namen, Farbe und Material. Nichts überlappt oder scrollt mehr seitlich.

@@ -23,3 +23,4 @@ Eine Erstattung ist belegt, wenn der Text die erfolgte Gutschrift mit Gesamtbetr
 
 Kein Finanzvorschlag entsteht bei angekündigten oder beantragten Erstattungen („Rücksendeanfrage registriert“, „wird geprüft“, „in Bearbeitung“), bei Hinweisen auf eine künftige Abbuchung („wird in Kürze abgebucht“, „Deine Zahlung steht an“), bei Umbuchungen vom PayPal-Konto auf das eigene Bankkonto, bei Gutscheinen, Guthaben-Werbung, Geschenkkarten, Punkteständen und bei Stornierungen ohne Belastung.
 
+Zahlungsbestätigungen von Händlern ohne PayPal ergeben eine Ausgabe mit dem ausgewiesenen Gesamtbetrag („Insgesamt bezahlt“, „Gesamt“, „Amount“), nicht mit Ticketpreis, Steuern oder Gebühren. Kommt dieselbe Zahlung zusätzlich als PayPal-Beleg, ist es ein Vorgang. Beträge in fremder Währung ohne Euro-Betrag bleiben ohne Vorschlag.

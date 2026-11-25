@@ -64,3 +64,43 @@ export function readMerchantRefund(mail:MailContent){
 
 /** Erster Namensbestandteil für den Abgleich Händler-Erstattung ↔ PayPal-Rückzahlung („ZARA.COM“ ↔ „Zara“). */
 export const merchantKey=(name:string|undefined)=>(/\p{L}{3,}/u.exec((name??'').toLowerCase())?.[0])??''
+
+/**
+ * Zahlungsbestätigungen von Händlern außerhalb von PayPal, etwa „Zahlung erfolgreich“ (Buchungsportale),
+ * „Payment Accepted Notification“ oder zweisprachige Parkbelege. Nur Euro-Beträge werden übernommen.
+ */
+const paymentSubject=/zahlung (?:erfolgreich|bestätigt|erhalten|eingegangen|abgeschlossen)|zahlungsbestätigung|zahlungsbeleg|kaufbeleg|quittung|payment (?:accepted|confirmation|confirmed|received|successful|succeeded|receipt)|\breceipt\b/iu
+const paymentNotYet=/steht an|in kürze|fällig|erinnerung|offen|fehlgeschlagen|abgelehnt|ausstehend|vorab|storniert|pending|failed|declined|\bdue\b|upcoming|reminder|erstattung|rückzahlung|gutschrift|refund/iu
+const paymentDone=/zahlung (?:ist |wurde )?(?:erfolgreich|eingegangen|bestätigt|abgeschlossen)|(?:haben|hat) (?:ihre|deine) zahlung .{0,120}erhalten|insgesamt bezahlt|bezahlt|payment (?:has )?(?:succeeded|was successful|accepted|received|confirmed)|payment receipt|zahlungsbeleg|απόδειξη πληρωμής/iu
+const paidAmount=new RegExp('(?:insgesamt bezahlt|bezahlter betrag|gezahlter betrag|zahlungsbetrag|gesamtbetrag|gesamtkosten|gesamtsumme|gesamt|summe|total paid|amount paid|total|amount|betrag|ποσό)\\s*(?:\\/\\s*amount)?\\s*:?\\s*(?:EUR\\s*|€\\s*)?'+amount+'\\s*(?:€|EUR)?','giu')
+export function readMerchantPayment(mail:MailContent){
+  if(mail.previewOnly||paypalSender(mail.from))return undefined
+  const subject=tidy(mail.subject)
+  if(!paymentSubject.test(subject)||paymentNotYet.test(subject)||promotion.test(subject))return undefined
+  if(!mail.at||!Number.isFinite(Date.parse(mail.at)))return undefined
+  const raw=/<(?:table|html|body)\b/iu.test(mail.text)?htmlMailText(mail.text):mail.text
+  const text=tidy(raw.split(/\r?\n/u).filter(line=>!line.trimStart().startsWith('>')).join('\n')).slice(0,8000)
+  if(!paymentDone.test(subject+' '+text))return undefined
+  const found=new Set<number>()
+  for(const match of text.matchAll(paidAmount)){
+    if(!/€|EUR/iu.test(match[0]))continue
+    const cents=toCents(match[1])
+    if(cents)found.add(cents)
+  }
+  // Mehrere Beträge (Gesamt, Ticketpreis, Steuern): maßgeblich ist der größte ausgewiesene Gesamtwert, wenn er als Gesamt/bezahlt markiert ist.
+  const totals=[...text.matchAll(new RegExp('(?:insgesamt bezahlt|bezahlter betrag|gezahlter betrag|zahlungsbetrag|gesamtbetrag|gesamtkosten|gesamtsumme|gesamt|total paid|amount paid|amount|ποσό)\\s*(?:\\/\\s*amount)?\\s*:?\\s*(?:EUR\\s*|€\\s*)?'+amount+'\\s*(?:€|EUR)?','giu'))]
+    .filter(match=>/€|EUR/iu.test(match[0])).map(match=>toCents(match[1])).filter(Boolean)
+  const unique=new Set(totals)
+  const cents=unique.size===1?[...unique][0]:found.size===1?[...found][0]:0
+  if(!cents)return undefined
+  const reference=/\b(?:buchungsnr\.?|buchungsnummer|bestätigungsnummer|bestellnummer|order number|transaction number|auftragsnummer)\s*:?\s*([a-z0-9][a-z0-9‌-]{3,40})/iu.exec(text)?.[1]?.replace(/‌/gu,'')
+  const fromSubject=/^([\p{L}][\p{L}\d .&'-]{1,30}?)\s+[-–|]\s+/u.exec(subject)?.[1]
+  const {name,domain}=merchantName(mail.from)
+  const counterparty=fromSubject||name||undefined
+  const place=/(?:unterkunft|accommodation)\s+(.{3,60}?)\s+(?:erhalten|received)\b/iu.exec(text)?.[1]??/(?:purchase on|einkauf bei)\s+([\p{L}\d_ .-]{3,50}?)[.,]/iu.exec(text)?.[1]?.replace(/_/gu,' ')
+  const route=/([\p{Lu}][\p{L}]+(?: [\p{L}]+)? - [\p{Lu}][\p{L}]+(?: [\p{L}]+)?) ｜/u.exec(text)?.[1]
+  const description=(route?'Flug '+route:place)?.slice(0,80)
+  const category=/park|bahn|flug|flight|ticket|taxi|uber|ryanair|eurowings|trip\.com/iu.test(subject+' '+mail.from+' '+(description??''))?'Transport & Mobilität':
+    /booking|unterkunft|hotel|airbnb|accommodation|majorelle|museum|eintritt/iu.test(subject+' '+mail.from+' '+text.slice(0,600))?'Freizeit & Kultur':undefined
+  return {cents,counterparty,domain,description,reference,category,date:dateInBerlin(new Date(mail.at))}
+}
