@@ -1786,9 +1786,7 @@ function App() {
           onCancel={event => { event.preventDefault(); setTaskId(null) }}>
           {error && currentTask && (error.path.startsWith('/tasks/') || error.path.startsWith('/schedule')) ? <p role="alert">{error.message}</p> : null}
           <TaskEditor key={currentTask.id + ':' + currentTask.revision} task={currentTask} tasks={tasks} schedule={schedule} projects={projects?.projects} openSchedule={taskScheduleFocus}
-            mutate={mutate} onClose={() => setTaskId(null)} loadHistory={id => api('/tasks/' + id)}
-            renderExport={snapshot?.acceptance ? undefined : slot => <CalendarExport slot={slot.id}
-              preferred={!!snapshot?.calendarTarget} onSaved={() => void refresh()} />} />
+            mutate={mutate} onClose={() => setTaskId(null)} loadHistory={id => api('/tasks/' + id)} />
         </dialog> : null}
       </div>
     </main>

@@ -79,3 +79,19 @@ test('Merchant payment confirmations outside PayPal become one expense with the 
     assert.equal(pendingMailFinances(store,'account').filter(item=>item.cents===4567).length,1)
   }finally{store.db.close()}
 })
+
+test('Invoices and order confirmations that state a paid total become expenses, open invoices do not',()=>{
+  const paid=financeFromMail(mail('inv','Ihre Rechnung Nr. 4711','Vielen Dank für Ihren Einkauf. Gesamtbetrag 49,90 € Zahlungsart: Visa','Beispielshop <rechnung@beispielshop.example>'))!.draft
+  assert.equal(paid.cents,4990)
+  assert.equal(paid.direction,'outgoing')
+  assert.equal(financeFromMail(mail('due','Ihre Rechnung ist fällig','Gesamtbetrag 49,90 € bitte bis 01.12. überweisen','Beispielshop <rechnung@beispielshop.example>')),undefined)
+})
+
+test('Ride, delivery and stay receipts are recognised with fitting categories, announcements are not',()=>{
+  const ride=financeFromMail(mail('ride','Deine Fahrt mit Beispielride am Montagmorgen','Danke, dass du die Beispielride App nutzt. Gesamtsumme 36,94 € Fahrpreis 36,74 €','Beispielride Belege <noreply@ride.example>'))!.draft
+  assert.equal(ride.cents,3694); assert.equal(ride.category,'Transport & Mobilität'); assert.equal(ride.title,'Beispielride')
+  const food=financeFromMail(mail('food','Deine Beispiel Eats Bestellung','Hier ist dein Beleg für Burgerladen. Gesamtsumme 17,89 €','Beispiel <noreply@ride.example>'))!.draft
+  assert.equal(food.category,'Essen & Trinken')
+  assert.equal(financeFromMail(mail('stay','Deine Quittung von Beispielstay','Quittungsnummer: R1 3 Nächte Gesamtbetrag (EUR) 612,40 € Bezahlt','Beispielstay <automated@stay.example>'))!.draft.cents,61240)
+  assert.equal(financeFromMail(mail('soon','Wir werden Ihre Karte bald belasten','Ihre Karte wird mit 499,31 € belastet','Beispiel <noreply@stay.example>')),undefined)
+})

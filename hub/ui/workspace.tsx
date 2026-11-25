@@ -116,10 +116,12 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
   return <article className="card settings workspace-editor">
     <div className="editor-title"><h2>{task.title}</h2><button type="button" onClick={onClose}>Schließen</button></div>
     <form onSubmit={save}>
-      <label>Titel<input name="title" defaultValue={task.title} maxLength={120} required /></label>
+      <div className="editor-grid">
+      <label className="editor-wide">Titel<input name="title" defaultValue={task.title} maxLength={120} required /></label>
       <label>{task.kind === 'appointment' ? 'Datum' : 'Frist'}<DateInput  name="date" defaultValue={task.due_date ?? ''} required={task.kind === 'appointment'} /></label>
+      </div>
       {task.kind==='task'&&projects.length?<ProjectField projects={projects} current={task.project_id}/>:null}
-      <details className="task-options"><summary>Weitere Angaben</summary>
+      <details className="task-options editor-section"><summary>Weitere Angaben</summary>
       <label>Beschreibung oder Ziel (optional)<textarea name="detail" defaultValue={task.detail} maxLength={360} /></label>
       <div className="filters">
         <label>Priorität<select name="priority" defaultValue={task.priority}>
@@ -143,17 +145,18 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
         {steps.length < 12 ? <button type="button" onClick={() => setSteps(rows => [...rows, { title: '', done: false }])}>Teilaufgabe hinzufügen</button> : null}
       </fieldset>
       </details>
-      <div className="actions">
-        <button className="primary" disabled={busy}>Änderungen speichern</button>
+      <div className="actions editor-actions">
+        <button className="primary" disabled={busy}>Speichern</button>
         <button type="button" disabled={busy} onClick={() => void setStatus(task.status === 'done' ? 'open' : 'done')}>{task.status === 'done' ? 'Wieder öffnen' : 'Erledigt'}</button>
         <button type="button" className="quiet" disabled={busy} onClick={() => void setStatus('archived')}>Archivieren</button>
       </div>
     </form>
-    {task.status === 'open' ? <details open={openSchedule||undefined}><summary>Erinnerung oder Zeitblock</summary>
-      {activeSchedule.map(item => <div key={item.id}><p className="schedule-line">
-        <span>{item.kind === 'slot' ? 'Zeitblock' : 'Erinnerung'} · {displayTime(item.at)}</span><button className="quiet" onClick={() => void change('/schedule/' + item.id + '/dismiss', { confirm: true })}>Entfernen</button>
-      </p>{item.kind === 'slot' ? renderExport?.(item) : null}</div>)}
-      <form onSubmit={async event => {
+    {task.status === 'open' ? <details className="editor-section" open={openSchedule||undefined}><summary>Zeitblöcke &amp; Erinnerungen{activeSchedule.length ? ' · ' + activeSchedule.length : ''}</summary>
+      {activeSchedule.length ? <ul className="schedule-list">{activeSchedule.map(item => <li key={item.id}>
+        <span className="schedule-kind">{item.kind === 'slot' ? 'Zeitblock' : 'Erinnerung'}</span><time>{displayTime(item.at)}</time>
+        <button type="button" className="icon-button" aria-label="Entfernen" title="Entfernen" onClick={() => void change('/schedule/' + item.id + '/dismiss', { confirm: true })}>×</button>
+      </li>)}</ul> : null}
+      <form className="schedule-add" onSubmit={async event => {
         event.preventDefault()
         const form = event.currentTarget
         const data = new FormData(form)
@@ -166,10 +169,10 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
         </select></label>
         <label>Zeitpunkt (Berlin)<input type="datetime-local" name="at" required /></label>
         {planKind === 'slot' ? <label>Dauer in Minuten<input type="number" name="minutes" defaultValue={60} min={5} max={480} required /></label> : null}
-        <button disabled={busy}>Zeitpunkt speichern</button>
+        <button disabled={busy}>Hinzufügen</button>
       </form>
     </details> : null}
-    <details><summary>Verlauf</summary>
+    <details className="editor-section"><summary>Verlauf</summary>
       {historyError ? <p role="alert">{historyError}</p> : null}
       <ul>{history.map(item => <li key={item.id}>{item.event} · <time>{displayTime(item.at)}</time></li>)}</ul>
     </details>

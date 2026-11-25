@@ -107,7 +107,7 @@ export function inboxLabel(mail:Parameters<typeof classifyMail>[0], classificati
       ['dhl.de','hermesworld.com','dpd.de'].some(from)) return 'shipping'
   if (/bestellbestätigung|bestellnummer|deine bestellung|order confirmation|thanks for your order/iu.test(subject)) return 'orders'
   if (['paypal.de','paypal.com','klarna.com','stripe.com'].some(from) ||
-      /rechnung|zahlungsbestätigung|zahlung gesendet|zahlung erhalten|lastschrift|kontoauszug|\binvoice\b|\breceipt\b/iu.test(subject)) return 'finance'
+      /rechnung|zahlungsbestätigung|zahlungsbeleg|\bbeleg\b|quittung|zahlung gesendet|zahlung erhalten|zahlung erfolgreich|lastschrift|kontoauszug|deine fahrt mit|scooter-fahrt|eats bestellung|online frankierung|\binvoice\b|\breceipt\b/iu.test(subject)) return 'finance'
   if (classification.category==='university' || ['hs-esslingen.de','uni-stuttgart.de'].some(from)) return 'university'
   if (classification.category==='work') return 'work'
   if (classification.category==='volleyball' || /sportveranstaltung|spieltag|veranstaltung|ticket für|event bestätigung/iu.test(subject) ||

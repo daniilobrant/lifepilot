@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.31 · 25. November 2026
+
+- Finanzen: App-Store-Abos (Claude Pro, ChatGPT Plus) sowie Belege von Stripe, Uber, Uber Eats, Bolt, Airbnb, Läden und Post werden erkannt und vollständig gelesen; Ankündigungen und fällige Beiträge bleiben außen vor.
+- Termin- und Aufgabeneditor: aufgeräumtes Raster, Aktionen unten, Zeitblöcke als Liste; „In Mac-Kalender eintragen“ entfernt.
+
 ## v1.0.30 · 25. November 2026
 
 - Projekte: Schritte nach Frist sortiert (früheste oben), Frist rechtsbündig ohne „Checkpoint“, Stift zum Bearbeiten an jedem Schritt und am Projekt; im Editor nur noch ein Fristfeld.

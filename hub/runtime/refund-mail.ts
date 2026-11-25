@@ -35,7 +35,7 @@ function merchantName(from:string){
   const domain=/@([a-z0-9.-]+\.[a-z]{2,})>?\s*$/iu.exec(from)?.[1]?.toLowerCase()??''
   const generic=!display||/@|no-?reply|service|kundenservice|support|info|payments?|team/iu.test(display)
   const base=domain.split('.').slice(-2,-1)[0]??''
-  const name=generic?(base?base[0].toUpperCase()+base.slice(1):''):display.replace(/\.(?:de|com|eu|at|ch|co\.uk|fr|nl|it|es)$/iu,'')
+  const name=generic?(base?base[0].toUpperCase()+base.slice(1):''):display.replace(/\.(?:de|com|eu|at|ch|co\.uk|fr|nl|it|es)$/iu,'').replace(/\s+(?:belege|receipts|rechnung|rechnungen|invoicing|onlineshop|online-shop)$/iu,'')
   return {name:name.slice(0,60),domain}
 }
 
@@ -69,10 +69,10 @@ export const merchantKey=(name:string|undefined)=>(/\p{L}{3,}/u.exec((name??'').
  * Zahlungsbestätigungen von Händlern außerhalb von PayPal, etwa „Zahlung erfolgreich“ (Buchungsportale),
  * „Payment Accepted Notification“ oder zweisprachige Parkbelege. Nur Euro-Beträge werden übernommen.
  */
-const paymentSubject=/zahlung (?:erfolgreich|bestätigt|erhalten|eingegangen|abgeschlossen)|zahlungsbestätigung|zahlungsbeleg|kaufbeleg|quittung|payment (?:accepted|confirmation|confirmed|received|successful|succeeded|receipt)|\breceipt\b/iu
+const paymentSubject=/zahlung (?:erfolgreich|bestätigt|erhalten|eingegangen|abgeschlossen)|zahlungsbestätigung|zahlungsbeleg|kaufbeleg|quittung|payment (?:accepted|confirmation|confirmed|received|successful|succeeded|receipt)|\breceipt\b|\brechnung\b|\binvoice\b|\bbeleg\b|buchungsbestätigung|bestellbestätigung|order confirmation|booking confirmation|kauf bestätigt|vielen dank für (?:deinen|ihren) (?:kauf|einkauf|bestellung)|auftragsbestätigung|deine fahrt mit|(?:e-scooter|e-bike|scooter)-?fahrt|eats bestellung|\bbelege?\b/iu
 const paymentNotYet=/steht an|in kürze|fällig|erinnerung|offen|fehlgeschlagen|abgelehnt|ausstehend|vorab|storniert|pending|failed|declined|\bdue\b|upcoming|reminder|erstattung|rückzahlung|gutschrift|refund/iu
-const paymentDone=/zahlung (?:ist |wurde )?(?:erfolgreich|eingegangen|bestätigt|abgeschlossen)|(?:haben|hat) (?:ihre|deine) zahlung .{0,120}erhalten|insgesamt bezahlt|bezahlt|payment (?:has )?(?:succeeded|was successful|accepted|received|confirmed)|payment receipt|zahlungsbeleg|απόδειξη πληρωμής/iu
-const paidAmount=new RegExp('(?:insgesamt bezahlt|bezahlter betrag|gezahlter betrag|zahlungsbetrag|gesamtbetrag|gesamtkosten|gesamtsumme|gesamt|summe|total paid|amount paid|total|amount|betrag|ποσό)\\s*(?:\\/\\s*amount)?\\s*:?\\s*(?:EUR\\s*|€\\s*)?'+amount+'\\s*(?:€|EUR)?','giu')
+const paymentDone=/zahlung (?:ist |wurde )?(?:erfolgreich|eingegangen|bestätigt|abgeschlossen)|(?:haben|hat) (?:ihre|deine) zahlung .{0,120}erhalten|insgesamt bezahlt|bezahlt|payment (?:has )?(?:succeeded|was successful|accepted|received|confirmed)|payment receipt|zahlungsbeleg|απόδειξη πληρωμής|bezahlt mit|zahlungsart|zahlungsmethode|abgebucht|belastet|(?:visa|mastercard|amex|maestro|girocard|apple pay|google pay|paypal|klarna|sepa)\b[^\n]{0,40}\d+[.,]\d{2}|\bcharged\b|amount charged|payment method|hier ist dein beleg|danke, dass du .{0,30}(?:nutzt|unterwegs bist)|vielen dank für (?:deinen|ihren) einkauf|quittungsnummer/iu
+const paidAmount=new RegExp('(?:insgesamt bezahlt|bezahlter betrag|gezahlter betrag|zahlungsbetrag|gesamtbetrag|gesamtkosten|gesamtsumme|gesamt|summe|total paid|amount paid|total|amount|betrag|ποσό)\\s*(?:\\(eur\\))?\\s*(?:\\/\\s*amount)?\\s*:?\\s*(?:EUR\\s*|€\\s*)?'+amount+'\\s*(?:€|EUR)?','giu')
 export function readMerchantPayment(mail:MailContent){
   if(mail.previewOnly||paypalSender(mail.from))return undefined
   const subject=tidy(mail.subject)
@@ -88,7 +88,7 @@ export function readMerchantPayment(mail:MailContent){
     if(cents)found.add(cents)
   }
   // Mehrere Beträge (Gesamt, Ticketpreis, Steuern): maßgeblich ist der größte ausgewiesene Gesamtwert, wenn er als Gesamt/bezahlt markiert ist.
-  const totals=[...text.matchAll(new RegExp('(?:insgesamt bezahlt|bezahlter betrag|gezahlter betrag|zahlungsbetrag|gesamtbetrag|gesamtkosten|gesamtsumme|gesamt|total paid|amount paid|amount|ποσό)\\s*(?:\\/\\s*amount)?\\s*:?\\s*(?:EUR\\s*|€\\s*)?'+amount+'\\s*(?:€|EUR)?','giu'))]
+  const totals=[...text.matchAll(new RegExp('(?:insgesamt bezahlt|bezahlter betrag|gezahlter betrag|zahlungsbetrag|gesamtbetrag|gesamtkosten|gesamtsumme|gesamt|total paid|amount paid|amount|ποσό)\\s*(?:\\(eur\\))?\\s*(?:\\/\\s*amount)?\\s*:?\\s*(?:EUR\\s*|€\\s*)?'+amount+'\\s*(?:€|EUR)?','giu'))]
     .filter(match=>/€|EUR/iu.test(match[0])).map(match=>toCents(match[1])).filter(Boolean)
   const unique=new Set(totals)
   const cents=unique.size===1?[...unique][0]:found.size===1?[...found][0]:0
@@ -100,7 +100,7 @@ export function readMerchantPayment(mail:MailContent){
   const place=/(?:unterkunft|accommodation)\s+(.{3,60}?)\s+(?:erhalten|received)\b/iu.exec(text)?.[1]??/(?:purchase on|einkauf bei)\s+([\p{L}\d_ .-]{3,50}?)[.,]/iu.exec(text)?.[1]?.replace(/_/gu,' ')
   const route=/([\p{Lu}][\p{L}]+(?: [\p{L}]+)? - [\p{Lu}][\p{L}]+(?: [\p{L}]+)?) ｜/u.exec(text)?.[1]
   const description=(route?'Flug '+route:place)?.slice(0,80)
-  const category=/park|bahn|flug|flight|ticket|taxi|uber|ryanair|eurowings|trip\.com/iu.test(subject+' '+mail.from+' '+(description??''))?'Transport & Mobilität':
+  const category=/eats|lieferando|wolt|restaurant/iu.test(subject+' '+text.slice(0,300))?'Essen & Trinken':/park|bahn|flug|flight|ticket|taxi|uber|ryanair|eurowings|trip\.com|bolt|scooter|fahrt/iu.test(subject+' '+mail.from+' '+(description??''))?'Transport & Mobilität':
     /booking|unterkunft|hotel|airbnb|accommodation|majorelle|museum|eintritt/iu.test(subject+' '+mail.from+' '+text.slice(0,600))?'Freizeit & Kultur':undefined
   return {cents,counterparty,domain,description,reference,category,date:dateInBerlin(new Date(mail.at))}
 }

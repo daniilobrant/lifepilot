@@ -24,3 +24,12 @@ Eine Erstattung ist belegt, wenn der Text die erfolgte Gutschrift mit Gesamtbetr
 Kein Finanzvorschlag entsteht bei angekündigten oder beantragten Erstattungen („Rücksendeanfrage registriert“, „wird geprüft“, „in Bearbeitung“), bei Hinweisen auf eine künftige Abbuchung („wird in Kürze abgebucht“, „Deine Zahlung steht an“), bei Umbuchungen vom PayPal-Konto auf das eigene Bankkonto, bei Gutscheinen, Guthaben-Werbung, Geschenkkarten, Punkteständen und bei Stornierungen ohne Belastung.
 
 Zahlungsbestätigungen von Händlern ohne PayPal ergeben eine Ausgabe mit dem ausgewiesenen Gesamtbetrag („Insgesamt bezahlt“, „Gesamt“, „Amount“), nicht mit Ticketpreis, Steuern oder Gebühren. Kommt dieselbe Zahlung zusätzlich als PayPal-Beleg, ist es ein Vorgang. Beträge in fremder Währung ohne Euro-Betrag bleiben ohne Vorschlag.
+
+## Belege aus dem Postfach (Stichprobe der letzten sechs Monate)
+
+Jede Mail, die eine abgeschlossene Zahlung belegt, wird vollständig gelesen und als Finanzvorschlag angeboten, auch ohne „Rechnung“ im Betreff:
+- App-Store- und Abo-Belege („Deine Rechnung von Apple“, iCloud+, ChatGPT Plus, Claude Pro) → Abo mit Verlängerungsdatum.
+- Zahlungsbelege von Zahlungsdienstleistern (Stripe „Ihr Zahlungsbeleg … von …“, „Betrag: … €“).
+- Fahrten und Lieferungen („Deine Fahrt mit Uber“, „Deine Bolt E-Scooter-Fahrt“, „Uber Eats Bestellung“) → Transport & Mobilität bzw. Essen & Trinken.
+- Quittungen und digitale Belege von Unterkünften, Läden und Post („Deine Quittung von Airbnb“, „Dein digitaler Beleg“, „Deine Online-Quittung“, „Auftragsbestätigung Ihrer Online Frankierung“, „Deine Rechnung von UNIQLO“).
+Kein Vorschlag bei Ankündigungen und Werbung: „Wir werden Ihre Karte bald belasten“, „Beitrag wird fällig“, „Buche jetzt und bezahle später“, Stornierungen, Bonus- oder Coin-Gutschriften, Bank-Newsletter. Rechnungen, deren Betrag nur im PDF-Anhang steht (z. B. Apple-Store-Hardware), bleiben ohne Betrag und werden nicht geraten.
