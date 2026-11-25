@@ -2,7 +2,7 @@ import { createHash, randomUUID } from 'node:crypto'
 import type { MailContent } from '../connectors/google.ts'
 import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
-import { parseClothingMail, type ClothingMail, type ClothingProduct, type OrderProductDraft } from './clothing-mail.ts'
+import { parseClothingMail, shopDomain, type ClothingMail, type ClothingProduct, type OrderProductDraft } from './clothing-mail.ts'
 import { saveWardrobe } from './outfits.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
 import type { TaskPatch } from './workspace.ts'
@@ -26,6 +26,41 @@ const digest=(value:string)=>createHash('sha256').update(value).digest('hex')
 function fingerprint(product:ClothingProduct) {
   return [product.sku || product.draft.name,product.draft.color,product.draft.size].map(value=>value?.toLocaleLowerCase('de-DE')??'').join('|')
 }
+// Dieselbe Bestellung kann über verschiedene Absender desselben Shops kommen. Duplikate werden zusammengeführt,
+// doppelt angelegte Kleiderschrankteile entfernt, sofern sie in keinem gespeicherten Look stecken.
+export function mergeDuplicateOrders(store:Store,account:string) {
+  const rows=store.db.prepare('SELECT id,sender,reference,merchant FROM clothing_orders WHERE account=? ORDER BY ordered_on,rowid').all(account) as {id:string,sender:string,reference:string,merchant:string}[]
+  const groups=new Map<string,typeof rows>()
+  for (const row of rows) {
+    const key=row.reference+'|'+shopDomain(row.sender)
+    groups.set(key,[...(groups.get(key)??[]),row])
+  }
+  let merged=0
+  for (const group of groups.values()) {
+    if (group.length<2) continue
+    const keep=group.find(row=>!/\./u.test(row.merchant)) ?? group[0]
+    const keptNames=new Set(orderItems(store,keep.id).filter(item=>item.wardrobe_id).map(item=>String(JSON.parse(item.details).name).toLowerCase()))
+    for (const duplicate of group.filter(row=>row!==keep)) {
+      for (const item of orderItems(store,duplicate.id)) {
+        if (!item.wardrobe_id || !keptNames.has(String(JSON.parse(item.details).name).toLowerCase())) continue
+        const inLook=store.db.prepare("SELECT 1 FROM outfit_looks, json_each(outfit_looks.result,'$.itemIds') WHERE json_each.value=? LIMIT 1").get(item.wardrobe_id)
+        if (!inLook) store.db.prepare('DELETE FROM wardrobe_items WHERE id=?').run(item.wardrobe_id)
+      }
+      store.db.prepare('DELETE FROM clothing_orders WHERE id=?').run(duplicate.id)
+      merged++
+    }
+    if (/\./u.test(keep.merchant)) store.db.prepare('UPDATE clothing_orders SET merchant=?,sender=? WHERE id=?')
+      .run(shopDomain(keep.sender).split('.')[0].replace(/^./u,letter=>letter.toUpperCase()),shopDomain(keep.sender),keep.id)
+  }
+  // Fotos, die nur über eine zu ungenaue Bildersuche kamen (kein Bild, kein Link, keine Farbe), werden entfernt.
+  store.db.exec(`UPDATE wardrobe_items SET photo=NULL,mime=NULL,photo_origin=NULL WHERE photo IS NOT NULL AND photo_origin='web' AND coalesce(source,'')=''
+    AND id IN (SELECT wardrobe_id FROM clothing_order_items WHERE coalesce(image_url,'')='' AND coalesce(json_extract(details,'$.source'),'')=''
+      AND coalesce(json_extract(details,'$.color'),'')='' AND wardrobe_id IS NOT NULL)`)
+  store.db.exec(`UPDATE clothing_order_items SET product_photo=NULL,image_checked=1 WHERE product_photo IS NOT NULL AND coalesce(image_url,'')=''
+    AND coalesce(json_extract(details,'$.source'),'')='' AND coalesce(json_extract(details,'$.color'),'')='' AND coalesce(json_extract(details,'$.isClothing'),1)<>0`)
+  return merged
+}
+
 function orderItems(store:Store,key:string) {
   return store.db.prepare('SELECT * FROM clothing_order_items WHERE order_id=? ORDER BY rowid').all(key) as ItemRow[]
 }
@@ -213,9 +248,10 @@ export function scanClothingOrders(store:Store, mails:MailContent[], account:str
       const event=mail.clothing ?? parseClothingMail(mail)
       return event?[{event,id:mail.id}]:[]
     }).sort((a,b)=>['order','shipping','delivery','return','refund','cancel'].indexOf(a.event.kind)-['order','shipping','delivery','return','refund','cancel'].indexOf(b.event.kind))
+    mergeDuplicateOrders(store,account)
     for (const {event,id} of relevant) {
-      let current=store.db.prepare('SELECT * FROM clothing_orders WHERE account=? AND sender=? AND reference=?')
-        .get(account,event.sender,event.reference) as OrderRow|undefined
+      let current=(store.db.prepare('SELECT * FROM clothing_orders WHERE account=? AND reference=?').all(account,event.reference) as OrderRow[])
+        .find(row=>shopDomain(row.sender)===shopDomain(event.sender))
       if (!current && event.kind==='delivery' && event.tracking) {
         const shipment=shipmentInfo(store,account,event.tracking)
         if (shipment) current=loadOrder(store,shipment.order_id)
@@ -224,6 +260,22 @@ export function scanClothingOrders(store:Store, mails:MailContent[], account:str
         if (current){
           store.db.prepare('UPDATE clothing_orders SET total_cents=coalesce(total_cents,?),shipped_on=coalesce(shipped_on,?),estimated_on=coalesce(estimated_on,?) WHERE id=?')
             .run(event.totalCents??null,event.shipped??null,event.estimated??null,current.id)
+          // Fehlende Artikel aus der Bestellbestätigung nachtragen (etwa nach verbessertem Auslesen).
+          if (!current.cancelled_on) {
+            const existing=new Map<string,number>()
+            for (const item of orderItems(store,current.id)) {const base=item.item_key.replace(/#\d+$/u,'');existing.set(base,(existing.get(base)??0)+1)}
+            const seen=new Map<string,number>()
+            for (const product of event.items.flatMap(product=>Array.from({length:product.quantity},()=>product)).slice(0,30)) {
+              const key=fingerprint(product)
+              const occurrence=(seen.get(key)??0)+1
+              seen.set(key,occurrence)
+              if (occurrence<=(existing.get(key)??0)) continue
+              const wardrobe=product.draft.isClothing!==false ? saveWardrobe(store,product.draft) : undefined
+              store.db.prepare(`INSERT OR IGNORE INTO clothing_order_items (id,order_id,item_key,wardrobe_id,details,image_url) VALUES (?,?,?,?,?,?)`)
+                .run(randomUUID(),current.id,key+'#'+occurrence,wardrobe?.id??null,JSON.stringify(product.draft),product.image)
+              changes++
+            }
+          }
           continue
         }
         if (Number(store.db.prepare('SELECT count(*) AS n FROM clothing_orders').get()?.n)>=300) continue
@@ -301,7 +353,7 @@ export function clothingPhotoTargets(store:Store,id:string) {
   return orderItems(store,id).filter(item=>!item.image_checked)
     .map(item=>{
       const draft=JSON.parse(item.details) as OrderProductDraft
-      return {id:item.id,wardrobe:item.decision!=='returned' && !order.cancelled_on ? item.wardrobe_id : null,image:item.image_url,source:draft.source,draft,merchant:order.merchant,
+      return {id:item.id,shop:shopDomain(order.sender),wardrobe:item.decision!=='returned' && !order.cancelled_on ? item.wardrobe_id : null,image:item.image_url,source:draft.source,draft,merchant:order.merchant,
         sku:item.item_key.split('|')[0]}
     }).filter(item=>hasOrderPhotoSource(item.draft,item.image,item.merchant))
 }

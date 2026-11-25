@@ -30,3 +30,38 @@ test('Amazon orders track every item with its mail photo and only clothing reach
     assert.ok(!outfitOverview(store).wardrobe.some(item=>/Ladegerät/u.test(item.name)))
   }finally{store.db.close()}
 })
+
+test('Amazon prices with one decimal, tech sleeves and items missing from an existing order are handled',()=>{
+  const longName='Beispiel 13,3 Zoll Laptop Tasche Hülle für Notebook, wasserdichte Schutzhülle mit vielen weiteren Angaben '.repeat(2).trim()
+  const full={...mail,id:'full',text:'Bestellnr.\n123-4567890-1234567\n* Beispiel Herren Boxershorts 3er Pack\n  Menge: 1\n  21.47 EUR\n* '+longName+'\n  Menge: 1\n  15.9 EUR\n* Beispiel Herren Boxershorts Trunks 3er Pack, Schwarz\n  Menge: 1\n  24.9 EUR\nSumme'}
+  const parsed=parseClothingMail(full,'')!
+  assert.equal(parsed.items.length,3)
+  assert.equal(parsed.items.find(item=>/Laptop/u.test(item.draft.name))!.draft.isClothing,false)
+  assert.equal(parsed.items.find(item=>/Trunks/u.test(item.draft.name))!.draft.cents,2490)
+  const store=new Store(':memory:')
+  try{
+    const first=parseClothingMail({...mail,text:'Bestellnr.\n123-4567890-1234567\n* Beispiel Herren Boxershorts 3er Pack\n  Menge: 1\n  21.47 EUR\nSumme'},'')!
+    scanClothingOrders(store,[{...mail,id:'one',clothing:first}],'account')
+    scanClothingOrders(store,[{...full,clothing:parsed}],'account')
+    const order=clothingOrders(store).find(row=>row.merchant==='Amazon')!
+    assert.equal(order.items.length,3)
+    assert.equal(Number(store.db.prepare('SELECT count(*) AS n FROM wardrobe_items').get()?.n),2)
+  }finally{store.db.close()}
+})
+
+test('The same order from two senders of one shop is merged and keeps a single wardrobe piece',()=>{
+  const store=new Store(':memory:')
+  try{
+    const event=(sender:string,merchant:string)=>({reference:'7915991',sender,merchant,kind:'order' as const,tracking:'',partial:false,day:'2026-11-11',deadline:null,
+      items:[{sku:'',quantity:1,image:'',draft:{name:'Beispiel Wide Jeans',category:'bottom' as const,isClothing:true,color:'',material:'',fit:'',season:'',tags:'',source:''}}]})
+    const base={subject:'Deine Bestellbestätigung',text:'',at:'2026-11-11T10:00:00Z',dates:[],truncated:false}
+    scanClothingOrders(store,[{...base,id:'a',from:'Shop <noreply@weekday.com>',clothing:event('weekday.com','Weekday')}],'account')
+    store.db.prepare('INSERT INTO clothing_orders (id,account,sender,reference,merchant,ordered_on) VALUES (?,?,?,?,?,?)').run('dup','account','mail2.weekday.com','7915991','mail2.weekday.com','2026-11-11')
+    const wardrobe=store.db.prepare("INSERT INTO wardrobe_items (id,name,category,color,material,fit,season,tags,source) VALUES ('w2','Beispiel Wide Jeans','bottom','','','','','','') RETURNING id").get()
+    store.db.prepare("INSERT INTO clothing_order_items (id,order_id,item_key,wardrobe_id,details,image_url) VALUES ('i2','dup','x#1',?,?,'')")
+      .run(wardrobe!.id,JSON.stringify({name:'Beispiel Wide Jeans',category:'bottom'}))
+    scanClothingOrders(store,[],'account')
+    assert.equal(clothingOrders(store).filter(row=>row.reference==='7915991').length,1)
+    assert.equal(Number(store.db.prepare("SELECT count(*) AS n FROM wardrobe_items WHERE name='Beispiel Wide Jeans'").get()?.n),1)
+  }finally{store.db.close()}
+})

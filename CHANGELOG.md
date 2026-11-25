@@ -2,6 +2,13 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.20 · 25. November 2026
+
+- Bestelltracker: Amazon-Bestellungen erkennen alle Artikel, auch bei Preisen mit einer Nachkommastelle und sehr langen Namen. Fehlende Artikel werden bei bestehenden Bestellungen nachgetragen.
+- Technik und Gerätezubehör (etwa Laptophüllen, Ladegeräte) kommen nicht in den Kleiderschrank.
+- Dieselbe Bestellung von verschiedenen Absendern eines Shops (etwa mail2.weekday.com und weekday.com) wird zusammengeführt, doppelt angelegte Kleiderschrankteile werden entfernt.
+- Kleidung bekommt nur Bilder aus der Bestellmail, vom Produktlink oder aus einer Shop-Suche mit passender Farbe. Unsicher geratene Bilder werden entfernt.
+
 ## v1.0.19 · 25. November 2026
 
 - Urlaubsplaner: Tipps und Tagesabschnitte (höchstens sechs Tage) entstehen parallel in kleinen Anfragen. Lange Reisen laufen so nicht mehr ins Zeitlimit.

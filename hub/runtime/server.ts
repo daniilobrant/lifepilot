@@ -134,9 +134,14 @@ async function loadClothingPhotos(order:string) {
         }
       }
       // Kein Bild in der Mail und keine Produktseite: Bildersuche über Produktname bzw. -nummer.
-      if(!image && Date.now()<deadline) {
-        const query=[target.draft.brand,target.draft.name.slice(0,110),target.sku&&/\d{5,}/u.test(target.sku)?target.sku:'',target.merchant].filter(Boolean).join(' ')
-        const hits=await searchProductImages(query).catch(()=>[])
+      // Kleidung nur mit bekannter Farbe und Treffer vom Shop, dessen Titel die Farbe nennt (richtiger Colorway).
+      // Andere Artikel (etwa Technik) dürfen über Name bzw. Produktnummer gesucht werden.
+      const clothing=target.draft.isClothing!==false
+      if(!image && Date.now()<deadline && (!clothing || target.draft.color)) {
+        const query=[target.draft.brand,target.draft.name.slice(0,110),target.draft.color,target.sku&&/\d{5,}/u.test(target.sku)?target.sku:'',target.merchant].filter(Boolean).join(' ')
+        const color=target.draft.color.toLocaleLowerCase('de-DE')
+        const hits=(await searchProductImages(query).catch(()=>[])).filter(hit=>!clothing ||
+          new URL(hit.source).hostname.endsWith(target.shop) && hit.name.toLocaleLowerCase('de-DE').includes(color))
         if(hits.length) image=await prepareProductImage(hits.slice(0,4).map(hit=>hit.image),deadline,true,true)
       }
       const saved=store.transaction(()=>{
