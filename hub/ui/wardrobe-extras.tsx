@@ -1,7 +1,7 @@
 import { useEffect, useEffectEvent, useRef, useState, type ReactNode } from 'react'
 import { fragranceProfiles, fragranceOccasions, fragranceSeasons, fragranceTimes, saleConditions,
   type Fragrance, type FragranceDraft, type ResaleDraft } from '../runtime/wardrobe-extras-types.ts'
-import { outfitDayparts, type OutfitDaypart, type Outfit, type OutfitChoice, type WardrobeItem } from '../runtime/outfit-types.ts'
+import { outfitSlot, outfitSlotOrder, outfitSlots, outfitDayparts, type OutfitDaypart, type Outfit, type OutfitChoice, type WardrobeItem } from '../runtime/outfit-types.ts'
 import type { TripSummary } from '../runtime/trip-types.ts'
 
 type Api=<T>(path:string,payload?:object,timeout?:number)=>Promise<T>
@@ -364,8 +364,7 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
   },[api,selected])
   const trip=trips?.find(row=>row.id===selected)
   const requested=wardrobe.find(item=>item.id===requestedItem)
-  const selectable=wardrobe.filter(item=>!item.orderState&&!item.saleState&&item.id!==pendingItem)
-  if(requestedItem)selectable.sort((first,second)=>Number(second.id===requestedItem)-Number(first.id===requestedItem))
+  const packed=wardrobe.filter(item=>picked.includes(item.id) && !item.saleState && !item.orderState)
   function finishAddition(items:string[]) {
     setPicked(items);setPendingItem(undefined)
     setNotice(requested ? `„${requested.name}“ ist auf der Urlaubspackliste.` : 'Kleidungsstück zur Urlaubspackliste hinzugefügt.')
@@ -377,12 +376,14 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
       finishAddition(await api<string[]>('/outfits/travel',{tripId:trip.id,item:pendingItem,confirm:true}))
     } catch(error) {setError(errorMessage(error))} finally {setBusy(false)}
   }
-  async function perform(generate:boolean) {
+  async function perform(removeItem?:string) {
     if (!trip) return
     setBusy(true);setError('')
     try {
-      await api('/outfits/travel',{tripId:trip.id,items:picked,confirm:true})
-      if (generate) {
+      if (removeItem) {
+        setPicked(await api<string[]>('/outfits/travel',{tripId:trip.id,removeItem,confirm:true}))
+        setLook(undefined);setNotice('')
+      } else {
         setLook(await api<OutfitChoice>('/outfits/generate',{query:{
         tripId:trip.id,required:[],mode:occasion.trim()?'occasion':'inspiration',occasion:occasion.trim(),daypart,
         date:trip.start,variant,
@@ -415,18 +416,20 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
       {pendingItem ? <div className="outfit-actions">
         <button type="button" className="outfit-primary" disabled={busy} onClick={()=>void addPendingItem()}>Zur Packliste hinzufügen</button>
       </div> : null}
-      <fieldset disabled={busy || Boolean(pendingItem)}><legend>Kleidungsstücke einpacken</legend><div className="outfit-wardrobe-grid travel-wardrobe-grid">
-        {selectable.map(item=><div className="travel-piece" key={item.id}>{renderPiece(item)}
-          <label className="outfit-check"><input type="checkbox" checked={picked.includes(item.id)} aria-label={item.name+' einpacken'}
-            onChange={()=>{setLook(undefined);setPicked(current=>current.includes(item.id)?current.filter(id=>id!==item.id):current.length<80?[...current,item.id]:current)}}/>
-            Einpacken</label></div>)}
-      </div></fieldset>
+      {packed.length===0 ? <p>Noch nichts eingepackt. Wähle im Kleiderschrank am Teil „Für eine Reise einpacken“.</p> : null}
+      {outfitSlotOrder.map(slot=>{
+        const items=packed.filter(item=>outfitSlot(item)===slot)
+        return items.length ? <section key={slot} className="wardrobe-section"><h3>{outfitSlots[slot]}</h3>
+          <div className="outfit-wardrobe-grid travel-wardrobe-grid">{items.map(item=><div className="travel-piece" key={item.id}>
+            {renderPiece(item)}<button type="button" disabled={busy || Boolean(pendingItem)} aria-label={item.name+' auspacken'} onClick={()=>void perform(item.id)}>Auspacken</button>
+          </div>)}</div></section> : null
+      })}
       <div className="outfit-form-grid"><label>Anlass<input maxLength={110} value={occasion} onChange={event=>setOccasion(event.target.value)}/></label>
         <label>Tageszeit<select value={daypart??''} onChange={event=>setDaypart(event.target.value as OutfitDaypart || undefined)}>
           <option value="">Egal</option>{outfitDayparts.map(part=><option key={part}>{part}</option>)}
         </select></label></div>
-      <div className="outfit-actions"><button type="button" disabled={busy || Boolean(pendingItem)} onClick={()=>void perform(false)}>Auswahl speichern</button>
-        <button type="button" className="outfit-primary" disabled={busy || Boolean(pendingItem) || !picked.length} onClick={()=>void perform(true)}>Urlaubsoutfit erstellen</button></div>
+      <div className="outfit-actions">
+        <button type="button" className="outfit-primary" disabled={busy || Boolean(pendingItem) || !packed.length} onClick={()=>void perform()}>Urlaubsoutfit erstellen</button></div>
       {look?renderOutfit(look.look):null}
     </>:null}
   </section>

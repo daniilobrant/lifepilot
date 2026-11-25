@@ -89,10 +89,12 @@ function stageOutfitPhoto(photo: Buffer, origin:'own'|'web'='own',fragranceSourc
 }
 async function prepareProductImage(images:string[], deadline:number, useCurl=false, allowRetailerPhoto=false) {
   let retailerPhoto:Awaited<ReturnType<typeof analyzeOutfitPhoto>>|undefined
-  for (const address of images.slice(0,5)) {
+  const imageRank=(url:string)=> /packshot|flatlay|freisteller|still[-_]?life/iu.test(url)?0:
+    /on[-_]?model|lifestyle|detail|close[-_]?up/iu.test(url)?2:1
+  for (const address of [...new Set(images)].sort((a,b)=>imageRank(a)-imageRank(b)).slice(0,5)) {
     if (Date.now()>=deadline) break
     try {
-      const result = await analyzeOutfitPhoto(await importProductPhoto(address,useCurl))
+      const result = await analyzeOutfitPhoto(await importProductPhoto(address,useCurl),true)
       if (result.personFree) return result
       if (allowRetailerPhoto) retailerPhoto ??= result
     } catch (error) {
@@ -763,9 +765,16 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path==='/api/outfits/travel' && method==='GET') return reply(res,200,travelWardrobe(store,id(url.searchParams.get('trip'))))
   if (path==='/api/outfits/travel' && method==='POST') {
-    const {tripId,items,item,confirm}=await body(req,['tripId','items','item','confirm'])
+    const {tripId,items,item,removeItem,confirm}=await body(req,['tripId','items','item','removeItem','confirm'])
     confirmLocalChange(confirm)
     const tripKey=id(tripId)
+    if (removeItem!==undefined) {
+      if (item!==undefined || items!==undefined) throw new Problem(400,'Wähle ein Teil zum Auspacken.')
+      return reply(res,200,store.transaction(()=>{
+        store.db.prepare('DELETE FROM wardrobe_travel WHERE trip_id=? AND wardrobe_id=?').run(tripKey,id(removeItem))
+        return travelWardrobe(store,tripKey)
+      }))
+    }
     if (item!==undefined && items===undefined) {
       return reply(res,200,store.transaction(()=>addTravelWardrobeItem(store,tripKey,id(item))))
     }
@@ -1011,7 +1020,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       let note = product.name ? '' : 'Die Produktseite liefert keine Angaben. Ergänze den Namen im Formular.'
       const waitingForColor = product.colors.length>1 && !('color' in product.draft && product.draft.color)
       if (prepareImage && !waitingForColor && product.name) {
-        const image = await prepareProductImage(product.images,Date.now()+17_000,false,true)
+        const image = await prepareProductImage(product.images,Date.now()+17_000,true,true)
         if (image) return reply(res,200,{...product,draft:productWardrobeFields(product.name,product.description,'',product.draft,image.draft.color),
           photoToken:stageOutfitPhoto(image.photo,'web'),note})
         note = 'Für diese Auswahl ließ sich kein Produktbild laden.'

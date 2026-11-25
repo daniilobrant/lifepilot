@@ -4,7 +4,7 @@ import { Resolver } from 'node:dns/promises'
 import { request } from 'node:https'
 import { isIP } from 'node:net'
 import type { IncomingMessage } from 'node:http'
-import { productWardrobeFields, textProductColor } from '../runtime/outfit-fields.ts'
+import { outfitGarment, productWardrobeFields, textProductColor } from '../runtime/outfit-fields.ts'
 import { Problem } from '../runtime/settings.ts'
 
 const execute = promisify(execFile)
@@ -35,8 +35,8 @@ export async function uploadOutfitPhoto(req: IncomingMessage, limit = photoLimit
   return Buffer.concat(parts)
 }
 
-export function productAddress(raw: unknown) {
-  if (typeof raw !== 'string' || raw.length > 1500) throw new Problem(400,'Gib eine öffentliche HTTPS-Produktadresse ein.')
+export function productAddress(raw: unknown, maxLength=1500) {
+  if (typeof raw !== 'string' || raw.length > maxLength) throw new Problem(400,'Gib eine öffentliche HTTPS-Produktadresse ein.')
   const invalid = () => new Problem(400,'Gib eine öffentliche HTTPS-Produktadresse ein.')
   let url: URL
   try { url = new URL(raw) } catch { throw invalid() }
@@ -287,17 +287,40 @@ export async function publicRecipeHtml(address:string){
   return {html:result.bytes.toString('utf8'),url:result.address}
 }
 
+function linkedProduct(url:URL) {
+  const parts=url.pathname.split('/').reverse()
+  let name=''
+  for (const part of parts) {
+    let words:string
+    try { words=decodeURIComponent(part).replace(/\.html?$/iu,'').replace(/[-_]+/gu,' ').trim() } catch { continue }
+    if (words.includes(' ') && outfitGarment(words)) {
+      name=words.slice(0,120).replace(/\b\p{L}/gu,letter=>letter.toLocaleUpperCase('de'))
+      break
+    }
+  }
+  const sku=/^\/(?:[^/]+\/)*p\/(\d{8})\/?$/u.exec(url.pathname)?.[1]
+  const martens=Boolean(sku && /^(?:www\.)?drmartens\.com$/u.test(url.hostname))
+  const images=martens ? [`https://cdn.media.amplience.net/i/drmartens/NX_${sku}.80?fmt=jpg&w=800`] : []
+  const brand=martens?'Dr. Martens':''
+  return { name, image:images[0]??null, images, colors:[], sizes:[], description:'', fragranceNotes:'', brand,
+    structured:false, source:url.href, draft:productWardrobeFields(name,'','',{source:url.href,...(brand&&{brand})}) }
+}
+
 export async function inspectProduct(raw: unknown, color?:string,useCurl=false) {
-  const url = productAddress(raw)
+  const url = productAddress(raw,8192)
+  for (const key of [...url.searchParams.keys()]) {
+    if (/^(?:utm_|gclid$|gbraid$|wbraid$|gad_|fbclid$|msclkid$|srsltid$)/iu.test(key)) url.searchParams.delete(key)
+  }
   if (url.href.length > 500) throw new Problem(400,'Der Produktlink ist zu lang.')
   try {
     const result = await boundedDownload(url,3*1024*1024,/^text\/html\b/iu,true,useCurl)
     const metadata = completeProductMetadata(result.bytes.toString('utf8'),result.address,color,url)
     if (color && !metadata.colors.includes(color)) throw new Problem(400,'Diese Farbvariante konnte nicht bestätigt werden.')
+    if (!metadata.structured && (!metadata.name || /access denied|just a moment|zugriff verweigert|captcha/iu.test(metadata.name))) return linkedProduct(url)
     return { ...metadata, source:url.href, draft:{...metadata.draft,source:url.href} }
   } catch (error) {
     if (error instanceof Problem) throw error
-    return { name:'', image:null, images:[], colors:[], sizes:[], description:'', fragranceNotes:'', brand:'', structured:false, source:url.href, draft:{source:url.href} }
+    return linkedProduct(url)
   }
 }
 

@@ -415,7 +415,7 @@ function WardrobeEditor({ api, item, profile, onDone, onCancel, cloudImages }: {
             if (selected.length>40) {setFailed(true);setFeedback('Wähle höchstens 40 Bilder pro Import.');return}
             setFiles(selected);selectPhoto(0)
           }} /></label> : mode==='link' ?
-          <label>Produktlink<input type="url" autoFocus required maxLength={500} placeholder="https://" value={address}
+          <label>Produktlink<input type="url" autoFocus required maxLength={8192} placeholder="https://" value={address}
             onChange={event=>setAddress(event.target.value)} /></label> : null}
         {mode==='basic' ? <>
           <div className="outfit-actions wardrobe-name-search">
@@ -649,7 +649,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
         <WardrobeMenu title={productDisplayName(item.name)}>
           <button type="button" onClick={()=>setEditor(item)}>Bearbeiten</button>
           <button type="button" disabled={busy || Boolean(item.orderState || item.saleState)}
-            onClick={()=>{setPackingItem(item.id);setTab('Urlaubsgarderobe')}}>Zur Urlaubspackliste hinzufügen</button>
+            onClick={()=>{setPackingItem(item.id);setTab('Urlaubsgarderobe')}}>Für eine Reise einpacken</button>
           <button type="button" disabled={busy || Boolean(item.orderState)} onClick={()=>void perform(async()=>{
             await api('/outfits/resale',{item:item.id,action:'start',confirm:true})
             await reload();setResaleItem(item);setTab('Verkaufen')
