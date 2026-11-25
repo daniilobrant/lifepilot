@@ -1025,7 +1025,6 @@ function App() {
   const [taskId, setTaskId] = useState<string | null>(null)
   const taskDialog = useRef<HTMLDialogElement>(null)
   useEffect(() => { taskDialog.current?.showModal() }, [taskId])
-  const [pageSearch, setPageSearch] = useState('')
   const [synthetic, setSynthetic] = useState(false)
   const [input, setInput] = useState('')
   const [doc, setDoc] = useState<SourceNote>()
@@ -1591,11 +1590,8 @@ function App() {
     if(name!=='Projekte')setProjectSelection(undefined)
     if (name === 'Outfit-Assistent') setOutfitRequest(undefined)
     if (name === 'Urlaubsplaner') setTravelRequest(undefined)
-    setPageSearch('')
     setPage(name)
   }
-  const searchResults = pageSearch.trim() ? [...navigation.flatMap(group => group.links.map(([name]) => name)),
-    'Einstellungen'].filter(name => name.toLocaleLowerCase('de').includes(pageSearch.trim().toLocaleLowerCase('de'))) as Page[] : []
 
   return <div className="shell">
     {calendarApproval?<CalendarConflictDialog confirmation={calendarApproval.confirmation} busy={busy}
@@ -1620,19 +1616,6 @@ function App() {
     </nav>
     <main id="main-content" tabIndex={-1}>
       <header className="topbar">
-        <form className="navigation-search" role="search" onSubmit={event => {
-          event.preventDefault()
-          if (searchResults.length) navigate(searchResults[0]!)
-        }}>
-          <Icon name="search" /><input type="search" aria-label="Bereich suchen" placeholder="Suchen …" value={pageSearch}
-            onChange={event => setPageSearch(event.target.value)} onKeyDown={event => {
-              if (event.key === 'Escape') setPageSearch('')
-            }} />
-          {pageSearch.trim() ? <div className="search-results card">
-            {searchResults.length ? searchResults.map(name => <button key={name} type="button" className="quiet"
-              onClick={() => navigate(name)}>{name}</button>) : <p>Kein Bereich gefunden.</p>}
-          </div> : null}
-        </form>
         <a className="layout-jump" href="#agent-chat"><Icon name="chat" />Zu Pilot</a>
       </header>
       <div className="main-content">

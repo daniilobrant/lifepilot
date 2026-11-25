@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.29 · 25. November 2026
+
+- Vorrat & Einkauf: nur noch die Einheiten Stück, g, kg, ml und l; EL, TL, Dose, Packung, Bund, Zehe und Scheibe werden in Rezepten und Vorrat umgerechnet.
+- Artikel bearbeiten: kompakte Zeile ohne Notizfeld.
+- Globale Suchleiste oben entfernt.
+
 ## v1.0.28 · 25. November 2026
 
 - Kleiderschrank: Boxershorts mit „Shorts“ im Namen gelten als Unterwäsche; das Aufräumen erkennt Unterwäsche am Produktnamen.

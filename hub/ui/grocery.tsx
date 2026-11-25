@@ -161,15 +161,15 @@ function QuantityField({name,initial,label='Menge'}:{name:string,initial?:string
   const [text,setText]=useState(free || parsed.rest ? initial??'' : '')
   useEffect(()=>{if(!initial)setUnit(defaultUnit(name))},[name,initial])
   const value=text || formatQuantity(amount,unit)
-  return <div className="grocery-quantity"><span>{label}</span>
+  return <div className="grocery-quantity" role="group" aria-label={label}><span>{label}</span><div className="grocery-quantity-inputs">
     <input type="hidden" name="quantity" value={value}/>
     {text ? <input aria-label={label} maxLength={50} value={text} onChange={event=>setText(event.target.value)}/> : <>
-      <input aria-label={label+' (Zahl)'} inputMode="decimal" maxLength={8} placeholder="Optional" value={amount}
+      <input aria-label={label+' (Zahl)'} inputMode="decimal" maxLength={8} placeholder="–" value={amount}
         onChange={event=>setAmount(event.target.value.replace(/[^\d.,½¼¾]/gu,''))}/>
       <select aria-label="Einheit" value={unit} onChange={event=>setUnit(event.target.value)}>
         <option value="">–</option>{groceryUnits.map(entry=><option key={entry}>{entry}</option>)}</select>
     </>}
-  </div>
+  </div></div>
 }
 
 function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:GroceryInput)=>Promise<void>,
@@ -191,7 +191,7 @@ function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:Gro
     })
   }
   return <form className="card settings grocery-edit" onSubmit={submit}><h2>{item?'Artikel bearbeiten':'Artikel hinzufügen'}</h2>
-    <div className="grocery-fields">
+    <div className={"grocery-fields grocery-row"+(stock?" grocery-row-stock":"")}>
       <label>Name <input name="name" required maxLength={90} autoFocus defaultValue={draft?.name}/></label>
       <QuantityField key={draft?.name??'neu'} name={draft?.name??''} initial={draft?.quantity}/>
       <label>Kategorie <select name="category" defaultValue={draft?.category??''}><option value="">Automatisch</option>
@@ -201,8 +201,8 @@ function EditItem({editor,save,cancel,remove,busy}:{editor:Editor,save:(item:Gro
         <label>Bestand <select name="status" defaultValue={details?.status??'stocked'}>
           {Object.entries(stockStates).map(([id,label])=><option key={id} value={id}>{label}</option>)}</select></label>
         </>}
-      <label>Ablaufdatum / MHD <DateInput name="expiry"  defaultValue={draft?.expiry??''}/></label>
-      <label>Notiz <input name="note" maxLength={120} defaultValue={draft?.note}/></label>
+      <label>MHD (optional) <DateInput name="expiry"  defaultValue={draft?.expiry??''}/></label>
+      <input type="hidden" name="note" value={draft?.note??''}/>
     </div>
     <div className="actions"><button type="submit" className="primary" disabled={busy}>Speichern</button>
       <button type="button" onClick={cancel}>Abbrechen</button>

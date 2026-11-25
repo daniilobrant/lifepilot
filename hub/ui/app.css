@@ -1783,6 +1783,20 @@ input[type=file]::file-selector-button {
 .resale-note { color: var(--muted); font-size: .76rem; }
 .resale-remove { color: var(--error); }
 
-.grocery-quantity { display: grid; grid-template-columns: minmax(0, 1fr) minmax(92px, auto); gap: 6px; align-items: end; }
-.grocery-quantity > span { grid-column: 1 / -1; font-size: .9rem; }
-.grocery-quantity input, .grocery-quantity select { min-height: 42px; }
+.grocery-quantity { display: grid; gap: 4px; align-content: start; }
+.grocery-quantity-inputs { display: grid; grid-template-columns: minmax(0, 1fr) 74px; gap: 6px; }
+/* Artikel bearbeiten: eine Zeile, gleiche Höhe, gleiche Schrift */
+.grocery-edit { padding: 16px 18px; }
+.grocery-edit h2 { font-size: 1rem; margin: 0 0 10px; }
+.grocery-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 1fr); gap: 10px; align-items: start; }
+.grocery-row.grocery-row-stock { grid-template-columns: minmax(0, 1.3fr) minmax(0, 1.2fr) repeat(4, minmax(0, 1fr)); }
+.grocery-row > label, .grocery-row .grocery-quantity { display: grid; gap: 4px; margin: 0; font-size: .8rem; font-weight: 500; color: var(--muted); }
+.grocery-row .grocery-quantity > span { font-size: .8rem; font-weight: 500; color: var(--muted); }
+.grocery-row input, .grocery-row select { box-sizing: border-box; width: 100%; height: 38px; min-height: 38px; margin: 0; padding: 0 10px; font: inherit; font-size: .9rem; color: var(--ink); line-height: 38px; }
+.grocery-edit .actions { display: flex; justify-content: flex-end; gap: 8px; }
+.grocery-edit .actions button { height: 36px; min-height: 36px; padding: 0 14px; font-size: .88rem; }
+@media (max-width: 900px) { .grocery-row, .grocery-row.grocery-row-stock { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Ohne globale Suchleiste: die Kopfzeile erscheint nur noch für den Sprung zu Pilot auf schmalen Bildschirmen. */
+.topbar { display: none; }
+@media (max-width: 720px) { .topbar { display: flex; height: auto; min-height: 0; padding-block: 10px 0; justify-content: flex-end; } }

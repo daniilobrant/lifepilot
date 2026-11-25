@@ -114,7 +114,7 @@ test('Recipe choices are independent, scale ingredients and preserve the decisio
     const saveOnly=propose()
     assert.equal(store.decideRecipe(saveOnly,0,{save:true,shop:false,servings:1},'ui')?.save,true)
     assert.deepEqual(listRecipes(store).map(recipe=>[recipe.servings,recipe.ingredientChecks,recipe.ingredients[1].quantity]),
-      [[1,[true,false],'0,75 EL']])
+      [[1,[true,false],'11 ml']])
     assert.equal(groceryOverview(store).shopping.length,0)
     const shopOnly=propose()
     assert.equal(store.decideRecipe(shopOnly,0,{save:false,shop:true,servings:3},'ui')?.added,2)
