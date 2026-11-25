@@ -113,7 +113,7 @@ export function recommendFragrance(fragrances:Fragrance[],context:{occasion?:str
 const conditionShare:Record<string,number>={'Neu mit Etikett':.6,'Neu ohne Etikett':.5,'Sehr gut':.4,'Gut':.3,'Mit Gebrauchsspuren':.18}
 const classFactor:Record<string,number>={'Basic / Fast Fashion':.8,'Marke':1,'Premium / Designer':1.2,'Sneaker / Sammlerstück':1.35,'Vintage':1.1}
 const fastFashion=/\b(?:h&m|zara|bershka|asos|primark|shein|pull ?& ?bear|topman|stradivarius|c&a|new yorker|reserved|uniqlo|weekday|mango|only|jack ?& ?jones)\b/iu
-const premium=/\b(?:arc'?teryx|patagonia|ralph lauren|stone island|carhartt wip|acne|cos|arket|dr\.? martens|tommy hilfiger|hugo boss|calvin klein|the north face|moncler|canada goose|filling pieces|our legacy)\b/iu
+const premium=/\b(?:arc.?teryx|patagonia|ralph lauren|stone island|carhartt wip|acne|cos|arket|dr\.? martens|tommy hilfiger|hugo boss|calvin klein|the north face|moncler|canada goose|filling pieces|our legacy)\b/iu
 const collectible=/\b(?:jordan|yeezy|dunk|new balance 99\d|asics gel|salomon xt)\b/iu
 export function guessPriceClass(name:string,brand:string,category:string) {
   const text=brand+' '+name
