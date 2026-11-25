@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.13 · 25. November 2026
+
+- Das gemeinsame Antwortschema erlaubt für optionale Rezeptfelder `null`, weil der Modellanbieter für jedes Feld einen Schlüssel verlangt. Der Adapter entfernt die Nullwerte vor der internen Validierung.
+- Lehnt der Anbieter das Antwortformat ab, zeigt LifePilot eine eindeutige Fehlermeldung.
+- Der Kochassistent erkennt zusätzlich Anfragen wie „aus meinen Zutaten“.
+
 ## v1.0.11 · 25. November 2026
 
 Die CLI verwendet einen privaten Unix-Socket und prüft die lokalen Schlüsseldateien. Die HTTP- und Rollenprüfungen laufen auch in der Pull-Request-Pipeline. Die Oberfläche erklärt den lokalen Google-Verbindungsabbau.

@@ -26,7 +26,7 @@ const mixed=/\b(?:pesto|fertig\w*|wurzmischung|bruhe\w*|bruhwurfel|fond|sosse|sa
 
 export function recipeRequest(input:string) {
   return /\b(?:koch\w*|rezepte?\w*|gericht\w*|essen)\b/iu.test(input) &&
-    /\b(?:vorrat\w*|kuhlschrank|zutaten\s+da|was\s+kann\s+ich\s+kochen)\b/u.test(grocerySearchKey(input))
+    /\b(?:vorrat\w*|kuhlschrank|zutaten\s+da|aus\s+mein\w*\s+zutaten|was\s+kann\s+ich\s+kochen)\b/u.test(grocerySearchKey(input))
 }
 export function localRecipePreference(input:string):RecipePreference {
   const clean=grocerySearchKey(input)

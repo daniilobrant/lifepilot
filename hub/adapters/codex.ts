@@ -87,7 +87,15 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   contract.properties.tasks.items.required.push('category','priority')
   for (const data of [contract.properties.skillData,contract.properties.parts.items.properties.skillData]) {
     const grocery=data.anyOf.find((variant:{properties?:Record<string,unknown>})=>variant.properties?.onHand)
-    grocery.required.push('onHand')
+    grocery.required = Object.keys(grocery.properties)
+    const preferences = grocery.properties.preferences
+    preferences.required = Object.keys(preferences.properties)
+    for (const key of ['include','mode','allergy','side']) {
+      preferences.properties[key] = {anyOf:[preferences.properties[key], {type:'null'}]}
+    }
+    for (const key of ['servings','preferences']) {
+      grocery.properties[key] = {anyOf:[grocery.properties[key], {type:'null'}]}
+    }
     const outfit=data.anyOf.find((variant:{properties?:Record<string,unknown>})=>variant.properties?.place)
     outfit.description='Outfit für einen Anlass. Verwende diese Form für Styling-Anfragen.'
     outfit.required.push('anchorStep','anchor','daypart')
@@ -114,6 +122,18 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   const priorTravel=last?.previousResult?.skill==='travel'?last.previousResult.skillData:undefined
   const validate=(value:unknown)=>{
     singleOutfit=Boolean(value && typeof value==='object' && Reflect.get(value,'skill')==='outfit')
+    if(value && typeof value==='object') {
+      const result=value as {skillData?:unknown,parts?:{skillData?:unknown}[]}
+      for(const data of [result.skillData,...(Array.isArray(result.parts)?result.parts.map(part=>part?.skillData):[])]) {
+        if(!data || typeof data!=='object' || !('groceryIntent' in data)) continue
+        const plan=data as Record<string,unknown>
+        for(const key of ['servings','preferences']) if(plan[key]===null) delete plan[key]
+        if(plan.preferences && typeof plan.preferences==='object') {
+          const preferences=plan.preferences as Record<string,unknown>
+          for(const key of ['include','mode','allergy','side']) if(preferences[key]===null) delete preferences[key]
+        }
+      }
+    }
     const check=(input:unknown)=>verifyOutput(input,messages.map(message=>message.input),context,true,memory.map(entry=>entry.id),payload.sourceNote?.text)
     const result=check(value)
     const next=result.skill==='travel'?result.skillData:undefined
@@ -195,6 +215,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
     signal.addEventListener('abort', abort, { once: true })
     let events = 0
     let pending = ''
+    let schemaRejected = false
     let code: number | null
     try {
       command.stdout.setEncoding('utf8')
@@ -207,6 +228,9 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
         for (const line of lines) {
           try {
             const event = JSON.parse(line)
+            if (event.type === 'error' && typeof event.message === 'string') {
+              schemaRejected ||= event.message.includes('invalid_json_schema')
+            }
             if (event.type === 'turn.completed') {
               const usage = event.usage
               if (usage && typeof usage === 'object') {
@@ -237,6 +261,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
       signal.removeEventListener('abort', abort)
     }
     if (abortReason) throw new Error(abortReason)
+    if (schemaRejected) throw new Error('Das Antwortformat von LifePilot wurde vom Modellanbieter abgelehnt.')
     if (code !== 0) throw new Error('Codex konnte den Auftrag nicht abschließen. Prüfe Anmeldung und Verbindung.')
     const raw = await boundedReply(resultPath)
     return { result: validate(JSON.parse(raw)), error: null, metrics }
