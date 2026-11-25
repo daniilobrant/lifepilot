@@ -4,6 +4,8 @@ import {tripIntakeExtras} from '../runtime/trip-intake.ts'
 import { mapProviders, mapRoute, type MapProvider } from '../runtime/trip-routes.ts'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from 'react'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
+import { currencyNames, destinationCurrency } from '../runtime/currency-codes.ts'
+import { itemOccasion, outerWeight, outfitSlot, type OutfitSlot, type WardrobeItem } from '../runtime/outfit-types.ts'
 import { bookingOutsideTrip, bookingKinds, packingCategories, tripPeriods, tripStates, type TravelWindows, type Trip, type TripChatPlan,
   type TripDraft, type TripPlan, type TripPreview, type TripSummary, type TripItem } from '../runtime/trip-types.ts'
 
@@ -238,7 +240,89 @@ function addItem(event:FormEvent<HTMLFormElement>,mutate:Patch,kind:'task'|'pack
   }).catch(()=>{})
 }
 
-function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boolean }) {
+type Rate={from:string,to:string,rate:number,date:string,source:string,fetched:string}
+const money=(value:number,currency:string)=>new Intl.NumberFormat('de-DE',{style:'currency',currency,maximumFractionDigits:currency==='JPY'||currency==='KRW'?0:2}).format(value)
+
+/** Rechner zwischen Heimatwährung (Euro) und Landeswährung. Kurs beim Öffnen, auf Wunsch neu abrufen. */
+function CurrencyConverter({api,destination}:{api?:Api,destination:string}) {
+  const foreign=destinationCurrency(destination)
+  const [pair,setPair]=useState<[string,string]>(['EUR',foreign])
+  const [amount,setAmount]=useState('100')
+  const [rate,setRate]=useState<Rate>()
+  const [state,setState]=useState<'idle'|'loading'|'error'>('idle')
+  const storage='lifepilot-rate-EUR'+foreign
+  async function load(refresh=false) {
+    if (!api || foreign==='EUR') return
+    setState('loading')
+    try {
+      const value=await api<Rate>(`/currency?from=EUR&to=${foreign}${refresh?'&refresh=1':''}`)
+      setRate(value);localStorage.setItem(storage,JSON.stringify(value));setState('idle')
+    } catch {setState('error')}
+  }
+  useEffect(()=>{
+    const saved=localStorage.getItem(storage)
+    if (saved) try {setRate(JSON.parse(saved) as Rate)} catch {/* Neu laden. */}
+    void load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[foreign])
+  if (foreign==='EUR') return <section className="travel-currency"><strong>Währung</strong><p>Am Ziel gilt ebenfalls der Euro.</p></section>
+  const value=Number(amount.replace(',','.'))
+  const factor=rate ? (pair[0]==='EUR' ? rate.rate : 1/rate.rate) : undefined
+  return <section className="travel-currency" aria-label="Währungsrechner">
+    <header><strong>Währungsrechner</strong>
+      <button type="button" className="travel-small-button" disabled={state==='loading'} onClick={()=>void load(true)}>{state==='loading'?'Lädt …':'Aktualisieren'}</button></header>
+    <div className="travel-currency-row">
+      <label><span>Betrag</span><input inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)} aria-label={'Betrag in '+pair[0]}/></label>
+      <span className="travel-currency-code" title={currencyNames[pair[0]]}>{pair[0]}</span>
+      <button type="button" className="travel-swap" aria-label="Währungen tauschen" onClick={()=>setPair(([a,b])=>[b,a])}>⇄</button>
+      <output aria-live="polite">{factor && Number.isFinite(value) ? money(value*factor,pair[1]) : '–'}</output>
+    </div>
+    <small>{rate ? `1 ${pair[0]} = ${(pair[0]==='EUR'?rate.rate:1/rate.rate).toLocaleString('de-DE',{maximumFractionDigits:4})} ${pair[1]} · Stand ${showDay(rate.date)} · ${rate.source}` :
+      state==='error' ? 'Kurs nicht abrufbar. Versuche es mit „Aktualisieren“ erneut.' : 'Kurs wird geladen …'}</small>
+  </section>
+}
+
+function Stepper({value,label,onChange,disabled}:{value:number,label:string,onChange:(value:number)=>void,disabled?:boolean}) {
+  return <div className="travel-stepper" role="group" aria-label={'Menge '+label}>
+    <button type="button" disabled={disabled||value<=1} aria-label="Weniger" onClick={()=>onChange(value-1)}>−</button>
+    <span aria-live="polite">{value}</span>
+    <button type="button" disabled={disabled||value>=99} aria-label="Mehr" onClick={()=>onChange(value+1)}>+</button>
+  </div>
+}
+
+// Packstücke, bei denen eine Menge keinen Sinn ergibt, zeigen keinen Zähler.
+const countable=(entry:TripPlan['packing'][number])=>entry.category==='Kleidung' || /parfüm|parfum|kontaktlinsen|socken|unterwäsche/iu.test(entry.text) || entry.quantity>1
+const packSlots:[RegExp,OutfitSlot][]=[[/oberteil|t-?shirt|shirt|langarm/iu,'base'],[/pullover|strick/iu,'knit'],[/hose/iu,'bottom'],
+  [/jacke|mantel/iu,'outer'],[/schuh/iu,'shoes'],[/abends/iu,'outer']]
+function wardrobeTips(entry:TripPlan['packing'][number],wardrobe:WardrobeItem[],temperature?:number) {
+  const slot=packSlots.find(([pattern])=>pattern.test(entry.text))?.[1]
+  if (!slot || entry.category!=='Kleidung') return []
+  const pieces=wardrobe.filter(item=>!item.orderState && !item.saleState && outfitSlot(item)===slot)
+  const wanted=/winter/iu.test(entry.text)?'winter':/regen/iu.test(entry.text)?'rain':/übergang/iu.test(entry.text)?'transition':undefined
+  const fitting=slot==='outer' && wanted ? pieces.filter(item=>outerWeight(item)===wanted) : pieces
+  const evening=/abends/iu.test(entry.text)
+  return fitting.filter(item=>!evening || /büro|dinner|abends/iu.test(itemOccasion(item)))
+    .filter(()=>temperature===undefined || true).slice(0,4)
+}
+function PackRow({entry,mutate,busy,wardrobe,temperature}:{entry:TripPlan['packing'][number],mutate?:Patch,busy?:boolean,wardrobe:WardrobeItem[],temperature?:number}) {
+  const suggestions=/^Vorschläge: /u.exec(entry.detail) ? entry.detail.slice(12).split('. ')[0].split(' · ') : []
+  const detail=suggestions.length ? entry.detail.slice(entry.detail.indexOf('. ')+2) : entry.detail
+  const pieces=wardrobeTips(entry,wardrobe,temperature)
+  return <div className="travel-pack-row" data-done={entry.done||undefined}>
+    <label className="travel-item">
+      {mutate ? <input type="checkbox" checked={entry.done} onChange={event=>void mutate({kind:'toggle',item:entry.id,done:event.target.checked}).catch(()=>{})}/> : null}
+      <span><strong>{entry.text}</strong>{detail ? <small>{detail}</small> : null}</span>
+    </label>
+    {countable(entry) ? mutate ? <Stepper value={entry.quantity} label={entry.text} disabled={busy}
+      onChange={quantity=>void mutate({kind:'quantity',item:entry.id,quantity}).catch(()=>{})}/> : <span className="travel-qty">× {entry.quantity}</span> : null}
+    {suggestions.length || pieces.length ? <ul className="travel-pack-suggestions" aria-label="Vorschläge aus deinem Bestand">
+      {suggestions.map(name=><li key={name}>{name}</li>)}
+      {pieces.map(item=><li key={item.id} title={itemOccasion(item)}>{item.name.length>42?item.name.slice(0,40)+' …':item.name}<small>{itemOccasion(item)}</small></li>)}
+    </ul> : null}
+  </div>
+}
+
+function TripGuide({ plan,mutate,busy,api,wardrobe=[] }: { plan:TripPlan,mutate?:Patch,busy?:boolean,api?:Api,wardrobe?:WardrobeItem[] }) {
   const [section,setSection]=useState<'Tagesplan'|'Tipps'|'Vorbereitung'|'Buchungen'>('Tagesplan')
   const {arrival,draft}=plan
   const confirmed=plan.bookings.filter(entry=>entry.kind==='stay' && entry.status==='confirmed')
@@ -290,6 +374,7 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
               placeholder="Adresse suchen …" fillSiblingName="text" />
             <button type="submit">Speichern</button>
           </fieldset></form></details> : null}
+          <CurrencyConverter api={api} destination={draft.destination} />
         </div>
       </div>
     </section>
@@ -388,31 +473,32 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
       {plan.checklist.length + plan.extra.length ? <progress aria-label="Reisevorbereitung" max={plan.checklist.length + plan.extra.length}
         value={[...plan.checklist, ...plan.extra].filter(entry=>entry.done).length} /> : null}
       <fieldset disabled={busy}>{[...plan.checklist,...plan.extra].map(entry=><LocalItem item={entry} key={entry.id} mutate={mutate ? value=>mutate(value).catch(()=>{}) : undefined} />)}</fieldset>
-      {mutate ? <form onSubmit={event=>addItem(event,mutate,'task')}><fieldset className="travel-grid" disabled={busy}>
-        <label>Eigenen Punkt hinzufügen<input required name="text" maxLength={120} /></label><button>Hinzufügen</button>
-      </fieldset></form>:null}
+      {mutate ? <details className="travel-add-activity travel-add-inline"><summary>+ Eigenen Punkt hinzufügen</summary>
+        <form onSubmit={event=>addItem(event,mutate,'task')}><fieldset className="travel-inline-form" disabled={busy}>
+          <input required name="text" maxLength={120} placeholder="z. B. Mietwagen bestätigen" aria-label="Eigener Punkt" />
+          <button className="travel-small-button primary">Hinzufügen</button>
+        </fieldset></form></details>:null}
     </section>
     <section className="card travel-stack"><h2>Packliste</h2><p>{plan.packingWeather}</p>
       {plan.packing.length ? <div className="travel-pack-progress">
         <label htmlFor="travel-pack-progress">Eingepackt {plan.packing.filter(item=>item.done).length} von {plan.packing.length}</label>
         <progress id="travel-pack-progress" max={plan.packing.length} value={plan.packing.filter(item=>item.done).length}/>
       </div> : null}
-      {packingCategories.map(category=><details key={category} className="travel-day">
-        <summary>{category} · {plan.packing.filter(entry=>entry.category===category&&entry.done).length}/{plan.packing.filter(entry=>entry.category===category).length}</summary>
-        <fieldset disabled={busy}>{plan.packing.filter(entry=>entry.category===category).map(entry=><div key={entry.id} className="travel-pack-row">
-          <LocalItem item={entry} mutate={mutate ? value=>mutate(value).catch(()=>{}) : undefined} />
-          {mutate ? <label>Menge<select value={entry.quantity} onChange={event=>void mutate({kind:'quantity',item:entry.id,
-            quantity:Number(event.target.value)}).catch(()=>{})}>
-            {Array.from({length:99},(_,index)=><option key={index}>{index+1}</option>)}
-          </select></label>:<span>× {entry.quantity}</span>}
-        </div>)}</fieldset>
-      </details>)}
-      {mutate ? <form onSubmit={event=>addItem(event,mutate,'pack')}><fieldset disabled={busy} className="travel-grid">
-        <label>Eigener Gegenstand<input name="text" required maxLength={120} /></label>
-        <label>Kategorie<select name="category">{packingCategories.map(category=><option key={category}>{category}</option>)}</select></label>
-        <label>Menge<input name="quantity" type="number" required defaultValue={1} min={1} max={99} /></label>
-        <button>Packstück hinzufügen</button>
-      </fieldset></form>:null}
+      {packingCategories.filter(category=>plan.packing.some(entry=>entry.category===category)).map(category=>{
+        const rows=plan.packing.filter(entry=>entry.category===category)
+        return <details key={category} className="travel-pack-group" open>
+          <summary><span>{category}</span><span className="travel-pack-count">{rows.filter(entry=>entry.done).length}/{rows.length}</span></summary>
+          <div className="travel-pack-list">{rows.map(entry=><PackRow key={entry.id} entry={entry} mutate={mutate} busy={busy}
+            wardrobe={wardrobe} temperature={plan.packingTemperature}/>)}</div>
+        </details>
+      })}
+      {mutate ? <details className="travel-add-activity travel-add-inline"><summary>+ Eigenen Gegenstand hinzufügen</summary>
+        <form onSubmit={event=>addItem(event,mutate,'pack')}><fieldset disabled={busy} className="travel-inline-form">
+          <input name="text" required maxLength={120} placeholder="z. B. Reiseadapter" aria-label="Eigener Gegenstand" />
+          <select name="category" aria-label="Kategorie">{packingCategories.map(category=><option key={category}>{category}</option>)}</select>
+          <input name="quantity" type="number" required defaultValue={1} min={1} max={99} aria-label="Menge" className="travel-qty-input" />
+          <button className="travel-small-button primary">Hinzufügen</button>
+        </fieldset></form></details>:null}
     </section>
     </> : null}
     {section==='Tipps' ? <section className="card travel-stack"><h2>Tipps</h2>
@@ -444,6 +530,8 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   const [preview,setPreview]=useState<TripPreview>()
   const [calendarOffer,setCalendarOffer]=useState(false)
   const [removing,setRemoving]=useState(false)
+  const [wardrobe,setWardrobe]=useState<WardrobeItem[]>([])
+  useEffect(()=>{void api<{wardrobe:WardrobeItem[]}>('/outfits').then(value=>setWardrobe(value.wardrobe)).catch(()=>{})},[api])
   function showPreview(preview:TripPreview) {
     localStorage.setItem('lifepilot-trip-draft',preview.id)
     setPreview(preview);setView('preview')
@@ -567,7 +655,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           localStorage.removeItem('lifepilot-trip-draft')
           setEntries(await api('/trips'));setFeedback('Reise und privater LifePilot-Kalenderblock gespeichert.')
         })}>Reise speichern</button><button type="button" disabled={busy} onClick={()=>setView('new')}>Angaben ändern</button></div>
-      <TripGuide plan={preview.plan} />
+      <TripGuide plan={preview.plan} api={api} wardrobe={wardrobe} />
       </>}
     </>:null}
     {view==='trip' && current ? <>
@@ -605,7 +693,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           <button type="button" disabled={busy} onClick={()=>setRemoving(false)}>Abbrechen</button>
         </div>
       </section> : null}
-      <TripGuide key={current.id} plan={current} mutate={change} busy={busy} />
+      <TripGuide key={current.id} plan={current} mutate={change} busy={busy} api={api} wardrobe={wardrobe} />
     </>:null}
   </div>
 }

@@ -9,7 +9,7 @@ const generate=()=>({
   overview:'Drei Tage mit Belém und Alfama.',
   days:['2027-05-06','2027-05-07','2027-05-08'].map(date=>({date,title:'Unterwegs in Lissabon',
     activities:tripPeriods.map(period=>({period,text:'Am Ufer von Belém spazieren.',place:'Belém, Lissabon'}))})),
-  tips:tipTopics.map((topic,i)=>({topic,items:Array.from({length:[3,3,9,5,5,6,3,8][i]},(_,j)=>({
+  tips:tipTopics.map((topic,i)=>({topic,items:Array.from({length:[4,4,9,5,5,6,3,8][i]},(_,j)=>({
     title:'Eintrag '+j,detail:'Für den Vormittag Zeit einplanen.',translation:null,pronunciation:null,
   }))})),
 })
@@ -19,7 +19,7 @@ test('Travel guide replaces the suggestion content and preserves the local plan'
   assert.equal(result.guide,'generated')
   assert.equal(result.days.length,3)
   assert.equal(result.days[0].activities[0].place,'Belém, Lissabon')
-  assert.equal(result.tips.flatMap(tip=>tip.content.sections.flatMap(section=>section.items)).length,42)
+  assert.equal(result.tips.flatMap(tip=>tip.content.sections.flatMap(section=>section.items)).length,44)
   assert.deepEqual(result.checklist,base.checklist)
   assert.deepEqual(result.packing,base.packing)
   assert.deepEqual(result.draft,base.draft)

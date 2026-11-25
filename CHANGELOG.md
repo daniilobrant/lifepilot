@@ -2,6 +2,13 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.21 · 25. November 2026
+
+- Urlaubsplaner: Währungsrechner zwischen Euro und Landeswährung neben der Unterkunft, mit Tauschknopf und manuellem Aktualisieren (EZB-Referenzkurs, sonst Tageskurs).
+- Tipps: Sicherheit nennt die Notrufnummer und Gegenden, die man meiden sollte; Gesundheit die Rettungsnummer mit Vorgehen und ob Leitungswasser trinkbar ist.
+- Packliste: Kategorien sind aufgeklappt, Mengen mit Plus und Minus, keine Mengen bei Dokumenten oder Technik. Kleidung nach Dauer, Gepäck und Wetter (Hosen, Pullover, Übergangs-, Regen- oder Winterjacke, Schuhe, Badesachen) mit Vorschlägen aus dem Kleiderschrank. Mehrere Düfte aus der eigenen Sammlung.
+- Eigene Punkte und Gegenstände werden über einklappbare, kompakte Formulare ergänzt.
+
 ## v1.0.20 · 25. November 2026
 
 - Bestelltracker: Amazon-Bestellungen erkennen alle Artikel, auch bei Preisen mit einer Nachkommastelle und sehr langen Namen. Fehlende Artikel werden bei bestehenden Bestellungen nachgetragen.

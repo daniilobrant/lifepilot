@@ -13,6 +13,7 @@ import {publicHoliday,travelDays} from './trip-windows.ts'
 import {approveLectureCancellation,inboxWithLectureTargets} from './university-calendar.ts'
 import {MAX_CHAT_BODY_BYTES,MAX_CHAT_INPUT} from './model-payload.ts'
 import { addTravelWardrobeItem, changeResale, fragranceList, fragrancePhoto, updateFragranceTags, resaleList, saveFragrance, saveTravelWardrobe, travelWardrobe } from './wardrobe-extras.ts'
+import { exchangeRate } from './currency.ts'
 import { researchFragrance, normalizedFragranceQuery } from './fragrance-research.ts'
 import type { FragranceDraft } from './wardrobe-extras-types.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
@@ -658,6 +659,10 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     }
     if (kind!=='destination' && kind!=='departure') throw new Problem(400,'Wähle Reiseziel oder Abreiseort.')
     return reply(res,200,{places:await searchTripPlaces(url.searchParams.get('q')??'',kind==='departure')})
+  }
+  if (path === '/api/currency' && method === 'GET') {
+    if (acceptance) return reply(res,200,{from:'EUR',to:'USD',rate:1.08,date:'2026-01-01',source:'Testprofil',fetched:new Date().toISOString()})
+    return reply(res,200,await exchangeRate(url.searchParams.get('from'),url.searchParams.get('to'),url.searchParams.get('refresh')==='1'))
   }
   if (path === '/api/trips' && method === 'GET') return reply(res,200,trips(store))
   const tripDetail = /^\/api\/trips\/([a-f0-9-]{36})$/iu.exec(path)

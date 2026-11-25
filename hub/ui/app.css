@@ -1702,3 +1702,48 @@ input[type=file]::file-selector-button {
 
 .outfit-photo-missing { margin:0; padding:10px 12px; border:1px dashed var(--line); border-radius:10px; background:var(--accent-soft); font-size:.86rem; }
 .outfit-own-photo { display:grid; gap:4px; font-weight:600; font-size:.86rem; }
+
+/* Urlaubsplaner: Währungsrechner, Packliste, kompakte Formulare */
+.travel-small-button { min-height: 0; padding: 6px 12px; font-size: .84rem; border-radius: 999px; line-height: 1.2; }
+.travel-currency { display: grid; gap: 8px; margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+.travel-currency header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.travel-currency p, .travel-currency small { margin: 0; color: var(--muted); font-size: .8rem; }
+.travel-currency-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto minmax(0, 1.1fr); align-items: end; gap: 8px; }
+.travel-currency-row label { display: grid; gap: 2px; font-size: .76rem; color: var(--muted); min-width: 0; }
+.travel-currency-row input { width: 100%; min-height: 38px; font-size: 1rem; }
+.travel-currency-code { font-weight: 700; font-size: .9rem; padding-bottom: 9px; }
+.travel-swap { min-height: 38px; width: 38px; padding: 0; border-radius: 50%; font-size: 1.05rem; }
+.travel-currency output { min-height: 38px; display: flex; align-items: center; justify-content: flex-end; padding: 0 10px; border-radius: 8px;
+  background: var(--accent-soft); font-weight: 700; font-size: 1.02rem; overflow-wrap: anywhere; }
+.travel-pack-group { border: 1px solid var(--line); border-radius: 12px; background: var(--card); overflow: hidden; }
+.travel-pack-group > summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 16px; cursor: pointer;
+  font-weight: 700; color: var(--mint); list-style-position: inside; }
+.travel-pack-group[open] > summary { border-bottom: 1px solid var(--line); background: var(--bg); }
+.travel-pack-count { font-weight: 600; font-size: .8rem; color: var(--muted); background: var(--chip); padding: 2px 9px; border-radius: 999px; }
+.travel-pack-list { display: grid; }
+.travel-pack-list .travel-pack-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 6px 14px;
+  padding: 10px 16px; border-bottom: 1px solid var(--line); }
+.travel-pack-list .travel-pack-row:last-child { border-bottom: 0; }
+.travel-pack-list .travel-pack-row[data-done] .travel-item strong { text-decoration: line-through; color: var(--muted); }
+.travel-pack-list .travel-item { margin: 0; }
+.travel-pack-list .travel-item small { display: block; color: var(--muted); font-size: .8rem; }
+.travel-stepper { display: inline-flex; align-items: center; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; background: var(--bg); }
+.travel-stepper button { min-height: 30px; width: 32px; padding: 0; border: 0; border-radius: 0; background: transparent; font-size: 1.05rem; line-height: 1; }
+.travel-stepper button:not(:disabled):hover { background: var(--chip); }
+.travel-stepper span { min-width: 28px; text-align: center; font-weight: 700; font-variant-numeric: tabular-nums; }
+.travel-qty { color: var(--muted); font-size: .85rem; }
+.travel-pack-suggestions { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 6px; margin: 2px 0 0 28px; padding: 0; list-style: none; }
+.travel-pack-suggestions li { display: inline-flex; align-items: baseline; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--accent-soft); font-size: .78rem; }
+.travel-pack-suggestions small { color: var(--muted); font-size: .7rem; }
+.travel-add-inline { border: 1px dashed var(--line); border-radius: 10px; padding: 0; }
+.travel-add-inline > summary { padding: 9px 14px; cursor: pointer; color: var(--mint); font-weight: 600; font-size: .9rem; list-style: none; }
+.travel-add-inline > summary::-webkit-details-marker { display: none; }
+.travel-add-inline[open] > summary { border-bottom: 1px dashed var(--line); }
+.travel-inline-form { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 14px; border: 0; margin: 0; }
+.travel-inline-form input[name="text"] { flex: 1 1 220px; min-height: 36px; }
+.travel-inline-form select { flex: 0 1 170px; min-height: 36px; }
+.travel-qty-input { width: 70px; min-height: 36px; }
+@media (max-width: 640px) {
+  .travel-currency-row { grid-template-columns: 1fr auto; }
+  .travel-currency output { grid-column: 1 / -1; justify-content: flex-start; }
+}
