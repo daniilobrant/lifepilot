@@ -2,6 +2,14 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.17 · 25. November 2026
+
+- Produktlinks von Uniqlo zeigen das Bild der Farbe aus dem Link. Die Farbauswahl im Dialog lädt das passende Farbbild.
+- Gesperrte Shopseiten (etwa Zara, Bershka) suchen das Produktbild über die Bildersuche, nur mit Seite und Bild desselben Shops. Platzhalterbilder werden ignoriert.
+- Ohne Produktbild bietet der Dialog an, ein eigenes Foto anzuhängen. Ein anderes Foto lässt sich jederzeit anhängen.
+- Urlaubsgarderobe: Der Anlass ist ein Auswahlmenü mit typischen Urlaubsanlässen und einem eigenen Anlass.
+- Der Löschdialog und die Kleidungskarten überlappen nicht mehr.
+
 ## v1.0.16 · 25. November 2026
 
 - Finanzvorschläge erkennen Zahlungsbestätigungen von Händlern ohne PayPal, etwa „Zahlung erfolgreich“ von Buchungsportalen, Flugbuchungen und zweisprachige Parkbelege. Maßgeblich ist der bezahlte Gesamtbetrag.

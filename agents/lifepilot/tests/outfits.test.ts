@@ -392,3 +392,19 @@ test('Cold looks always layer a shirt under knitwear and skip clashing colours w
   } finally {store.db.close()}
 })
 
+
+test('Uniqlo links use the photo of the linked or chosen colour instead of the default colour',async()=>{
+  const {uniqloVariants,completeProductMetadata}=await import('../../../hub/connectors/outfit-import.ts')
+  const html='<meta property="og:image" content="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/123456/item/eugoods_14_123456_3x4.jpg">'+
+    '<script>{"colors":[{"displayCode":"14","name":"ROT"},{"displayCode":"19","name":"WEINROT"},{"displayCode":"38","name":"DUNKELBRAUN"}],'+
+    '"sizes":[{"displayCode":"004","name":"M"}]}</script>'+
+    ['14','19','38'].map(code=>`<img src="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/123456/item/eugoods_${code}_123456_3x4.jpg">`).join('')
+  const linked=new URL('https://www.uniqlo.com/de/de/products/E123456-000/00?colorDisplayCode=19')
+  const variant=uniqloVariants(html,linked)!
+  assert.deepEqual(variant.colors,['Rot','Weinrot','Dunkelbraun'])
+  assert.equal(variant.color,'Weinrot')
+  assert.match(variant.image!,/eugoods_19_123456/u)
+  const chosen=completeProductMetadata(html,linked,'Dunkelbraun')
+  assert.match(chosen.image!,/eugoods_38_123456/u)
+  assert.equal(chosen.draft.color,'Dunkelbraun')
+})

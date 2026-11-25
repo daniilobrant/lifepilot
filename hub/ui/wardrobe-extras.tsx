@@ -13,6 +13,14 @@ const formatDay=(value:string)=>value.split('-').reverse().join('.')
 
 const euros=new Intl.NumberFormat('de-DE',{style:'currency',currency:'EUR'})
 
+const travelOccasionGroups:[string,string[]][]=[
+  ['Tagsüber',['Stadtbummel','Sightseeing','Museum & Ausstellung','Café & Brunch','Markt & Shopping','Ausflug']],
+  ['Strand & Natur',['Strandtag','Pool & Entspannen','Bootstour','Wandern','Radtour']],
+  ['Abends',['Abendessen im Restaurant','Bar & Ausgehen','Strandbar am Abend','Konzert & Show']],
+  ['Unterwegs',['Anreise & Flug','Zug- oder Autofahrt']],
+]
+const travelOccasions=travelOccasionGroups.flatMap(([,options])=>options)
+
 export function ResalePanel({api,item,wardrobe,onDone}:{api:Api,item?:WardrobeItem,wardrobe:WardrobeItem[],onDone:()=>Promise<void>}) {
   const panel=useRef<HTMLElement>(null)
   const [rows,setRows]=useState<ResaleDraft[]>()
@@ -430,7 +438,14 @@ export function TravelOutfits({api,wardrobe,renderOutfit,renderPiece,requestedIt
             {renderPiece(item)}<button type="button" disabled={busy || Boolean(pendingItem)} aria-label={item.name+' auspacken'} onClick={()=>void perform(item.id)}>Auspacken</button>
           </div>)}</div></section> : null
       })}
-      <div className="outfit-form-grid"><label>Anlass<input maxLength={110} value={occasion} onChange={event=>setOccasion(event.target.value)}/></label>
+      <div className="outfit-form-grid"><label>Anlass<select value={travelOccasions.includes(occasion)||!occasion?occasion:'eigener'}
+          onChange={event=>setOccasion(event.target.value==='eigener'?' ':event.target.value)}>
+          <option value="">Egal</option>
+          {travelOccasionGroups.map(([group,options])=><optgroup key={group} label={group}>{options.map(option=><option key={option}>{option}</option>)}</optgroup>)}
+          <option value="eigener">Eigener Anlass …</option>
+        </select></label>
+        {occasion && !travelOccasions.includes(occasion) ? <label>Eigener Anlass<input autoFocus maxLength={110} value={occasion.trimStart()}
+          placeholder="z. B. Weinprobe" onChange={event=>setOccasion(event.target.value||' ')}/></label> : null}
         <label>Tageszeit<select value={daypart??''} onChange={event=>setDaypart(event.target.value as OutfitDaypart || undefined)}>
           <option value="">Egal</option>{outfitDayparts.map(part=><option key={part}>{part}</option>)}
         </select></label></div>

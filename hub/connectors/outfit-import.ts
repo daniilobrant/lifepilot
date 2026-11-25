@@ -170,7 +170,43 @@ function productVariantAddress(value: unknown, base: URL) {
   catch { return '' }
 }
 
+/**
+ * Uniqlo liefert als Seitenbild immer die Standardfarbe. Die Farbliste (displayCode + Name) und das
+ * Bild je Farbe (eugoods_<Farbcode>_<Artikel>) stehen aber in der Seite. Die Farbe aus dem Link
+ * (colorDisplayCode) oder die gewählte Farbe bestimmt das Bild.
+ */
+export function uniqloVariants(html:string,url:URL,selectedColor='') {
+  if (!/(?:^|\.)uniqlo\.com$/iu.test(url.hostname)) return
+  const item=/eugoods_\d{2}_(\d{6})/u.exec(html)?.[1]
+  if (!item) return
+  const base=new RegExp('(https://[^"\'\\s]+/)eugoods_\\d{2}_'+item,'u').exec(html)?.[1] ?? `https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/${item}/item/`
+  const pictured=new Set([...html.matchAll(new RegExp('eugoods_(\\d{2})_'+item,'gu'))].map(match=>match[1]))
+  const colors:{code:string,name:string}[]=[]
+  for (const [,code,raw] of html.matchAll(/"displayCode":"(\d{2})","name":"([^"]{2,30})"/gu)) {
+    if (!pictured.has(code) || colors.some(color=>color.code===code)) continue
+    const name=raw.toLocaleLowerCase('de-DE').replace(/(^|[\s-])\p{L}/gu,letter=>letter.toLocaleUpperCase('de-DE'))
+    colors.push({code,name})
+  }
+  if (!colors.length) return
+  const linked=url.searchParams.get('colorDisplayCode') ?? url.searchParams.get('colordisplaycode') ?? ''
+  const chosen=colors.find(color=>color.name.localeCompare(selectedColor,'de',{sensitivity:'base'})===0) ??
+    (selectedColor ? undefined : colors.find(color=>color.code===linked))
+  const image=chosen ? base+`eugoods_${chosen.code}_${item}_3x4.jpg` : undefined
+  return {colors:colors.map(color=>color.name),color:chosen?.name??'',image}
+}
+
 export function completeProductMetadata(html: string, url: URL, selectedColor = '', originalUrl = url) {
+  const uniqlo=uniqloVariants(html,originalUrl,selectedColor)
+  if (uniqlo) {
+    const base=completeProductMetadataGeneric(html,url,'',originalUrl)
+    const images=uniqlo.image ? [uniqlo.image] : []
+    return {...base,colors:uniqlo.colors,image:images[0]??null,images,
+      draft:{...base.draft,...(uniqlo.color ? {color:uniqlo.color} : {color:''})}}
+  }
+  return completeProductMetadataGeneric(html,url,selectedColor,originalUrl)
+}
+
+function completeProductMetadataGeneric(html: string, url: URL, selectedColor = '', originalUrl = url) {
   const meta=readProductMeta(html)
   const og = productMetadata(html,url,meta)
   const root = structuredProduct(html)
@@ -306,6 +342,23 @@ function linkedProduct(url:URL) {
     structured:false, source:url.href, draft:productWardrobeFields(name,'','',{source:url.href,...(brand&&{brand})}) }
 }
 
+// Gesperrte Shopseiten (etwa Zara, Bershka): Produktbild über die Bildersuche, nur Treffer derselben Shop-Domain.
+async function shopImageSearch(product:ReturnType<typeof linkedProduct>,url:URL) {
+  if (!product.name) return product
+  const shop=url.hostname.replace(/^www\./iu,'').split('.').slice(-2).join('.')
+  const brand=shop.split('.')[0]
+  try {
+    // Seite und Bild müssen zum Shop gehören (etwa zara.com und static.zara.net), sonst droht ein fremdes Foto.
+    const hits=(await searchProductImages(product.name+' '+brand)).filter(hit=>{
+      const host=new URL(hit.source).hostname
+      const imageHost=new URL(hit.image).hostname
+      return (host===shop || host.endsWith('.'+shop)) && imageHost.split('.').includes(brand)
+    })
+    const images=hits.map(hit=>hit.image).filter(image=>!/transparent|placeholder|logo/iu.test(image)).slice(0,4)
+    return images.length ? {...product,image:images[0],images,imageFromSearch:true} : product
+  } catch { return product }
+}
+
 export async function inspectProduct(raw: unknown, color?:string,useCurl=false) {
   const url = productAddress(raw,8192)
   for (const key of [...url.searchParams.keys()]) {
@@ -315,12 +368,20 @@ export async function inspectProduct(raw: unknown, color?:string,useCurl=false) 
   try {
     const result = await boundedDownload(url,3*1024*1024,/^text\/html\b/iu,true,useCurl)
     const metadata = completeProductMetadata(result.bytes.toString('utf8'),result.address,color,url)
+    // Platzhalter wie ein transparentes Hintergrundbild sind kein Produktfoto.
+    const placeholder=(image:string)=>/transparent|placeholder|blank|spacer|logo|default[-_]?image|no[-_]?image/iu.test(image)
+    metadata.images=metadata.images.filter(image=>!placeholder(image))
+    metadata.image=metadata.images[0] ?? null
     if (color && !metadata.colors.includes(color)) throw new Problem(400,'Diese Farbvariante konnte nicht bestätigt werden.')
-    if (!metadata.structured && (!metadata.name || /access denied|just a moment|zugriff verweigert|captcha/iu.test(metadata.name))) return linkedProduct(url)
+    if (!metadata.structured && !metadata.colors.length && (!metadata.name || /access denied|just a moment|zugriff verweigert|captcha/iu.test(metadata.name) || !metadata.image)) {
+      const linked=linkedProduct(url)
+      return linked.image ? linked : shopImageSearch(metadata.name&&!/access denied|just a moment/iu.test(metadata.name)?{...linked,name:metadata.name}:linked,url)
+    }
     return { ...metadata, source:url.href, draft:{...metadata.draft,source:url.href} }
   } catch (error) {
     if (error instanceof Problem) throw error
-    return linkedProduct(url)
+    const linked=linkedProduct(url)
+    return linked.image ? linked : shopImageSearch(linked,url)
   }
 }
 

@@ -466,7 +466,18 @@ function WardrobeEditor({ api, item, profile, onDone, onCancel, cloudImages }: {
           <button type="button" onClick={onCancel}>Abbrechen</button>
         </div>
       </> : <>
-        {ownPreview ? <div className="outfit-preview"><img src={ownPreview} alt="Vorschau des Kleidungsstücks" /></div> : null}
+        {ownPreview ? <div className="outfit-preview"><img src={ownPreview} alt="Vorschau des Kleidungsstücks" /></div> :
+          <p className="outfit-photo-missing" role="status">Für dieses Teil ließ sich kein Produktbild laden. Hänge ein eigenes Foto an, dann landet es so im Kleiderschrank.</p>}
+        <label className="outfit-own-photo">{ownPreview ? 'Anderes Foto anhängen' : 'Eigenes Foto anhängen'}
+          <input type="file" accept={importFormats} onChange={event=>{
+            const file=event.currentTarget.files?.[0]
+            event.currentTarget.value=''
+            if (file) void perform(async()=>{
+              const result=await analyzePhoto(file,false)
+              setPhotoToken(result.photoToken)
+              setFeedback('Dein Foto wird für dieses Teil verwendet.')
+            })
+          }}/></label>
         <div className="wardrobe-attributes">
           <label>Name<input autoFocus={Boolean(item)} required maxLength={120} value={draft.name} onChange={event=>change('name',event.currentTarget.value)}/></label>
           <label>Kategorie<select value={draft.category} onChange={event=>change('category',event.currentTarget.value as WardrobeDraft['category'])}>
