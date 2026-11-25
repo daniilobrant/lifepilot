@@ -508,7 +508,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   const fire=(action:()=>Promise<void>)=>void perform(action).catch(()=>{})
   function startGuide(draft:TripPreview) {
     if (busy || draft.generating) return
-    fire(async()=>setPreview(await api<TripPreview>('/trips/guide',{preview:draft.id,confirm:true},105000)))
+    fire(async()=>setPreview(await api<TripPreview>('/trips/guide',{preview:draft.id,confirm:true},150000)))
   }
   function open(id:string) {
     fire(async()=>{setCurrent(await api('/trips/'+id));onSelect(id);setRemoving(false);setCalendarOffer(false);setView('trip')})

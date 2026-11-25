@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.19 · 25. November 2026
+
+- Urlaubsplaner: Tipps und Tagesabschnitte (höchstens sechs Tage) entstehen parallel in kleinen Anfragen. Lange Reisen laufen so nicht mehr ins Zeitlimit.
+- Ein unvollständiger Teil wird einmal neu angefragt, überzählige Tipps gekürzt und überlange Texte abgeschnitten statt den Guide zu verwerfen.
+- Die Anweisungen decken beliebige Ziele ab: Großstadt, Region, Land, Insel oder kleiner Ort, mit Jahreszeit, Klima und Alltagssprache des Ziels.
+
 ## v1.0.18 · 25. November 2026
 
 - Der Bestelltracker erkennt Amazon-Bestellungen („Bestellt:“, „Versendet:“, „Zugestellt:“) mit Artikeln, Menge, Preis und Produktbild aus der Mail.

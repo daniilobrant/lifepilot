@@ -37,3 +37,15 @@ test('Travel guide refuses wrong dates, reordered blocks and incomplete tips',()
   partial.tips[0].items.pop()
   assert.throws(()=>applyTripGuide(base,partial),{status:422})
 })
+
+test('Long trips are split into balanced parallel day blocks and overlong texts are clipped, not rejected',async()=>{
+  const {dayChunks,clipGuide}=await import('../../../hub/runtime/trip-guide.ts')
+  const dates=Array.from({length:17},(_,i)=>'2027-03-'+String(15+i).padStart(2,'0'))
+  assert.deepEqual(dayChunks(dates).map(part=>part.length),[6,6,5])
+  assert.deepEqual(dayChunks(dates.slice(0,4)).map(part=>part.length),[4])
+  assert.equal(dayChunks(dates).flat().join(),dates.join())
+  const clipped=clipGuide({overview:'x'.repeat(400),days:[{title:'Titel '.repeat(30),activities:[]}],tips:[]}) as {overview:string,days:{title:string}[]}
+  assert.ok(clipped.overview.length<=350)
+  assert.ok(clipped.days[0].title.length<=95)
+})
+

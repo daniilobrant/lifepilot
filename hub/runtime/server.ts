@@ -694,7 +694,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       if (!cloudModel) throw new Problem(423,'Der externe Reiseguide ist in diesem Profil gesperrt. Speichere bei Bedarf die lokale Reisevorschau.')
       return reply(res,200,await generateTripPreview(store,id(preview),async plan=>{
         const forecast=fetchOutfitWeather(plan.draft.destination.split(',')[0].trim(),plan.draft.start).catch(()=>undefined)
-        const guide=await createTripGuide(plan,AbortSignal.timeout(MODEL_MS+3000))
+        const guide=await createTripGuide(plan,AbortSignal.timeout(140_000))
         const weather=await forecast
         return weather ? {...guide,packingTemperature:weather.max} : guide
       }))
