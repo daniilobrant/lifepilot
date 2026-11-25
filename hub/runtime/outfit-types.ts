@@ -1,5 +1,15 @@
 import type { ScentChoice } from './wardrobe-extras-types.ts'
 export const wardrobeCategories = { top: 'Oberteile', bottom: 'Hosen & Röcke', outer: 'Jacken & Mäntel', shoes: 'Schuhe', accessory: 'Accessoires' } as const
+export const outfitSlots = {
+  base: 'T-Shirts & Langarm',
+  knit: 'Pullover & Strick',
+  bottom: 'Hosen & Röcke',
+  outer: 'Jacken & Mäntel',
+  shoes: 'Schuhe',
+  accessory: 'Accessoires',
+} as const
+export type OutfitSlot = keyof typeof outfitSlots
+export const outfitSlotOrder: readonly OutfitSlot[] = ['base', 'knit', 'bottom', 'outer', 'shoes', 'accessory']
 export const wardrobeTypes = {
   top:['T-Shirt','Langarmshirt','Pullover & Strick','Hemd & Bluse','Hoodie & Sweatshirt'],
   bottom:['Hose','Jeans','Shorts','Rock'],
@@ -48,4 +58,33 @@ export function resolveOutfitAnchor(name:string,wardrobe:WardrobeItem[]) {
     return expected.every(word=>words.includes(word))
   })
   return partial.length===1?partial[0]:undefined
+}
+
+export function isKnitwearTop(item: Pick<WardrobeDraft, 'name' | 'category' | 'garmentType' | 'material' | 'tags'>) {
+  if (item.category !== 'top') return false
+  if (item.garmentType === 'Pullover & Strick' || item.garmentType === 'Hoodie & Sweatshirt') return true
+  if (item.garmentType === 'T-Shirt' || item.garmentType === 'Langarmshirt' || item.garmentType === 'Hemd & Bluse') {
+    if (!/\b(?:pullover|strick\w*|cardigan|hoodie|sweatshirt)\b/iu.test(item.name)) return false
+  }
+  const text = [item.name, item.garmentType, item.tags, item.material].filter(Boolean).join(' ')
+  return /\b(?:pullover|strick\w*|sweater|hoodie|sweatshirt|cardigan|rollkragen|turtleneck|lammwolle|merinowolle|kaschmir)\b/iu.test(text) &&
+    !/\b(?:henley|t-?shirt|langarmshirt|hemd|bluse)\b/iu.test(item.name)
+}
+
+export function isLongOrHeavyBaseTop(item: Pick<WardrobeDraft, 'name' | 'garmentType' | 'tags'>) {
+  if (item.garmentType === 'Langarmshirt') return true
+  const text = [item.name, item.garmentType, item.tags].filter(Boolean).join(' ')
+  return /\b(?:langarm\w*|long\s*sleeve|henley|schwer\w*|heavy\w*|oversize-langarm|rollkragen|flanell\w*)\b/iu.test(text)
+}
+
+export function outerWeight(item: Pick<WardrobeDraft, 'name' | 'garmentType' | 'material' | 'season' | 'tags'>): 'winter' | 'rain' | 'transition' {
+  const text = [item.name, item.garmentType, item.material, item.season, item.tags].filter(Boolean).join(' ')
+  if (/\b(?:winter\w*|stepp\w*|puffer\w*|daunen\w*|gefüttert\w*|wattiert\w*|wollmantel|wolle|lammwolle|kaschmir|parka|thermo|fleece|shearling)\b/iu.test(text)) return 'winter'
+  if (/\b(?:regen\w*|wasserfest\w*|wasserdicht\w*|waterproof|hardshell|gore[ -]?tex)\b/iu.test(text)) return 'rain'
+  return 'transition'
+}
+
+export function outfitSlot(item: Pick<WardrobeDraft, 'name' | 'category' | 'garmentType' | 'material' | 'tags'>): OutfitSlot {
+  if (item.category === 'top') return isKnitwearTop(item) ? 'knit' : 'base'
+  return item.category
 }

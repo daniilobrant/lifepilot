@@ -1,5 +1,5 @@
 import {useEffect,useId,useRef,useState} from 'react'
-import type {TripPlace} from '../connectors/trip-places.ts'
+import type {TripAddress,TripPlace} from '../connectors/trip-places.ts'
 import {dateInBerlin,shiftDay} from '../runtime/values.ts'
 import {DateInput,monthAtOffset} from './presentation.tsx'
 
@@ -13,7 +13,7 @@ export function TripPlaceField({name,label,initial}:{name:'destination'|'departu
   const [open,setOpen]=useState(false)
   const query=open?draft?.trim():undefined
   useEffect(()=>{
-    if (!query||query.length<2) return
+    if (!query||query.length<3) return
     const controller=new AbortController()
     const timer=setTimeout(async()=>{
       setStatus('Orte werden gesucht …')
@@ -27,7 +27,7 @@ export function TripPlaceField({name,label,initial}:{name:'destination'|'departu
       } catch (reason) {
         if (!controller.signal.aborted) setStatus(reason instanceof Error?reason.message:'Die Ortssuche ist gerade nicht erreichbar.')
       }
-    },250)
+    },400)
     return ()=>{clearTimeout(timer);controller.abort()}
   },[query,name])
   function choose(place:TripPlace) {
@@ -65,6 +65,89 @@ export function TripPlaceField({name,label,initial}:{name:'destination'|'departu
       </ul>
       {status&&<small role="status">{status}</small>}
       {expanded&&<small className="trip-place-attribution">Open-Meteo / GeoNames</small>}
+    </div>
+  </div>
+}
+
+export function TripAddressField({name,label,initial='',destination='',placeholder='Ort oder Adresse suchen …',required=false,fillSiblingName}:{
+  name:string,label:string,initial?:string,destination?:string,placeholder?:string,required?:boolean,fillSiblingName?:string,
+}) {
+  const id=useId()
+  const inputRef=useRef<HTMLInputElement>(null)
+  const [draft,setDraft]=useState<string>()
+  const value=draft??initial
+  const [addresses,setAddresses]=useState<TripAddress[]>([])
+  const [active,setActive]=useState(-1)
+  const [status,setStatus]=useState('')
+  const [open,setOpen]=useState(false)
+  const query=open?draft?.trim():undefined
+  useEffect(()=>{
+    const form=inputRef.current?.form
+    if (!form) return
+    const onReset=()=>{setDraft('');setOpen(false);setAddresses([]);setActive(-1);setStatus('')}
+    form.addEventListener('reset',onReset)
+    return ()=>form.removeEventListener('reset',onReset)
+  },[])
+  useEffect(()=>{
+    if (!query||query.length<3) return
+    const controller=new AbortController()
+    const timer=setTimeout(async()=>{
+      setStatus('Adressen werden gesucht …')
+      try {
+        const params=new URLSearchParams({q:query,kind:'address',...(destination?{destination}:{})})
+        const response=await fetch('/api/trips/places?'+params,{signal:controller.signal})
+        const result=await response.json()
+        if (controller.signal.aborted) return
+        if (!response.ok) throw Error(result.error)
+        const list=Array.isArray(result.addresses)?result.addresses as TripAddress[]:[]
+        setAddresses(list)
+        setStatus(list.length?'':'Keine passende Adresse gefunden.')
+      } catch (reason) {
+        if (!controller.signal.aborted) setStatus(reason instanceof Error?reason.message:'Die Adresssuche ist gerade nicht erreichbar.')
+      }
+    },400)
+    return ()=>{clearTimeout(timer);controller.abort()}
+  },[query,destination])
+  function choose(item:TripAddress) {
+    setDraft(item.address.slice(0,200))
+    if (fillSiblingName && item.name) {
+      const sibling=inputRef.current?.form?.elements.namedItem(fillSiblingName)
+      if (sibling instanceof HTMLInputElement && !sibling.value.trim()) {
+        sibling.value=item.name.slice(0,150)
+      }
+    }
+    setOpen(false);setAddresses([]);setActive(-1);setStatus('')
+  }
+  const expanded=open&&addresses.length>0
+  return <div className="trip-place" onBlur={event=>{
+    if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false)
+  }}>
+    <label htmlFor={id}>{label}</label>
+    <input ref={inputRef} id={id} role="combobox" name={name} required={required} maxLength={200} value={value}
+      autoComplete="off" placeholder={placeholder}
+      aria-autocomplete="list" aria-expanded={expanded} aria-controls={id+'-addresses'}
+      aria-activedescendant={expanded&&active>=0?id+'-address-'+active:undefined}
+      onFocus={()=>setOpen(true)} onChange={event=>{
+        setDraft(event.currentTarget.value);setOpen(true);setAddresses([]);setActive(-1);setStatus('')
+      }}
+      onKeyDown={event=>{
+        if (event.key==='Escape') {event.preventDefault();setOpen(false);return}
+        if (!expanded) return
+        if (event.key==='ArrowDown'||event.key==='ArrowUp') {
+          event.preventDefault()
+          setActive(index=>event.key==='ArrowDown'?(index+1)%addresses.length:(index<=0?addresses.length-1:index-1))
+        }
+        if (event.key==='Enter'&&active>=0) {event.preventDefault();choose(addresses[active])}
+      }}/>
+    <div className="trip-place-popup" hidden={!open||(!expanded&&!status)}>
+      <ul id={id+'-addresses'} role="listbox" aria-label={label+' · Vorschläge'} hidden={!expanded}>
+        {addresses.map((item,index)=><li key={index} id={id+'-address-'+index} role="option" aria-selected={active===index}
+          onPointerDown={event=>event.preventDefault()} onClick={()=>choose(item)}>
+          <strong>{item.name}</strong>{item.detail?<small>{item.detail}</small>:null}
+        </li>)}
+      </ul>
+      {status&&<small role="status">{status}</small>}
+      {expanded&&<small className="trip-place-attribution">© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">OpenStreetMap</a> · Photon</small>}
     </div>
   </div>
 }

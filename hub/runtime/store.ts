@@ -59,11 +59,19 @@ export class Store {
     const current = Number(this.db.prepare('PRAGMA user_version').get()?.user_version)
     this.workspace = new Workspace(this.db)
     this.calendarConfirmations = new CalendarConfirmations(this.db)
-    const migrations = ['001-initial.sql', '002-workspace.sql', '003-proposal-history.sql', '004-dialogue.sql', '005-memory-scopes.sql', '006-memory-tags.sql', '007-source-note.sql', '008-calendar-exports.sql', '009-inbox-proposals.sql', '010-gmail-pages.sql', '011-google-calendar-test.sql', '012-task-categories.sql', '013-google-sync.sql', '014-applications.sql', '015-google-event-changes.sql', '016-outfit-studio.sql','017-travel.sql','018-trip-chat-decisions.sql','019-personal-profile-and-completion.sql','020-finance.sql','021-outfit-import-and-look-photos.sql','022-grocery.sql','023-chat-continuity.sql','024-recipes.sql','025-trips-and-wardrobe.sql','026-clothing-orders.sql','027-wardrobe-extras.sql','028-wardrobe-retailer.sql','029-mail-workflows.sql','030-order-tracker.sql','031-skill-links.sql','032-calendar-series.sql','033-projects.sql','034-project-tasks.sql','035-tasks-board.sql','036-order-activity.sql','037-resale-asking-price.sql']
+    const migrations = ['001-initial.sql', '002-workspace.sql', '003-proposal-history.sql', '004-dialogue.sql', '005-memory-scopes.sql', '006-memory-tags.sql', '007-source-note.sql', '008-calendar-exports.sql', '009-inbox-proposals.sql', '010-gmail-pages.sql', '011-google-calendar-test.sql', '012-task-categories.sql', '013-google-sync.sql', '014-applications.sql', '015-google-event-changes.sql', '016-outfit-studio.sql','017-travel.sql','018-trip-chat-decisions.sql','019-personal-profile-and-completion.sql','020-finance.sql','021-outfit-import-and-look-photos.sql','022-grocery.sql','023-chat-continuity.sql','024-recipes.sql','025-trips-and-wardrobe.sql','026-clothing-orders.sql','027-wardrobe-extras.sql','028-wardrobe-retailer.sql','029-mail-workflows.sql','030-order-tracker.sql','031-skill-links.sql','032-calendar-series.sql','033-projects.sql','034-project-tasks.sql','035-tasks-board.sql','036-order-activity.sql','037-resale-asking-price.sql', '038-application-source-details.sql']
     if (current > schemaVersion) throw new Error('Diese Datenbank benötigt eine neuere Hub-Version.')
     for (let index = current; index < migrations.length; index++) {
       this.transaction(() => {
-        this.db.exec(readFileSync(new URL('../migrations/' + migrations[index], import.meta.url), 'utf8'))
+        const migration = readFileSync(new URL('../migrations/' + migrations[index], import.meta.url), 'utf8')
+        if (migrations[index] === '038-application-source-details.sql') {
+          // Antigravity previews may have created these columns before this numbered migration.
+          const existing = new Set(this.db.prepare('PRAGMA table_info(application_sources)').all().map(row=>row.name))
+          for (const statement of migration.trim().split('\n')) {
+            const column = statement.match(/ADD COLUMN (\w+)/u)?.[1]
+            if (column && !existing.has(column)) this.db.exec(statement)
+          }
+        } else this.db.exec(migration)
         this.db.exec('PRAGMA user_version=' + (index + 1))
         if (index===26) refreshLegacyGroceryCatalog(this)
         if (index === 3 || index === 4) {

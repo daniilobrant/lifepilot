@@ -30,7 +30,7 @@ import { previewTripChange, decideTripChange } from './trip-chat-change.ts'
 import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTrip, changeTrip, tripDateChange, readTripPreview, removeSavedTrip } from './trips.ts'
 import { travelWindows } from './trip-windows.ts'
 import { tripCalendarTitle } from './trip-types.ts'
-import {searchTripPlaces} from '../connectors/trip-places.ts'
+import {searchTripAddresses,searchTripPlaces} from '../connectors/trip-places.ts'
 import { fetchOutfitWeather, outfitLocation } from '../connectors/outfit-weather.ts'
 import { outfitGarment, productWardrobeFields, textProductColor } from './outfit-fields.ts'
 import { matchProductPhoto } from './outfit-catalog.ts'
@@ -632,6 +632,9 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (draftRoute && method==='GET') return reply(res,200,readTripPreview(store,id(draftRoute[1])))
   if (path === '/api/trips/places' && method === 'GET') {
     const kind=url.searchParams.get('kind')
+    if (kind==='address') {
+      return reply(res,200,{addresses:await searchTripAddresses(url.searchParams.get('q')??'',url.searchParams.get('destination')??'')})
+    }
     if (kind!=='destination' && kind!=='departure') throw new Problem(400,'Wähle Reiseziel oder Abreiseort.')
     return reply(res,200,{places:await searchTripPlaces(url.searchParams.get('q')??'',kind==='departure')})
   }

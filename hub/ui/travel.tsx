@@ -1,8 +1,8 @@
-import {TripDateField,TripPlaceField,TravelChoices} from './travel-fields.tsx'
+import {TripAddressField,TripDateField,TripPlaceField,TravelChoices} from './travel-fields.tsx'
 import {DateInput,TimeInput} from './presentation.tsx'
 import {tripIntakeExtras} from '../runtime/trip-intake.ts'
 import { mapProviders, mapRoute, type MapProvider } from '../runtime/trip-routes.ts'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from 'react'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
 import { bookingOutsideTrip, bookingKinds, packingCategories, tripPeriods, tripStates, type TravelWindows, type Trip, type TripChatPlan,
   type TripDraft, type TripPlan, type TripPreview, type TripSummary, type TripItem } from '../runtime/trip-types.ts'
@@ -17,14 +17,68 @@ const weekdays=[['Mo',1],['Di',2],['Mi',3],['Do',4],['Fr',5],['Sa',6],['So',0]] 
 function showDay(value:string) {
   return new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(value+'T12:00Z'))
 }
+function useDismissOnOutside(open: boolean, ref: RefObject<HTMLDetailsElement | null>) {
+  useEffect(() => {
+    if (!open) return
+    const dismiss = (event: PointerEvent) => {
+      if (ref.current && event.target instanceof Node && !ref.current.contains(event.target)) {
+        ref.current.open = false
+      }
+    }
+    document.addEventListener('pointerdown', dismiss, true)
+    return () => document.removeEventListener('pointerdown', dismiss, true)
+  }, [open, ref])
+}
+function closeMenuOnEscape(event: KeyboardEvent<HTMLDetailsElement>) {
+  if (event.key !== 'Escape' || !event.currentTarget.open) return
+  event.preventDefault()
+  event.currentTarget.open = false
+  event.currentTarget.querySelector('summary')?.focus()
+}
+function ChevronIcon({ size = 12 }: { size?: number }) {
+  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 4.5 6 7.5 9 4.5" />
+  </svg>
+}
+function TripActionsMenu({ busy, showCalendar, onCalendar, onWeather, onRemove }: {
+  busy: boolean, showCalendar: boolean, onCalendar: () => void, onWeather: () => void, onRemove: () => void,
+}) {
+  const menu = useRef<HTMLDetailsElement>(null)
+  const [open, setOpen] = useState(false)
+  useDismissOnOutside(open, menu)
+  const choose = (action: () => void) => {
+    menu.current?.removeAttribute('open')
+    action()
+  }
+  return <details className="travel-trip-menu" ref={menu} onToggle={event => setOpen(event.currentTarget.open)} onKeyDown={closeMenuOnEscape}>
+    <summary aria-label="Reise-Optionen">
+      <span>Aktionen</span>
+      <ChevronIcon />
+    </summary>
+    <div className="travel-trip-menu-panel">
+      {showCalendar ? <button type="button" onClick={() => choose(onCalendar)}>Zu Google Kalender hinzufügen</button> : null}
+      <button type="button" disabled={busy} onClick={() => choose(onWeather)}>Wetter für Duftvorschlag abrufen</button>
+      <button type="button" className="travel-danger-action" onClick={() => choose(onRemove)}>Reise entfernen</button>
+    </div>
+  </details>
+}
 function RouteLink({ destination, origin, mode, label='Route öffnen' }: {
   destination?:string,origin?:string,mode?:Exclude<TripDraft['transport'],'open'>,label?:string,
 }) {
+  const choice = useRef<HTMLDetailsElement>(null)
+  const [open, setOpen] = useState(false)
+  useDismissOnOutside(open, choice)
   if (!destination?.trim()) return null
   return <div className="travel-route-actions">
-    <a className="travel-route" href={mapRoute('google',destination,origin,mode)} target="_blank" rel="noreferrer">{label}</a>
-    <details className="travel-route-choice">
-      <summary aria-label={'Karten-App für „'+label+'“'}><span aria-hidden="true">⌄</span></summary>
+    <a className="travel-route" href={mapRoute('google',destination,origin,mode)} target="_blank" rel="noreferrer">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 14s4.5-4.1 4.5-7.5a4.5 4.5 0 1 0-9 0C3.5 9.9 8 14 8 14Z" />
+        <circle cx="8" cy="6.5" r="1.5" />
+      </svg>
+      <span>{label}</span>
+    </a>
+    <details className="travel-route-choice" ref={choice} onToggle={event => setOpen(event.currentTarget.open)} onKeyDown={closeMenuOnEscape}>
+      <summary aria-label={'Karten-App für „'+label+'“'}><ChevronIcon size={11} /></summary>
       <span className="card">
         {(Object.keys(mapProviders) as MapProvider[]).map(provider=><a key={provider}
           href={mapRoute(provider,destination,origin,mode)} target="_blank" rel="noreferrer"
@@ -178,7 +232,10 @@ function addItem(event:FormEvent<HTMLFormElement>,mutate:Patch,kind:'task'|'pack
   const form=event.currentTarget
   const fields=Object.fromEntries(new FormData(form))
   const value=kind==='booking' ? {kind,booking:fields} : {...fields,kind,date,...(kind==='pack' && {quantity:Number(fields.quantity)})}
-  void mutate(value).then(()=>form.reset()).catch(()=>{})
+  void mutate(value).then(()=>{
+    form.reset()
+    form.closest('details.travel-add-activity')?.removeAttribute('open')
+  }).catch(()=>{})
 }
 
 function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boolean }) {
@@ -190,21 +247,21 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
     <section className="card travel-intro">
       <h2>{plan.draft.destination}</h2><p>{showDay(plan.draft.start)} – {showDay(plan.draft.end)} · {plan.days.length} Tage · {plan.draft.people} {plan.draft.people===1?'Person':'Personen'}</p>
       <p>{plan.overview}</p>
-      {mutate ? <details><summary>Reisezeitraum ändern</summary>
-        <form key={draft.start+draft.end} onSubmit={event=>{
+      {mutate ? <details className="travel-inline-details"><summary>Reisezeitraum ändern</summary>
+        <form key={draft.start+draft.end} className="travel-compact-form" onSubmit={event=>{
           event.preventDefault()
+          const details=event.currentTarget.closest('details')
           const fields=new FormData(event.currentTarget)
-          void mutate({kind:'dates',start:fields.get('start'),end:fields.get('end')}).catch(()=>{})
-        }}><fieldset disabled={busy} className="travel-grid">
-          <label>Anreise<DateInput  name="start" defaultValue={draft.start} required /></label>
-          <label>Abreise<DateInput  name="end" defaultValue={draft.end} required /></label>
-          <p>Der Tagesplan zieht mit. Buchungen behalten ihre Daten. Ein verbundener Google-Kalenderblock zieht ebenfalls mit.</p>
-          <button type="submit">Reisezeitraum speichern</button>
+          void mutate({kind:'dates',start:fields.get('start'),end:fields.get('end')}).then(()=>details?.removeAttribute('open')).catch(()=>{})
+        }}><fieldset disabled={busy} className="travel-date-row">
+          <label>Anreise<DateInput name="start" defaultValue={draft.start} required /></label>
+          <label>Abreise<DateInput name="end" defaultValue={draft.end} required /></label>
+          <button type="submit">Speichern</button>
         </fieldset></form>
       </details>:null}
       {plan.bookings.some(entry=>bookingOutsideTrip(entry,draft)) ?
         <p role="status">Mindestens eine Buchung liegt außerhalb des neuen Reisezeitraums. Prüfe die markierten Buchungen.</p>:null}
-      <div className="travel-grid">
+      <div className="travel-intro-columns">
         <div className="travel-stack">
           <strong>Anreise{arrival.mode ? ' · '+modes[arrival.mode] : ''}</strong>
           <p>Ab {draft.departure}. {arrival.reason}</p>
@@ -219,17 +276,19 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
           </> : null}
           {arrival.mode==='flight' ? <small>Flugverbindungen für die Reisedaten prüfen.</small> : null}
         </div>
-        <div className="travel-stack"><strong>Unterkunft</strong><p>{draft.stay || (confirmed.length===1 ? confirmed[0].name : '') || 'Noch offen'}</p>
+        <div className="travel-stack travel-stay-col"><strong>Unterkunft</strong><p>{draft.stay || (confirmed.length===1 ? confirmed[0].name : '') || 'Noch offen'}</p>
           {draft.stayAddress ? <p>{draft.stayAddress}</p> : null}
           <RouteLink destination={inDestination(lodging,draft.destination)} label="Route zur Unterkunft" />
-          {mutate ? <details><summary>Unterkunft bearbeiten</summary><form onSubmit={event=>{
+          {mutate ? <details className="travel-inline-details"><summary>Unterkunft bearbeiten</summary><form className="travel-compact-form" onSubmit={event=>{
             event.preventDefault()
+            const details=event.currentTarget.closest('details')
             const data=new FormData(event.currentTarget)
-            void mutate({kind:'stay',text:data.get('text'),address:data.get('address')}).catch(()=>{})
-          }}><fieldset disabled={busy} className="travel-grid">
-            <label>Name der Unterkunft<input name="text" maxLength={150} defaultValue={draft.stay} /></label>
-            <label>Adresse<input name="address" maxLength={200} defaultValue={draft.stayAddress} /></label>
-            <button type="submit">Unterkunft speichern</button>
+            void mutate({kind:'stay',text:data.get('text'),address:data.get('address')}).then(()=>details?.removeAttribute('open')).catch(()=>{})
+          }}><fieldset disabled={busy} className="travel-stay-row">
+            <label>Name<input name="text" maxLength={150} defaultValue={draft.stay} placeholder="Hotel oder Apartment" /></label>
+            <TripAddressField name="address" label="Adresse" initial={draft.stayAddress} destination={draft.destination}
+              placeholder="Adresse suchen …" fillSiblingName="text" />
+            <button type="submit">Speichern</button>
           </fieldset></form></details> : null}
         </div>
       </div>
@@ -251,34 +310,42 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
           {day.activities.filter(entry=>entry.period===period).map(entry=><div className="travel-activity" key={entry.id}>
           <p>{entry.text}</p><RouteLink origin={plan.bookings.find(stay=>stay.kind==='stay' && stay.status==='confirmed' && stay.date<=day.date && (stay.until??stay.date)>=day.date)?.location || draft.stayAddress}
             destination={inDestination(entry.place,draft.destination)} />
-          {mutate ? <details><summary>Tagespunkt bearbeiten</summary>
-            <form onSubmit={event=>{
-              event.preventDefault()
-              const data=new FormData(event.currentTarget)
-              void mutate({kind:'activity-place',item:entry.id,place:data.get('place')}).catch(()=>{})
-            }}><fieldset disabled={busy} className="travel-grid">
-              <label>Ort oder Adresse<input name="place" maxLength={200} defaultValue={entry.place} /></label>
-              <button>Ort speichern</button>
-            </fieldset></form>
-            <form onSubmit={event=>{
-              event.preventDefault()
-              const data=new FormData(event.currentTarget)
-              void mutate({kind:'move',item:entry.id,date:data.get('date'),period:data.get('period')}).catch(()=>{})
-            }}><fieldset disabled={busy} className="travel-grid">
-              <label>Verschieben auf<select name="date" defaultValue={day.date}>
-                {plan.days.map(option=><option key={option.date} value={option.date}>{showDay(option.date)}</option>)}
-              </select></label>
-              <label>Zeitblock<select name="period" defaultValue={entry.period}>{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
-              <button>Verschieben</button>
-            </fieldset></form>
+          {mutate ? <details className="travel-inline-details"><summary>Tagespunkt bearbeiten</summary>
+            <div className="travel-inline-panel travel-editor-stack">
+              <form onSubmit={event=>{
+                event.preventDefault()
+                const details=event.currentTarget.closest('details')
+                const data=new FormData(event.currentTarget)
+                void mutate({kind:'activity-place',item:entry.id,place:data.get('place')}).then(()=>details?.removeAttribute('open')).catch(()=>{})
+              }}><fieldset disabled={busy} className="travel-place-edit">
+                <TripAddressField name="place" label="Ort oder Adresse" initial={entry.place} destination={draft.destination}
+                  placeholder="Sehenswürdigkeit oder Adresse suchen …" />
+                <button type="submit">Ort speichern</button>
+              </fieldset></form>
+              <form onSubmit={event=>{
+                event.preventDefault()
+                const data=new FormData(event.currentTarget)
+                void mutate({kind:'move',item:entry.id,date:data.get('date'),period:data.get('period')}).catch(()=>{})
+              }}><fieldset disabled={busy} className="travel-move-edit">
+                <label>Verschieben auf<select name="date" defaultValue={day.date}>
+                  {plan.days.map(option=><option key={option.date} value={option.date}>{showDay(option.date)}</option>)}
+                </select></label>
+                <label>Zeitblock<select name="period" defaultValue={entry.period}>{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
+                <button type="submit">Verschieben</button>
+              </fieldset></form>
+            </div>
           </details>:null}</div>)}
         </div>)}
-        {mutate ? <form onSubmit={event=>addItem(event,mutate,'activity',day.date)}><fieldset disabled={busy} className="travel-grid">
-          <label>Eigener Tagespunkt<input name="text" required maxLength={150} /></label>
-          <label>Ort oder Adresse (optional)<input name="place" maxLength={200} placeholder="z. B. Name der Sehenswürdigkeit" /></label>
-          <label>Zeitblock<select name="period">{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
-          <button>Hinzufügen</button>
-        </fieldset></form>:null}
+        {mutate ? <details className="travel-add-activity">
+          <summary className="travel-add-summary">+ Tagespunkt hinzufügen</summary>
+          <form className="travel-inline-panel" onSubmit={event=>addItem(event,mutate,'activity',day.date)}><fieldset disabled={busy} className="travel-activity-form">
+            <label>Eigener Tagespunkt<input name="text" required maxLength={150} placeholder="z. B. Kathedrale besuchen" /></label>
+            <TripAddressField name="place" label="Ort oder Adresse (optional)" initial="" destination={draft.destination}
+              placeholder="z. B. Name der Sehenswürdigkeit oder Adresse" />
+            <label>Zeitblock<select name="period">{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
+            <button type="submit" className="primary">Hinzufügen</button>
+          </fieldset></form>
+        </details>:null}
       </details>)}
     </section>
     </> : null}
@@ -308,8 +375,8 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
           <label>Check-out für Unterkunft<DateInput name="until"  min={plan.draft.start} max={plan.draft.end} /></label>
           <label>Ortszeit<TimeInput name="time" /></label>
           <label>Zeitzone (optional)<input name="timezone" maxLength={70} placeholder="z. B. Europe/Lisbon" /></label>
-          <label>Zielort oder Adresse<input name="location" maxLength={200} /></label>
-          <label>Startort der Route (optional)<input name="origin" maxLength={200} /></label>
+          <TripAddressField name="location" label="Zielort oder Adresse" initial="" destination={draft.destination} />
+          <TripAddressField name="origin" label="Startort der Route (optional)" initial="" destination={draft.destination} />
           <label>Belegverweis (optional)<input name="reference" maxLength={100} /></label>
           <label>Status<select name="status">{Object.entries(statuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
           <button className="primary">Buchung zuordnen</button>
@@ -504,7 +571,19 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
       </>}
     </>:null}
     {view==='trip' && current ? <>
-      <button type="button" className="quiet" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
+      <div className="travel-trip-bar">
+        <button type="button" className="quiet travel-back" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
+        <TripActionsMenu
+          busy={busy}
+          showCalendar={!current.googleCalendar}
+          onCalendar={()=>setCalendarOffer(true)}
+          onWeather={()=>fire(async()=>{
+            const updated=await api<Trip>('/trips/packing-weather',{tripId:current.id,confirm:true},25000)
+            setCurrent(updated);setFeedback('Der Duftvorschlag berücksichtigt jetzt das Wetter am Reiseziel.')
+          })}
+          onRemove={()=>setRemoving(true)}
+        />
+      </div>
       {(calendarOffer || current.googleCalendar==='pending') ? <section className="card travel-stack">
         <p>Soll ich den privaten ganztägigen Reiseblock auch in Google Kalender eintragen?</p>
         <div className="actions">
@@ -514,7 +593,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           })}>Ja, in Google Kalender eintragen</button>
           {!current.googleCalendar ? <button type="button" disabled={busy} onClick={()=>setCalendarOffer(false)}>Nur LifePilot</button> : null}
         </div>
-      </section> : !current.googleCalendar ? <button type="button" className="quiet" onClick={()=>setCalendarOffer(true)}>Zu Google Kalender hinzufügen</button> : null}
+      </section> : null}
       {removing ? <section className="card travel-stack">
         <p>Reise und zugehörigen Kalenderblock {current.googleCalendar?'auch aus Google Kalender ':''}entfernen?</p>
         <div className="actions">
@@ -525,11 +604,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           })}>Reise und Kalenderblock entfernen</button>
           <button type="button" disabled={busy} onClick={()=>setRemoving(false)}>Abbrechen</button>
         </div>
-      </section> : <button type="button" className="quiet" onClick={()=>setRemoving(true)}>Reise entfernen</button>}
-      <button type="button" disabled={busy} className="quiet" onClick={()=>fire(async()=>{
-        const updated=await api<Trip>('/trips/packing-weather',{tripId:current.id,confirm:true},25000)
-        setCurrent(updated);setFeedback('Der Duftvorschlag berücksichtigt jetzt das Wetter am Reiseziel.')
-      })}>Wetter für Duftvorschlag abrufen</button>
+      </section> : null}
       <TripGuide key={current.id} plan={current} mutate={change} busy={busy} />
     </>:null}
   </div>

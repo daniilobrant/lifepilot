@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.10 · 25. November 2026
+
+- Reiseaktionen, Routen und Reiseformulare kompakter angeordnet und eine Adresssuche mit Zielort ergänzt.
+- Gmail-Vorschläge um Stellenangaben, Datum, Link und nächste Schritte erweitert. Der Ort ist optional.
+- Einheitliche Kleiderschrankkacheln und feste Styling-Kategorien mit wetterabhängiger Schichtung und Jackenwahl.
+
 ## v1.0.9 · 24. November 2026
 
 - Pilot empfiehlt mehrere Gerichte mit Mengenabgleich, wählbaren Portionen, Zutatenwünschen, Beilagen und Ausschlüssen. Bei unzureichendem Vorrat zeigt er die noch benötigten Zutaten.

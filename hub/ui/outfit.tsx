@@ -8,7 +8,7 @@ import { outfitGarment, productColorName, productWardrobeFields } from '../runti
 import { FragrancePanel, ResalePanel, TravelOutfits, scentPhotoPath } from './wardrobe-extras.tsx'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
-import { bodyProportions, bodyShapes, emptyWardrobe, outfitDayparts, outfitStyles, preferredCuts, wardrobeCategories, wardrobeTypes, type Outfit, type OutfitChoice, type OutfitOverview,
+import { bodyProportions, bodyShapes, emptyWardrobe, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, wardrobeTypes, type Outfit, type OutfitChoice, type OutfitOverview,
   type OutfitChatPlan, type OutfitQuery, type StyleProfile, type WardrobeDraft, type WardrobeItem } from '../runtime/outfit-types.ts'
 
 type Api = <T>(path: string, payload?: object, timeout?: number) => Promise<T>
@@ -45,15 +45,18 @@ async function upload(item: string, file: File) {
 function Piece({ item, imageVersion }: { item: WardrobeItem, imageVersion: number }) {
   const title=productDisplayName(item.name)
   const color=displayColor(item.color)
+  const slotLabel=outfitSlots[outfitSlot(item)]
   const attributes=[color.label,item.fit||item.material].filter(Boolean).join(' · ')
   return <article className="outfit-piece">
-    {item.hasPhoto ? <img src={photoPath(item.id) + '&v=' + imageVersion} alt={title} width={320} height={400} loading="lazy" /> :
-      <div className="outfit-piece-placeholder">{color.label || wardrobeCategories[item.category]}</div>}
-    <div><small>{wardrobeCategories[item.category]}</small><h3 title={title}>{title}</h3>
-      {item.orderState ? <small>{item.orderState==='ordered'?'Bestellt':'Behalten oder zurückgeben?'}</small> : null}
-      {attributes&&<p className="outfit-piece-attributes" title={attributes}>{color.swatch&&
-        <svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeOpacity=".3" fill={color.swatch}/></svg>}
-        <span>{attributes}</span></p>}
+    <div className="outfit-piece-media">
+      {item.hasPhoto ? <img src={photoPath(item.id) + '&v=' + imageVersion} alt={title} width={320} height={400} loading="lazy" /> :
+        <div className="outfit-piece-placeholder">{color.label || slotLabel}</div>}
+    </div>
+    <div className="outfit-piece-info"><small>{slotLabel}</small><h3 title={title}>{title}</h3>
+      <p className="outfit-piece-attributes" title={attributes}>{item.orderState ? (item.orderState==='ordered'?'Bestellt':'Behalten oder zurückgeben?') : <>
+        {color.swatch&&<svg width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><circle cx="6" cy="6" r="5" stroke="currentColor" strokeOpacity=".3" fill={color.swatch}/></svg>}
+        <span>{attributes}</span>
+      </>}</p>
     </div>
   </article>
 }
@@ -90,8 +93,6 @@ function WardrobeMenu({title,children}:{title:string,children:ReactNode}){
 
 function Board({ look, wardrobe, imageVersion, actions }: { look: Outfit, wardrobe: WardrobeItem[], imageVersion: number, actions?: ReactNode }) {
   const pieces = look.itemIds.map(id => wardrobe.find(item => item.id === id)).filter((item): item is WardrobeItem => Boolean(item))
-  const materials = [...new Set(pieces.map(item => item.material).filter(Boolean))]
-  const accessories = pieces.filter(item => item.category === 'accessory')
   if (!pieces.length && !look.rationale) return <div className="outfit-actions">{actions}</div>
   return <article className="outfit-board">
     <header className="outfit-board-head"><small>{look.occasion} · {look.style}</small><h2>{look.title}</h2><p>{look.rationale}</p></header>
@@ -109,7 +110,13 @@ function Board({ look, wardrobe, imageVersion, actions }: { look: Outfit, wardro
     {look.fragrance ? <section className="outfit-scent"><img src={scentPhotoPath(look.fragrance.id)} alt="" loading="lazy"/>
       <div><h3>{[look.fragrance.brand,look.fragrance.name].filter(Boolean).join(' · ')}</h3><p>{look.fragrance.reason}</p>{look.fragrance.pairing ? <small>{look.fragrance.pairing}</small>:null}</div>
     </section>:null}
-    <div className="outfit-look-grid">{pieces.map(item => <Piece key={item.id} item={item} imageVersion={imageVersion} />)}</div>
+    <div className="outfit-look-grid">{outfitSlotOrder.map(slot=>{
+      const items=pieces.filter(item=>outfitSlot(item)===slot)
+      return <section className="outfit-look-slot" key={slot} aria-label={outfitSlots[slot]}>
+        {items.length ? items.map(item=><Piece key={item.id} item={item} imageVersion={imageVersion} />) :
+          <div className="outfit-empty-slot"><small>{outfitSlots[slot]}</small><span>Kein Teil gewählt</span></div>}
+      </section>
+    })}</div>
     <div className="outfit-details">
       <section><h3>Styling-Tipps</h3><ul>{look.tips.map(tip => <li key={tip}>{tip}</li>)}</ul></section>
 
@@ -715,10 +722,33 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
                     onChange={event=>{setPlace(event.target.value);change('variant',0)}} /></label>
                 </div>
                 {place.trim()&&day>lastWeatherDay&&<small>Die Wettervorhersage reicht bis zu 15 Tage im Voraus.</small>}
-                <fieldset className="outfit-anchors"><legend>Teile, die dabei sein sollen</legend>
-                  {overview.wardrobe.filter(item=>!item.orderState && !item.saleState).map(item=><label key={item.id} className="outfit-check"><input type="checkbox"
-                    checked={query.required.includes(item.id)} disabled={query.required.length>=8 && !query.required.includes(item.id)}
-                    onChange={event=>change('required',event.target.checked ? [...query.required,item.id] : query.required.filter(id=>id!==item.id))} /> {item.name}</label>)}
+                <fieldset className="outfit-anchors"><legend>Teile, die dabei sein sollen (max. 1 pro Kategorie)</legend>
+                  <div className="outfit-anchor-groups">
+                    {outfitSlotOrder.map(slot=>{
+                      const items=overview.wardrobe.filter(item=>!item.orderState && !item.saleState && outfitSlot(item)===slot)
+                      if (!items.length) return null
+                      const selectedId=items.find(item=>query.required.includes(item.id))?.id
+                      return <div key={slot} className="outfit-anchor-group">
+                        <strong>{outfitSlots[slot]}</strong>
+                        <div className="outfit-anchor-list">
+                          {items.map(item=>{
+                            const checked=selectedId===item.id
+                            return <label key={item.id} className="outfit-check" data-checked={checked||undefined}>
+                              <input type="checkbox" checked={checked}
+                                onChange={event=>{
+                                  const others=query.required.filter(id=>{
+                                    const found=overview.wardrobe.find(entry=>entry.id===id)
+                                    return found && outfitSlot(found)!==slot
+                                  })
+                                  change('required',event.target.checked ? [...others,item.id] : others)
+                                }} />
+                              <span title={item.name}>{productDisplayName(item.name)}</span>
+                            </label>
+                          })}
+                        </div>
+                      </div>
+                    })}
+                  </div>
                 </fieldset>
               </details>
               {!validDay ? <p role="alert">Wähle heute oder ein späteres Datum.</p> : null}
@@ -747,10 +777,10 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
         {editor !== undefined ? <WardrobeEditor cloudImages={cloudImages} key={editor?.id ?? 'new'} api={api}
           profile={overview.profile} onCancel={()=>setEditor(undefined)}
           item={editor} onDone={async()=>{await reload();setEditor(undefined)}} /> : null}
-        {Object.entries(wardrobeCategories).map(([category,title])=>{
-          const items=overview.wardrobe.filter(item=>item.category===category&&!item.saleState)
-          return <section key={category} className="wardrobe-section">
-            <h3>{title}</h3>
+        {outfitSlotOrder.map(slot=>{
+          const items=overview.wardrobe.filter(item=>outfitSlot(item)===slot&&!item.saleState)
+          return <section key={slot} className="wardrobe-section">
+            <h3>{outfitSlots[slot]}</h3>
             {items.length ? wardrobeGrid(items) : <p className="wardrobe-empty">Noch keine Artikel hinzugefügt.</p>}
           </section>
         })}

@@ -328,3 +328,36 @@ test('Calendar context classifies the selected event and uses Berlin local time'
   assert.equal(work.time,'19:00')
   assert.match(outfitCalendarContext('Handballtraining').occasion,/Sport & Bewegung/u)
 })
+
+test('Outfit slots separate T-shirts and longsleeves from knitwear, enforce max one per slot, and adapt jackets to weather',async()=>{
+  const {outfitSlot}=await import('../../../hub/runtime/outfit-types.ts')
+  const store=new Store(':memory:')
+  try {
+    const henleyBlue=saveWardrobe(store,{name:'Topman Slim Fit Langarm-Ripp-Henley-T-Shirt in Marineblau',category:'top',garmentType:'T-Shirt'}).id
+    const henleyBrown=saveWardrobe(store,{name:'Topman Slim Fit Langarm-Ripp-Henley-T-Shirt in Braun',category:'top',garmentType:'T-Shirt'}).id
+    const pullover=saveWardrobe(store,{name:'100 % Merinowolle Pullover (Polokragen)',category:'top',garmentType:'Pullover & Strick',material:'100 % Merinowolle'}).id
+    const jeans=saveWardrobe(store,{name:'Solar Mid Waist Loose Wide Unisex Jeans',category:'bottom',garmentType:'Jeans'}).id
+    const lightJacket=saveWardrobe(store,{name:'Bershka karierte Jacke mit Reißverschluss in Schwarz',category:'outer',garmentType:'Jacke'}).id
+    const pufferJacket=saveWardrobe(store,{name:'ASOS DESIGN Steppjacke mit Rippkragen in Schwarz',category:'outer',garmentType:'Jacke'}).id
+    const items=outfitOverview(store).wardrobe
+    assert.equal(outfitSlot(items.find(i=>i.id===henleyBlue)!),'base')
+    assert.equal(outfitSlot(items.find(i=>i.id===pullover)!),'knit')
+
+    const studio=new OutfitStudio()
+    // Even if two items from the same slot are passed, at most 1 per slot is kept, and a longsleeve Henley does not get a Pullover layered on top
+    const coldLook=studio.generate(store,{...query,mode:'anchor',required:[henleyBlue,henleyBrown],temperature:1}).look
+    assert.ok(!coldLook.itemIds.includes(henleyBlue) || !coldLook.itemIds.includes(henleyBrown))
+    assert.ok(!coldLook.itemIds.includes(pullover))
+    assert.ok(coldLook.itemIds.includes(pufferJacket))
+
+    // Mild transition weather (14 °C) prefers the transition jacket over the winter puffer jacket
+    const mildLook=studio.generate(store,{...query,temperature:14}).look
+    assert.ok(mildLook.itemIds.includes(lightJacket))
+
+    // Fixed slot ordering: top (base/knit) -> bottom -> outer
+    const slots=mildLook.itemIds.map(id=>outfitSlot(items.find(i=>i.id===id)!))
+    assert.equal(slots[0]==='base' || slots[0]==='knit',true)
+    assert.equal(slots[1],'bottom')
+    assert.equal(slots[2],'outer')
+  } finally {store.db.close()}
+})

@@ -7,8 +7,20 @@ import { applicationGroups, applicationStatuses, emptyApplication, type Applicat
 type Api = <T>(path: string, value?: object, timeout?: number) => Promise<T>
 type Editor = { draft: ApplicationDraft, existing?: Application, source?: ApplicationSource }
 const applicationKey=(item:Pick<ApplicationDraft,'company'|'role'>)=>JSON.stringify([item.company,item.role].map(value=>value.trim().toLocaleLowerCase('de-DE')))
+function applicationReviewDraft(source?: ApplicationSource, existing?: Application): ApplicationDraft {
+  if (!source) return existing ?? emptyApplication
+  const draft={...emptyApplication,company:source.company,role:source.role,location:source.location,
+    salary:source.salary ?? '',description:source.description ?? '',notes:source.notes ?? '',link:source.link ?? '',
+    applied_on:source.applied_on ?? null,follow_up:source.follow_up ?? null,status:source.status}
+  if (!existing) return draft
+  const supplement=(current:string,incoming:string,limit:number)=>incoming&&!current.includes(incoming)
+    ? [current,incoming].filter(Boolean).join('\n\n').slice(0,limit) : current
+  return {...existing, status:draft.status, location:existing.location||draft.location, salary:existing.salary||draft.salary,
+    applied_on:existing.applied_on??draft.applied_on,link:existing.link||draft.link,
+    description:supplement(existing.description,draft.description,2500),notes:supplement(existing.notes,draft.notes,1600)}
+}
 const fields = [
-  ['company','Firma',120,true], ['role','Stelle oder Jobbeschreibung',160,true], ['location','Ort',120,true],
+  ['company','Firma',120,true], ['role','Stelle oder Jobbeschreibung',160,true], ['location','Ort',120,false],
   ['salary','Gehalt oder Gehaltsspanne',100,false], ['link','Link zur Stelle',500,false],
 ] as const
 
@@ -45,8 +57,7 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
     [item.company, item.role, item.location].join(' ').toLocaleLowerCase('de').includes(query.toLocaleLowerCase('de').trim()))
   function open(source?: ApplicationSource, existing?: Application) {
     setImageText(''); setHistory([])
-    const suggested = source ? { company: source.company, role: source.role, location: source.location, status: source.status } : {}
-    setEditor({ source, existing, draft: existing ? { ...existing, status: source?.status ?? existing.status } : { ...emptyApplication, ...suggested } })
+    setEditor({ source, existing, draft: applicationReviewDraft(source,existing) })
     if (existing) void api<typeof history>('/applications/' + existing.id + '/history').then(setHistory).catch(() => {})
   }
   function change<K extends keyof ApplicationDraft>(key: K, value: ApplicationDraft[K]) {
@@ -73,9 +84,8 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
     const matching=data?.items.filter(item=>applicationKey(item)===key)??[]
     const existing=source.application_id?data?.items.find(item=>item.id===source.application_id):matching[0]
     if(sourceCounts.get(key)!==1||matching.length>1||source.application_id&&!existing||
-      !existing&&![source.company,source.role,source.location].every(value=>value.trim()))return []
-    const {company,role,location,status}=source
-    return [{id:source.id,title:source.title,existing,draft:existing?{...existing,status}:{...emptyApplication,company,role,location,status}}]
+      !existing&&![source.company,source.role].every(value=>value.trim()))return []
+    return [{id:source.id,title:source.title,existing,draft:applicationReviewDraft(source,existing)}]
   })
   async function approveSources(items:readonly (typeof eligible)[number][]){
     setBusy(true);setError('');setBatchReviewed(true)
@@ -179,7 +189,7 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
           <div className="editor-title"><h3>{title}</h3><span>{column.length}</span></div>
           {column.length ? column.map(item => <button className="application-card" type="button" onClick={() => open(undefined,item)} key={item.id}>
             <span className="application-stage" data-stage={item.status}>{applicationStatuses[item.status]}</span>
-            <strong>{item.role}</strong><span>{item.company} · {item.location}</span>
+            <strong>{item.role}</strong><span>{item.company}{item.location ? ' · ' + item.location : ''}</span>
             {item.follow_up ? <small>Wiedervorlage · {new Intl.DateTimeFormat('de-DE',{timeZone:'UTC'}).format(new Date(item.follow_up))}</small> : null}
           </button>) : <p className="empty">Keine Bewerbungen</p>}
         </section>
