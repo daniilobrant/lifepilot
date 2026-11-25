@@ -74,3 +74,11 @@ test('Incoming PayPal payments count as one-off income and are never repeated in
     assert.equal(financeOverview(store,'2026-12').totals.income,0)
   }finally{store.db.close()}
 })
+
+test('PayPal transfers between people are filed under Freunde & Familie, merchant payments are not',async()=>{
+  const {personalTransfer}=await import('../../../hub/runtime/mail-finance.ts')
+  const paypal={reference:''}
+  for (const name of ['Alex Beispiel','Noelia Corica Cuello','Sam Müller-Lüdenscheidt']) assert.equal(personalTransfer({paypal,counterparty:name,title:name}),true,name)
+  for (const name of ['Uber Payments BV','Deutsche Post AG','Google Payment Ireland','Ryanair DAC','Trip.com Netherlands','ASOS Payments Europe B.V.']) assert.equal(personalTransfer({paypal,counterparty:name,title:name}),false,name)
+  assert.equal(personalTransfer({counterparty:'Alex Beispiel',title:'Alex Beispiel'}),false)
+})

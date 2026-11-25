@@ -59,6 +59,25 @@ function legacyFinanceFromMail(mail:MailContent) {
   return {draft,fingerprint:createHash('sha256').update(JSON.stringify(identity)).digest('hex')}
 }
 
+// Zahlungen zwischen Personen (PayPal „Freunde und Familie“) sind kein Shopping.
+const company=/\b(?:gmbh|ag|bv|b\.v\.|ltd|limited|inc|llc|s\.a\.|sarl|payments?|europe|services?|shop|store|markt|online|\.com|\.de|dac|plc|co\.?)\b/iu
+export function personalTransfer(draft:Pick<MailFinanceDraft,'paypal'|'counterparty'|'title'|'direction'>) {
+  if (!draft.paypal) return false
+  const name=(draft.counterparty ?? draft.title.split(' · ')[0] ?? '').trim()
+  return /^\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}?[\p{L}'’-]+){1,3}$/u.test(name) && !company.test(name)
+}
+export function recategorizePersonal(store:Store,account:string) {
+  const rows=store.db.prepare(`SELECT id,draft,entry_id FROM gmail_finance_suggestions WHERE account=? AND json_extract(draft,'$.paypal') IS NOT NULL
+    AND coalesce(json_extract(draft,'$.category'),'')<>'Freunde & Familie'`).all(account) as {id:string,draft:string,entry_id:string|null}[]
+  for (const row of rows) {
+    const draft=JSON.parse(row.draft) as MailFinanceDraft
+    if (!personalTransfer(draft)) continue
+    store.db.prepare('UPDATE gmail_finance_suggestions SET draft=? WHERE id=?').run(JSON.stringify({...draft,category:'Freunde & Familie'}),row.id)
+    if (row.entry_id) store.db.prepare(`UPDATE finance_entries SET data=json_set(data,'$.category','Freunde & Familie'),revision=revision+1
+      WHERE id=? AND coalesce(json_extract(data,'$.category'),'') IN ('','Shopping & Alltag','Sonstiges')`).run(row.entry_id)
+  }
+}
+
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex')
 export function financeFromMail(mail:MailContent){
   if(mail.previewOnly)return
@@ -121,6 +140,7 @@ export function financeFromMail(mail:MailContent){
   const recurrenceKey=direction==='outgoing'?paymentSeries(counterparty,description):undefined
   const draft:MailFinanceDraft={title,cents,recurrenceKey,date:stated??dateInBerlin(new Date(mail.at)),refund,mailDate:!stated,
     direction,sourceKey,paypal:{reference:paypal.orderReference},...(counterparty&&{counterparty}),...(description&&{description})}
+  if (personalTransfer(draft)) draft.category='Freunde & Familie'
   return {draft,fingerprint:sourceKey,legacyFingerprint:legacy?.fingerprint}
 }
 export const financeMailNote=(draft:MailFinanceDraft)=>
@@ -182,6 +202,7 @@ function refundTwin(store:Store,account:string,draft:MailFinanceDraft){
 
 export function scanMailFinances(store:Store,mails:MailContent[],account:string,existingOnly=false){
   return store.transaction(()=>{
+    recategorizePersonal(store,account)
     const insert=store.db.prepare('INSERT OR IGNORE INTO gmail_finance_suggestions (id,account,fingerprint,draft) VALUES (?,?,?,?)')
     const find=store.db.prepare('SELECT * FROM gmail_finance_suggestions WHERE account=? AND fingerprint=?')
     const update=store.db.prepare('UPDATE gmail_finance_suggestions SET fingerprint=?,draft=? WHERE id=?')

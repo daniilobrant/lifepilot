@@ -117,17 +117,6 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
   }
 
   return <section className="application-space" aria-label="Bewerbungsmanager">
-    <header className="application-header">
-      <button className="inline-action application-breadcrumb" type="button" onClick={onBack}>‹ Skills</button>
-      <div className="actions">
-        <button disabled={busy} onClick={() => void act(async () => {
-          const result = await api<{ checked: number, added: number, limited: boolean }>('/applications/scan', { confirm: true }, 45000)
-          await reload()
-          setNotice(`${result.checked} Mails geprüft · ${result.added} neue Bewerbungsfunde` + (result.limited ? ' · Neueste Treffer angezeigt' : ''))
-        })}>Gmail prüfen</button>
-        <button type="button" className="primary" disabled={busy} onClick={() => open()}>Bewerbung hinzufügen</button>
-      </div>
-    </header>
     {error ? <p className="banner" role="alert">{error}</p> : null}
     {notice ? <p className="banner" role="status">{notice}</p> : null}
     {data ? <dl className="application-metrics">
@@ -181,7 +170,10 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
       <BulkApproval items={eligible} disabled={busy} approve={approveSources}
         description="LifePilot speichert vollständige Bewerbungen und übernimmt neue Status für eindeutig zugeordnete Bewerbungen."/>
     </section> : null}
-    <label className="application-search">Bewerbungen suchen<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Firma, Stelle oder Ort" /></label>
+    <div className="application-toolbar">
+      <label className="application-search">Bewerbungen suchen<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Firma, Stelle oder Ort" /></label>
+      <button type="button" className="primary" disabled={busy} onClick={() => open()}>Bewerbung hinzufügen</button>
+    </div>
     <div className="application-board">
       {applicationGroups.map(({ title, statuses }) => {
         const column = visible.filter(item => statuses.some(status => status === item.status))

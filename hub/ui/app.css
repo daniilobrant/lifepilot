@@ -1747,3 +1747,31 @@ input[type=file]::file-selector-button {
   .travel-currency-row { grid-template-columns: 1fr auto; }
   .travel-currency output { grid-column: 1 / -1; justify-content: flex-start; }
 }
+
+.application-toolbar { display: flex; align-items: end; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 1rem 0; }
+.application-toolbar .application-search { margin: 0; flex: 1 1 320px; }
+
+.look-tile { display: grid; grid-template-rows: auto auto 1fr; overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: var(--card); }
+.look-cover { display: block; width: 100%; aspect-ratio: 4 / 5; object-fit: cover; background: #f2efe9; }
+.look-collage { display: grid; grid-template-columns: repeat(3, 1fr); gap: 2px; background: var(--line); aspect-ratio: 3 / 2.6; }
+.look-collage > div, .look-strip > div { display: grid; place-items: center; background: #f2efe9; overflow: hidden; min-width: 0; }
+.look-collage img, .look-strip img { width: 100%; height: 100%; object-fit: cover; }
+.look-strip { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; background: var(--line); }
+.look-strip > div { aspect-ratio: 1; }
+.look-thumb-empty { font-size: .68rem; color: var(--muted); text-align: center; padding: 4px; }
+.look-body { display: grid; align-content: start; gap: 8px; padding: 14px 16px 16px; }
+.look-body h3 { margin: 0; font-size: 1.05rem; line-height: 1.3; }
+.look-body ul { margin: 0; padding-inline-start: 1.1rem; color: var(--muted); font-size: .86rem; display: grid; gap: 2px; }
+.look-body .travel-small-button { justify-self: start; }
+.look-empty { margin: 0; color: var(--muted); font-size: .86rem; }
+
+.resale-card { display: grid; gap: 12px; padding: 14px; }
+.resale-card .resale-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.resale-card .resale-actions button { flex: 1 1 140px; min-height: 38px; padding: 6px 12px; font-size: .86rem; }
+.resale-price { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; margin: 0; }
+.resale-price small { color: var(--muted); font-size: .78rem; }
+.resale-listing { display: grid; gap: 4px; margin: 0; white-space: pre-line; font-size: .86rem; color: var(--ink); }
+.resale-summary { display: grid; gap: 8px; }
+.resale-summary button { justify-self: start; min-height: 34px; padding: 4px 14px; font-size: .84rem; }
+.resale-note { color: var(--muted); font-size: .76rem; }
+.resale-remove { color: var(--error); }

@@ -1,4 +1,5 @@
 export const saleConditions = ['Neu mit Etikett','Neu ohne Etikett','Sehr gut','Gut','Mit Gebrauchsspuren'] as const
+export const priceClasses = ['Basic / Fast Fashion','Marke','Premium / Designer','Sneaker / Sammlerstück','Vintage'] as const
 export const fragranceProfiles = ['Frisch','Ausgewogen','Warm & intensiv'] as const
 export const fragranceOccasions = ['Alltag','Büro','Sport & Freizeit','Date','Feier'] as const
 export const fragranceSeasons = ['Frühling','Sommer','Herbst','Winter'] as const
@@ -14,4 +15,5 @@ export type ScentChoice = {id:string,name:string,brand:string,reason:string,pair
 export type ResaleDraft = {
   id:string,name:string,state:'selling'|'sold',condition:string,flaws:string,originalPrice:number|null,askingPriceCents:number|null,
   created:string,sold:string|null,hasPhoto:boolean, hasOwnPhoto:boolean,listing:{title:string,description:string,minimum:number,maximum:number,start:number},
+  priceClass:string,quantity:number,estimateNote:string,
 }

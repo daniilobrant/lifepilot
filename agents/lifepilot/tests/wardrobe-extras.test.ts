@@ -22,8 +22,9 @@ test('Resale summarizes observed attributes, differentiates photo provenance and
     attachOutfitPhoto(store,id,photo,'image/png','web')
     let sale=store.transaction(()=>changeResale(store,id,'selling',{condition:'Gut',flaws:'Kleine Naht ausgebessert',originalPrice:60}))[0]
     assert.equal(sale.hasOwnPhoto,false)
-    assert.match(sale.listing.description,/Größe: 42/)
-    assert.equal(sale.listing.start,21)
+    assert.match(sale.listing.description,/Größe 42/)
+    assert.equal(sale.listing.start,18)
+    assert.match(sale.listing.description,/^Ich verkaufe Test Hose in Braun/u)
     assert.equal(sale.askingPriceCents,null)
     assert.throws(()=>store.transaction(()=>changeResale(store,id,'selling',
       {condition:'Gut',originalPrice:60,askingPriceCents:-1})),{status:400})
@@ -37,12 +38,19 @@ test('Resale summarizes observed attributes, differentiates photo provenance and
     assert.equal(sale.askingPriceCents,350)
     assert.equal(store.transaction(()=>changeResale(store,id,'sold',null))[0].state,'sold')
     assert.equal(outfitOverview(store).wardrobe.length,0)
-    store.transaction(()=>changeResale(store,id,'restore',null))
-    assert.equal(outfitOverview(store).wardrobe.length,1)
-    assert.deepEqual(store.transaction(()=>changeResale(store,id,'sorted',null)),[])
+    // Verkaufte Teile gehen nicht zurück, sie können nur endgültig entfernt werden.
+    assert.throws(()=>store.transaction(()=>changeResale(store,id,'restore',null)),{status:409})
+    assert.deepEqual(store.transaction(()=>changeResale(store,id,'delete',null)),[])
+    assert.equal(Number(store.db.prepare('SELECT count(*) AS n FROM wardrobe_items').get()?.n),0)
+    const other=saveWardrobe(store,{name:'Jacke',category:'outer',brand:'Zara'}).id
+    assert.deepEqual(store.transaction(()=>changeResale(store,other,'sorted',null)),[])
     assert.equal(outfitOverview(store).wardrobe[0].saleState,'sorted')
-    assert.throws(()=>new OutfitStudio().generate(store,{style:'Schlicht',mode:'anchor',required:[id],variant:0}),{status:409})
-    assert.equal(changeResale(store,id,'start',null)[0].state,'selling')
+    assert.throws(()=>new OutfitStudio().generate(store,{style:'Schlicht',mode:'anchor',required:[other],variant:0}),{status:409})
+    const started=changeResale(store,other,'start',null)[0]
+    assert.equal(started.state,'selling')
+    assert.equal(started.priceClass,'Basic / Fast Fashion')
+    const estimated=store.transaction(()=>changeResale(store,other,'selling',{condition:'Sehr gut',originalPrice:80,quantity:1,estimate:true}))[0]
+    assert.equal(estimated.askingPriceCents,2600)
   } finally {store.db.close()}
 })
 

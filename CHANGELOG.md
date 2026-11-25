@@ -2,6 +2,13 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.23 · 25. November 2026
+
+- Finanzen: Zahlungen von und an Personen (PayPal „Freunde und Familie“) bekommen die Kategorie Freunde & Familie. Bestehende Einträge werden beim nächsten Mail-Abgleich umsortiert.
+- Bewerbungen: Kein Zurück-Knopf und kein „Gmail prüfen“ mehr; „Bewerbung hinzufügen“ steht rechts neben der Suche. Aufgaben & Fristen: Hinzufügen nur noch in den Spalten.
+- Meine Looks: Kacheln zeigen alle Teile als kleine Bilder, eigene Fotos mit Bildleiste, sauberer Innenabstand.
+- Verkaufen: Preisklasse und Anzahl, „Verkaufspreis ermitteln“ nach festen Regeln, ausformulierter Anzeigentext. Verkaufte Teile lassen sich nur noch endgültig entfernen, das Foto wird im Kleiderschrank geändert.
+
 ## v1.0.22 · 25. November 2026
 
 - Sicherheitsprüfung: Uniqlo-Farbbilder und Kleidungsvorlagen der Packliste kommen ohne aus Daten gebaute reguläre Ausdrücke aus. Die Semgrep-Prüfung in der Pull-Request-Pipeline läuft wieder durch.
