@@ -37,9 +37,11 @@ import { matchProductPhoto } from './outfit-catalog.ts'
 import { analyzeOutfitPhoto, prepareFullOutfitPhoto } from '../connectors/outfit-vision.ts'
 import { OutfitStudio, outfitOverview, saveWardrobe, saveStyle, attachOutfitPhoto, outfitPhoto, removeOutfitData, lookPhoto, saveLookPhoto, removeLookPhoto, assignLookPieces } from './outfits.ts'
 import { inspectProduct, importProductPhoto, searchProductImages, searchProductPages, photoMime, uploadOutfitPhoto, outfitUploadLimit } from '../connectors/outfit-import.ts'
+import { createServer as createSocketServer } from 'node:net'
+import { adapterToken, prepareAdapterSocket } from './local-adapter.ts'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash, randomBytes, timingSafeEqual, randomUUID } from 'node:crypto'
-import { chmodSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, readFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { acceptance, audit, chatMode, cloudModel, data, fixtures, host, MAX_INPUT, MODEL_MS, nightbot, origin, port, Problem, root, secretPath, probeSecretPath, version } from './settings.ts'
 import { Store, type Channel } from './store.ts'
@@ -423,7 +425,7 @@ async function work() {
           if(cloudModel)webRecipes=await researchPantryRecipes(groceryOverview(store).stock,preference,controller.signal)
         }
       }
-      if(!controller.signal.aborted)store.finish(next.id,categorized,categorized?null:error??'Im Testprofil ist für diesen Auftrag kein lokaler Entwurf verfügbar.',metrics,webRecipes)
+      if(!controller.signal.aborted)store.finish(next.id,categorized,categorized?null:error??(cloudModel?'Für diesen Auftrag ist kein Entwurf verfügbar.':'Im Testprofil sind externe Modelle gesperrt. Für diesen Auftrag ist kein lokaler Entwurf verfügbar.'),metrics,webRecipes)
     }
   } catch {
     if (!stopping) store.finish(next.id, null, 'Der Modelladapter konnte nicht gestartet werden.', { wallMs: 0, model: null, usage: null, cost: null })
@@ -1558,12 +1560,15 @@ const server = createServer({ requestTimeout: 10_000, headersTimeout: 5000, keep
     reply(res, 500, { error: 'Der Hub konnte diese Aktion nicht abschließen.' })
   })
 })
+const adapter = createSocketServer(socket => { server.emit('connection', socket) })
+adapter.once('error', () => { console.error('Lokaler Adapter nicht erreichbar.'); stop(); process.exitCode = 1 })
 let interval: NodeJS.Timeout | undefined
 function stop() {
   if (stopping) return
   stopping = true
   clearInterval(interval)
   active?.controller.abort()
+  if (adapter.listening) adapter.close()
   server.close(() => {
     store?.recover()
     store?.db.close()
@@ -1587,16 +1592,9 @@ server.listen(port, '127.0.0.1', () => {
   try {
     mkdirSync(data, { recursive: true, mode: 0o700 })
     chmodSync(data, 0o700)
-    try { writeFileSync(secretPath, token(), { flag: 'wx', mode: 0o600 }) }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error }
-    chmodSync(secretPath, 0o600)
-    secret = readFileSync(secretPath)
-    if (audit) {
-      try { writeFileSync(probeSecretPath, token(), { flag: 'wx', mode: 0o600 }) }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error }
-      chmodSync(probeSecretPath, 0o600)
-      probeSecret = readFileSync(probeSecretPath)
-    }
+    secret = Buffer.from(adapterToken(secretPath, true))
+    if (audit) probeSecret = Buffer.from(adapterToken(probeSecretPath, true))
+    adapter.listen(prepareAdapterSocket())
     store = new Store()
     store.recover()
     let seriesDay=''

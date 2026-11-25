@@ -46,3 +46,13 @@ jobs:
         run: |
           npm test
           ./node_modules/.bin/tsc --noEmit
+      - name: Check HTTP permissions and agent isolation with empty profiles
+        run: |
+          mkdir -p dist
+          ./node_modules/.bin/esbuild hub/ui/app.tsx --bundle --minify --outfile=dist/app.js
+          trap './bin/lifepilot --trinity-audit stop || true; ./bin/lifepilot --acceptance stop || true; ./bin/lifepilot stop || true' EXIT
+          ./bin/lifepilot start
+          ./bin/lifepilot --acceptance start
+          ./bin/lifepilot --trinity-audit start
+          npm run test:integration
+          node scripts/trinity-check.mjs

@@ -233,7 +233,7 @@ function GoogleSettings({onMailConnectionChange}: {onMailConnectionChange:()=>vo
       .map(entry=><article className="google-connection" key={entry.service}>
         <div><h3>{googleNames[entry.service]}</h3><span className="status">{entry.connected?'Verbunden':entry.configured?'Anmeldung offen':'Einrichtung offen'}</span></div>
         {entry.connected ? <button type="button" disabled={busy} onClick={()=>void act(async()=>{
-          if (!window.confirm(googleNames[entry.service]+' von LifePilot trennen?')) return
+          if (!window.confirm(googleNames[entry.service]+' lokal von LifePilot trennen? Die Berechtigung bei Google kannst du in deinem Google-Konto widerrufen.')) return
           setStatus(await api('/google/disconnect',{service:entry.service,confirm:true}))
           if (entry.service==='gmail'||entry.service==='gmail-content') onMailConnectionChange()
         })}>Trennen</button> : entry.configured ?

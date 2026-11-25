@@ -256,7 +256,7 @@ async function downloadWithCurl(url:URL,max:number,allowed:RegExp,signal:AbortSi
     if (!addresses.length || addresses.some(ip=>!publicIPv4(ip))) throw new Error('Public address required')
     target.push('--resolve',url.hostname+':443:'+addresses[0])
   }
-  const {stdout}=await execute('/usr/bin/curl',['--disable','--silent','--show-error','--noproxy','*',
+  const {stdout}=await execute('/usr/bin/curl',['--disable','--globoff','--silent','--show-error','--noproxy','*',
     '--proto','=https','--max-time','6','--max-filesize',String(max),...target,
     '--write-out','\n%{http_code}\t%{content_type}\t%{redirect_url}','--url',url.href],
     {encoding:'buffer',maxBuffer:max+4096,signal})

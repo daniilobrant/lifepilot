@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.11 · 25. November 2026
+
+Die CLI verwendet einen privaten Unix-Socket und prüft die lokalen Schlüsseldateien. Die HTTP- und Rollenprüfungen laufen auch in der Pull-Request-Pipeline. Die Oberfläche erklärt den lokalen Google-Verbindungsabbau.
+
 ## v1.0.10 · 25. November 2026
 
 - Reiseaktionen, Routen und Reiseformulare kompakter angeordnet und eine Adresssuche mit Zielort ergänzt.
