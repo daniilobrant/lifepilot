@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
 
+## v1.0.33 · 25. November 2026
+
+- Meine Looks: Look-Fotos werden ohne erneute Rückfrage per Codex analysiert (auf Wunsch, in SICHERHEIT.md vermerkt).
+
 ## v1.0.32 · 25. November 2026
 
 - Start: „Wartet auf dein OK“ zeigt Bestellungen mit offener Entscheidung (Behalten/Zurücksenden, Retoure abgegeben, fällige Lieferung bestätigen).

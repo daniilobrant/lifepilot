@@ -195,7 +195,7 @@ function LookPieces({look,wardrobe,api,reload,cloudImages}:{
   }
   return <div className="outfit-form">
     {look.photoIds[0] && <button type="button" disabled={busy} onClick={()=>void perform(async()=>{
-      const result=await api<{pieces:{name:string,suggestions:string[]}[]}>('/outfits/look-analyze',{photo:look.photoIds[0],confirm:true,codex:cloudImages && confirmImageTransfer()},105000)
+      const result=await api<{pieces:{name:string,suggestions:string[]}[]}>('/outfits/look-analyze',{photo:look.photoIds[0],confirm:true,codex:cloudImages},105000)
       setSuggested(result.pieces.flatMap(piece=>piece.suggestions))
       setFeedback(result.pieces.some(piece=>piece.suggestions.length)?'Passende Teile sind in der Auswahl markiert.':'Keine passenden Teile erkannt. Wähle sie unten aus.')
     })}>Teilvorschläge aus dem Foto</button>}

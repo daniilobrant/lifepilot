@@ -20,6 +20,6 @@ Die private Freigabe gilt für den installierten Build. LifePilot prüft die Ver
 
 ## Optionale Fotoanalyse per Codex
 
-Ohne Übertragung verwendet LifePilot die native Fotoaufbereitung und Texterkennung. Für modellgestützte Vorschläge zeigt die App vor jeder Übertragung einen Hinweis. In der CLI bedeutet **--codex-image** zusammen mit **--confirm**, dass das Bild extern verarbeitet werden darf. Die Befehle dafür sind **outfit-analyze**, **outfit-look-analyze** und **grocery-scan**. Testprofile und Hauptprofile ohne lokale Freigabe weisen diese Freigabe serverseitig ab.
+Ohne Übertragung verwendet LifePilot die native Fotoaufbereitung und Texterkennung. Für modellgestützte Vorschläge zeigt die App vor jeder Übertragung einen Hinweis. Ausnahme auf Wunsch des Nutzers (25. November 2026): Die Analyse eigener Look-Fotos unter „Meine Looks“ sendet das aufbereitete Foto im freigegebenen Hauptprofil ohne erneute Rückfrage an Codex; Kleiderschrank- und Vorratsfotos fragen weiterhin. In der CLI bedeutet **--codex-image** zusammen mit **--confirm**, dass das Bild extern verarbeitet werden darf. Die Befehle dafür sind **outfit-analyze**, **outfit-look-analyze** und **grocery-scan**. Testprofile und Hauptprofile ohne lokale Freigabe weisen diese Freigabe serverseitig ab.
 
 Den Restore aus einem öffentlichen Checkout prüft **node scripts/trinity-restore-check.mjs --checkout** in einer temporären Kopie mit synthetischen Daten. Der lokale Testport 45139 muss frei sein.
