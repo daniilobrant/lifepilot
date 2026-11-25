@@ -2,7 +2,7 @@ import { spawn, execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
-import { homedir, tmpdir } from 'node:os'
+import { homedir, tmpdir, userInfo } from 'node:os'
 import { join } from 'node:path'
 import { data, MODEL_MS } from '../runtime/settings.ts'
 import { MAX_MODEL_PAYLOAD_BYTES } from '../runtime/model-payload.ts'
@@ -85,7 +85,8 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
     if (image) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/' + image.format, data: image.photo.toString('base64') } })
     const message = JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n'
     const command = spawn(binary, args, {
-      cwd: directory, env: { HOME: process.env.HOME, PATH: '/usr/bin:/bin', TMPDIR: directory, DISABLE_AUTOUPDATER: '1', DISABLE_TELEMETRY: '1' },
+      cwd: directory, // USER/LOGNAME braucht die CLI, um ihre Anmeldung im macOS-Schlüsselbund zu finden.
+      env: { HOME: process.env.HOME, USER: process.env.USER ?? userInfo().username, LOGNAME: process.env.LOGNAME ?? userInfo().username, PATH: '/usr/bin:/bin', TMPDIR: directory, DISABLE_AUTOUPDATER: '1', DISABLE_TELEMETRY: '1' },
       detached: true, stdio: ['pipe', 'pipe', 'pipe'],
     })
     function stop(reason: string) {
@@ -111,7 +112,8 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
             if (event.type === 'assistant') {
               for (const block of event.message?.content ?? []) {
                 if (block.type === 'text' && typeof block.text === 'string') text += block.text
-                if (block.type === 'tool_use') stop('Claude wollte ein Werkzeug verwenden, das für LifePilot gesperrt ist.')
+                // StructuredOutput ist der interne Weg der CLI für --json-schema; jedes andere Werkzeug ist gesperrt.
+                if (block.type === 'tool_use' && block.name !== 'StructuredOutput') stop('Claude wollte ein Werkzeug verwenden, das für LifePilot gesperrt ist.')
               }
               if (typeof event.message?.model === 'string' && /^[\w.-]{1,80}$/u.test(event.message.model)) metrics.model = event.message.model
             }
