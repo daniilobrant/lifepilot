@@ -3,7 +3,7 @@ import { scanClothingOrders } from './clothing-orders.ts'
 import { GmailRateLimit, type GmailPage, type GoogleConnector, type MailContent } from '../connectors/google.ts'
 import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
-import { classifyMail, inboxLabel, type InboxLabel, type MailClassification } from '../../agents/lifepilot/tools/classify-mail.ts'
+import { classifyMail, inboxLabel, inboxLabelNames, type InboxLabel, type MailClassification } from '../../agents/lifepilot/tools/classify-mail.ts'
 import { scanApplicationMails } from './applications.ts'
 import { listInbox, clothingDemoMail, mailDemoFixtures, readGmailPage, scanInbox, scanTicketEvents, scanHfuCancellations } from './inbox.ts'
 import { availability, type BusySpan, type FreeWindow } from './availability.ts'
@@ -60,7 +60,14 @@ function needsAttention(item:MailClassification,mail?:MailContent) {
   return item.category==='applications' || item.important
 }
 
-export async function readInboxFeed(google: GoogleConnector, synthetic: boolean, store?:Store) {
+/** Von dir geänderte Kategorien (Stift im Posteingang), je Konto und Mail. */
+export function labelOverrides(store: Store, account: string) {
+  const rows = store.db.prepare('SELECT message_id,label FROM mail_label_overrides WHERE account=?').all(account) as { message_id: string, label: string }[]
+  return new Map(rows.filter(row => row.label in inboxLabelNames).map(row => [row.message_id, row.label as InboxLabel]))
+}
+
+/** scan=false liest nur (Anzeige); scan=true gleicht zusätzlich Bestellungen, Finanzen, Termine und Projekte ab. */
+export async function readInboxFeed(google: GoogleConnector, synthetic: boolean, store?:Store, scan = true) {
   const relevant: AttentionMail[] = []
   const seen = new Set<string>()
   let account: string | undefined
@@ -68,20 +75,21 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
   let rateLimited = false
   const collect = (mails: MailContent[], account?: string) => {
     const modelImportant = store && account ? triagedImportant(store, mails, account) : new Set<string>()
+    const overrides = store && account ? labelOverrides(store, account) : new Map<string, InboxLabel>()
     for (const mail of mails) {
       if (seen.has(mail.id)) continue
       seen.add(mail.id)
       const classified = modelImportant.has(mail.id) ? { ...classifyMail(mail), important: true, reasons: ['Vom Modell als wichtig eingestuft'] } : classifyMail(mail)
       if (modelImportant.has(mail.id) || needsAttention(classified,mail)) {
         const original = forwardedOriginal(mail)
-        relevant.push({ ...classified, from: original ?? senderLabel(classified.university?.sender ?? mail.from), at:mail.at,label:inboxLabel(mail,classified),preview:mailPreview(mail.text),
+        relevant.push({ ...classified, from: original ?? senderLabel(classified.university?.sender ?? mail.from), at:mail.at,label:overrides.get(mail.id) ?? inboxLabel(mail,classified),preview:mailPreview(mail.text),
           ...(original && { forwardedBy: senderLabel(mail.from) }) })
       }
     }
   }
   if (synthetic) {
-    collect(mailDemoFixtures)
-    if (store) scanClothingOrders(store,clothingDemoMail,'fixture')
+    collect(mailDemoFixtures, 'fixture')
+    if (store && scan) scanClothingOrders(store,clothingDemoMail,'fixture')
   }
   else {
     let cursor: GmailPage | undefined
@@ -101,7 +109,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
       if (account && result.account !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere erneut.')
       account = result.account
       collect(result.mails, account)
-      if (store) {
+      if (store && scan) {
         scanClothingOrders(store,result.mails,result.account)
         scanMailFinances(store,result.mails,result.account)
         scanTicketEvents(store,result.mails,result.account)

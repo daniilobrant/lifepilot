@@ -64,7 +64,7 @@ import { uploadApplicationImage, uploadChatDocument } from '../connectors/applic
 import { finishAppointmentChange, googleLifePilotCalendar, queueAppointmentChange, syncApprovedAppointment } from './google-appointment.ts'
 import { refreshInbox, planRefreshedInbox, readInboxFeed } from './refresh-inbox.ts'
 import { scanInbox, decideInbox, inboxProposal, clothingDemoMail,mailDemoFixtures, readGmailPage } from './inbox.ts'
-import { classifyMail, mailCategoryNames, type MailClassificationCategory } from '../../agents/lifepilot/tools/classify-mail.ts'
+import { classifyMail, inboxLabelNames, mailCategoryNames, type MailClassificationCategory } from '../../agents/lifepilot/tools/classify-mail.ts'
 import { explicitCategory, isCategory, suggestCategory } from './categories.ts'
 import { availability, validateFreeQuery } from './availability.ts'
 
@@ -1221,7 +1221,23 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     await google.trashInboxMessage(mailAccountKey(address), message)
     return reply(res, 200, { ok:true })
   }
-  if (path==='/api/inbox/feed' && method==='GET') return reply(res,200,await readInboxFeed(google,acceptance))
+  if (path === '/api/inbox/label' && method === 'POST') {
+    const { message, account, label, confirm } = await body(req, ['message','account','label','confirm'])
+    confirmLocalChange(confirm)
+    if (typeof message !== 'string' || !/^[\w.-]{1,128}$/u.test(message)) throw new Problem(400, 'Ungültige Mail.')
+    if (label !== '' && (typeof label !== 'string' || !Object.hasOwn(inboxLabelNames, label))) throw new Problem(400, 'Unbekannte Kategorie.')
+    let key = 'fixture'
+    if (!acceptance) {
+      const address = await confirmedMailAccount(google)
+      if (!address || mailAccountKey(address) !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere den Posteingang.')
+      key = mailAccountKey(address)
+    }
+    if (label === '') store.db.prepare('DELETE FROM mail_label_overrides WHERE account=? AND message_id=?').run(key, message)
+    else store.db.prepare('INSERT INTO mail_label_overrides (account,message_id,label,changed_at) VALUES (?,?,?,?) ON CONFLICT(account,message_id) DO UPDATE SET label=excluded.label,changed_at=excluded.changed_at')
+      .run(key, message, label, new Date().toISOString())
+    return reply(res, 200, { ok: true })
+  }
+  if (path==='/api/inbox/feed' && method==='GET') return reply(res,200,await readInboxFeed(google,acceptance,store,false))
   if (path==='/api/inbox/feed' && method==='POST') {
     const {confirm}=await body(req,['confirm'])
     confirmLocalChange(confirm)

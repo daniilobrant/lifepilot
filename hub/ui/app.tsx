@@ -93,8 +93,14 @@ const iconPaths = {
   chat: 'M20 11a8 8 0 0 1-8 8H4l2-4a8 8 0 1 1 14-4Z',
   plus: 'M12 5v14M5 12h14',
   search: 'm20 20-4-4m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
+  pencil: 'M4 20h4L19 9l-4-4L4 16z M13 7l4 4',
 } as const
 
+/** Einkäufe, Versand und Retouren bilden in der Anzeige eine Kategorie. */
+type ShownLabel = Exclude<keyof typeof inboxLabelNames, 'shipping' | 'returns'>
+const shownLabel = (label: keyof typeof inboxLabelNames): ShownLabel => label === 'shipping' || label === 'returns' ? 'orders' : label
+const shownLabelName = (label: keyof typeof inboxLabelNames) => shownLabel(label) === 'orders' ? 'Einkäufe' : inboxLabelNames[label]
+const shownLabels = (Object.keys(inboxLabelNames) as (keyof typeof inboxLabelNames)[]).filter((label): label is ShownLabel => label !== 'shipping' && label !== 'returns')
 const mailLabelIcons = {
   newsletter:'envelope', careers:'briefcase', finance:'wallet', travel:'plane', learning:'wand', orders:'basket', shipping:'parcel',
   returns:'parcel', accounts:'settings', personal:'chat', leisure:'calendar', housing:'home', university:'listtodo', work:'briefcase', review:'search',
@@ -1065,6 +1071,7 @@ function App() {
   const [inboxFeed, setInboxFeed] = useState<InboxFeed>()
   // Mails, die einmal aufgeklappt wurden, verlieren die grüne Markierung (lokal im Browser gemerkt).
   const [mailFilter, setMailFilter] = useState<string>('')
+  const [editingMail, setEditingMail] = useState<string>()
   const [seenMails, setSeenMails] = useState<Set<string>>(() => { try { return new Set<string>(JSON.parse(localStorage.getItem('lifepilot-seen-mails') ?? '[]')) } catch { return new Set<string>() } })
   const markSeen = (id: string) => setSeenMails(current => {
     if (current.has(id)) return current
@@ -1612,12 +1619,22 @@ function App() {
     } finally { setTrashingMail(false) }
   }
 
+  async function relabelMail(item: AttentionMail, label: ShownLabel) {
+    try {
+      await api('/inbox/label', { message: item.id, account: inboxFeed?.account ?? 'fixture', label, confirm: true }, 15_000)
+      setInboxFeed(current => current ? { ...current, messages: current.messages.map(mail => mail.id === item.id ? { ...mail, label } : mail) } : current)
+      setEditingMail(undefined)
+    } catch (reason) {
+      setTrashFeedback({ text: reason instanceof Error ? reason.message : 'Die Kategorie konnte nicht geändert werden.', error: true })
+    }
+  }
+
   function inboxFeedContents(compact: boolean) {
     const allMessages=inboxFeed?.messages
     const messages=compact ? allMessages?.filter(item=>item.important&&isPersonMail(item)).slice(0,3) :
-      mailFilter ? allMessages?.filter(item=>item.label===mailFilter) : allMessages
-    const filterLabels=!compact&&allMessages ? (Object.keys(inboxLabelNames) as (keyof typeof inboxLabelNames)[])
-      .map(label=>({label,count:allMessages.filter(item=>item.label===label).length})).filter(entry=>entry.count) : []
+      mailFilter ? allMessages?.filter(item=>shownLabel(item.label)===mailFilter) : allMessages
+    const filterLabels=!compact&&allMessages ? shownLabels
+      .map(label=>({label,count:allMessages.filter(item=>shownLabel(item.label)===label).length})).filter(entry=>entry.count) : []
     const account = compact ? undefined : inboxFeed?.account
     return <>
       {!compact && trashFeedback ? <p role={trashFeedback.error?'alert':'status'}>{trashFeedback.text}</p> : null}
@@ -1628,8 +1645,8 @@ function App() {
       {!compact && inboxFeed?.incomplete ? <p role="status">{inboxFeed.rateLimited ? 'Gmail begrenzt gerade die Anfragen. LifePilot zeigt bereits geladene Mails und versucht es später erneut.' : 'Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.'}</p> : null}
       {filterLabels.length>1 ? <div className="inbox-filter" role="group" aria-label="Nach Kategorie filtern">
         <button type="button" aria-pressed={!mailFilter} onClick={()=>setMailFilter('')}><Icon name="inbox"/><span>Alle</span><small>{allMessages?.length}</small></button>
-        {filterLabels.map(({label,count})=><button type="button" key={label} aria-pressed={mailFilter===label} title={inboxLabelNames[label]}
-          onClick={()=>setMailFilter(current=>current===label?'':label)}><Icon name={mailLabelIcons[label]}/><span>{inboxLabelNames[label]}</span><small>{count}</small></button>)}
+        {filterLabels.map(({label,count})=><button type="button" key={label} aria-pressed={mailFilter===label} title={shownLabelName(label)}
+          onClick={()=>setMailFilter(current=>current===label?'':label)}><Icon name={mailLabelIcons[label]}/><span>{shownLabelName(label)}</span><small>{count}</small></button>)}
       </div> : null}
       {messages?.length ? <ul className="inbox-feed-list">
         {messages.map(item => <li key={item.id} className="inbox-mail" data-important={item.important && !seenMails.has(item.id) ? 'true' : undefined}>
@@ -1637,20 +1654,28 @@ function App() {
             <summary>
               <span className="inbox-mail-main"><strong>{item.subject}</strong><small className="inbox-sender">{item.from}{item.forwardedBy ? <em> · weitergeleitet</em> : null}</small>
                 <span className="inbox-row-meta">
-                  <small className="inbox-category" data-category={item.label}>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category])}</small>
+                  <small className="inbox-category" data-category={item.label}>{shownLabelName(item.label) || (item.category && mailCategoryNames[item.category])}</small>
+                  {!compact ? <button type="button" className="inbox-edit" aria-label={`Kategorie ändern: ${item.subject}`} title="Kategorie ändern"
+                    onClick={event => { event.preventDefault(); event.stopPropagation(); event.currentTarget.closest('details')?.setAttribute('open', ''); markSeen(item.id); setEditingMail(item.id) }}><Icon name="pencil"/></button> : null}
                   {item.reply && <small>Antwort erbeten</small>}
                   {item.shipment && <small>{shipmentLabels[item.shipment]}</small>}
                 </span></span>
               {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
             </summary>
             <div className="inbox-mail-detail">
+              {!compact && editingMail === item.id ? <div className="inbox-relabel" role="group" aria-label="Kategorie wählen">
+                <b>Richtige Kategorie:</b>
+                {shownLabels.map(label => <button type="button" key={label}
+                  aria-pressed={shownLabel(item.label) === label} onClick={() => void relabelMail(item, label)}><Icon name={mailLabelIcons[label]}/><span>{shownLabelName(label)}</span></button>)}
+                <button type="button" className="quiet" onClick={() => setEditingMail(undefined)}>Abbrechen</button>
+              </div> : null}
               {item.reasons.length ? <p className="inbox-why"><b>Warum hier:</b> {item.reasons.join(' · ')}</p> : null}
               {item.preview ? <p className="inbox-preview">{item.preview}</p> : <p className="inbox-preview muted">Kein Textauszug verfügbar.</p>}
               <dl>
                 <div><dt>{item.forwardedBy ? 'Ursprünglich von' : 'Von'}</dt><dd>{item.from}</dd></div>
                 {item.forwardedBy ? <div><dt>Weitergeleitet über</dt><dd>{item.forwardedBy}</dd></div> : null}
                 {item.at ? <div><dt>Eingang</dt><dd>{mailDate.format(new Date(item.at))}</dd></div> : null}
-                <div><dt>Bereich</dt><dd>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category]) || 'Allgemein'}</dd></div>
+                <div><dt>Bereich</dt><dd>{shownLabelName(item.label) || (item.category && mailCategoryNames[item.category]) || 'Allgemein'}</dd></div>
               </dl>
               <div className="inbox-mail-footer">
               {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?

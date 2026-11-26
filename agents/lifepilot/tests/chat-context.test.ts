@@ -47,3 +47,19 @@ test('choices are short plain text, at most four, and only with a question',()=>
   assert.equal(cleanChoices(null,['x?']),undefined)
   assert.deepEqual(cleanChoices(['Montag','montag','**fett**','https://böse.example','Etwas anderes','a'.repeat(61),'Dienstag','Mittwoch','Donnerstag','Freitag'],['Welcher Tag?']),['Montag','Dienstag','Mittwoch','Donnerstag'])
 })
+
+test('a single appointment tomorrow after an old series question is not treated as a series',()=>{
+  const reply=seriesFromChat(payload([turn('Trag jeden Dienstag den Termin „Kaffee trinken“ ein, bis zum 15.12.'),turn('15 Uhr',first),
+    turn('Ich treffe mich morgen mit Unikollegen in Stuttgart um circa 20:20 Uhr bis 0:00 Uhr, lege den Termin ein.')]))
+  assert.equal(reply,undefined)
+})
+
+test('"morgen bis Ende des Jahres" gives start and end of a series at once',()=>{
+  const reply=seriesFromChat(payload([turn('Trag jeden Dienstag von 18 bis 19 Uhr den Termin „Training“ ein, morgen bis Ende des Jahres.')]))
+  assert.ok(reply)
+  assert.deepEqual(reply.questions,[])
+  const plan=reply.skillData
+  assert.ok(plan&&'seriesIntent' in plan)
+  assert.equal(plan.startDate,'2026-11-27')
+  assert.equal(plan.endDate,'2026-12-31')
+})

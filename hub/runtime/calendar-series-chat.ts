@@ -6,7 +6,7 @@ import {isDate,shiftDay} from './values.ts'
 
 const monthNames=['januar','februar','märz','april','mai','juni','juli','august','september','oktober','november','dezember']
 const month=monthNames.join('|')
-const dateToken=String.raw`(?:20\d\d-\d\d-\d\d|\d{1,2}\.\d{1,2}(?:\.(?:20\d\d|\d\d)\b)?\.?|(?:\d{1,2}\.\s*)?(?:${month})(?:\s+20\d\d)?|(?:letzte[nr]?\s+tag|ende|monatsende)\s+(?:(?:im|des)\s+)?(?:${month})(?:\s+20\d\d)?|heute|morgen|weihnachten|heiligabend|silvester)`
+const dateToken=String.raw`(?:20\d\d-\d\d-\d\d|\d{1,2}\.\d{1,2}(?:\.(?:20\d\d|\d\d)\b)?\.?|(?:\d{1,2}\.\s*)?(?:${month})(?:\s+20\d\d)?|(?:letzte[nr]?\s+tag|ende|monatsende)\s+(?:(?:im|des)\s+)?(?:${month})(?:\s+20\d\d)?|(?:das\s+)?(?:ende\s+des\s+jahres|jahresende)|heute|morgen|weihnachten|heiligabend|silvester)`
 const spoken:Record<string,number>={null:0,eins:1,ein:1,zwei:2,drei:3,vier:4,fünf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10,elf:11,zwölf:12,
   dreizehn:13,vierzehn:14,fünfzehn:15,sechzehn:16,siebzehn:17,achtzehn:18,neunzehn:19,zwanzig:20,einundzwanzig:21,zweiundzwanzig:22,dreiundzwanzig:23}
 const clock='(?:[01]?\\d|2[0-3])(?:[:.][0-5]\\d)?|'+Object.keys(spoken).sort((a,b)=>b.length-a.length).join('|')
@@ -24,6 +24,7 @@ const time=(value:string|undefined)=>{
 }
 export function dateInText(text:string,anchor:string,before=false){
   const boundary=(day:string)=>before?shiftDay(day,-1):day
+  if(/^(?:das\s+)?(?:ende\s+des\s+jahres|jahresende)$/iu.test(text))return boundary(anchor.slice(0,4)+'-12-31')
   if(/^heute$/iu.test(text))return boundary(anchor)
   if(/^morgen$/iu.test(text))return boundary(shiftDay(anchor,1))
   if(/^20\d\d-\d\d-\d\d$/u.test(text))return isDate(text)?boundary(text):null
@@ -55,6 +56,7 @@ const topic=/\b(?:termin\w*|kalender|vorlesung\w*|seminar\w*|erinnerung\w*|erinn
 const workPattern=/\b(?:arbeite|arbeit|arbeitszeit(?:en)?|arbeitstage|werkstudent\w*|schicht|dienst)\b/iu
 const titlePattern=/[„"]([^“"\n]{2,100})[“"]/u
 const namedLecture=/\b(?:für|zu)\s+(?:(?:meine[nr]?|die|der|das)\s+)?([^,;!?\n]{2,100}?\b(?:vorlesung\w*|seminar))(?=\s|[,.;!?]|$)/iu
+const singleDayAnchor=/\b(?:heute|morgen|übermorgen)\b(?!\s+bis\b)/iu
 const novel=/\b(?:ganz neue|neue serie|neue vorlesung|weiterer termin)\b/iu
 
 function findTitle(input:string){
@@ -89,7 +91,7 @@ function detailsFrom(input:string,day:string){
   const text=times?input.replace(times[0],' '):input
   // Both prefixes and dateToken are constants.
   const bound=(prefix:string)=>[...text.matchAll(new RegExp(String.raw`${prefix}\s*(${dateToken})(?![\p{L}\d:-]|\.\d)`,'giu'))].filter(match=>!/\bstatt\s*$/iu.test(text.slice(0,match.index))).at(-1) // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
-  const from=bound(String.raw`\b(?:ab|vom|von)\s+(?:(?:dem|den)\s+)?`)
+  const from=bound(String.raw`\b(?:ab|vom|von)\s+(?:(?:dem|den)\s+)?`)??/\b(heute|morgen|übermorgen)(?=\s+bis\b)/iu.exec(text)
   const stop=bound(String.raw`\b(?:bis(?:\s+(?:zum|einschließlich|spätestens))?|vor)\s+`)
   const before=!!stop&&/^vor\b/iu.test(stop[0])
   const bare=new RegExp(String.raw`^\s*(${dateToken})\s*[.!]?\s*$`,'iu').exec(text)
@@ -119,6 +121,8 @@ export function seriesFromChat(payload:ModelPayload):Result|undefined{
     return
   }
   const newest=detailsFrom(current,day)
+  // Ein einzelner Tag („morgen um 20 Uhr treffen“) ohne Serienwörter oder Wochentage ist ein neuer Einzeltermin, keine Korrektur einer früheren Serie.
+  if(!recurring.test(current)&&!newest.weekdays.length&&singleDayAnchor.test(current)&&!/\b(?:ab|vom|bis\s+zum|jeden|alle)\b/iu.test(current))return
   const seriesTopic=recurring.test(current)&&topic.test(current)||coming.test(current)&&newest.weekdays.length>0&&topic.test(current)
   const directlyRelated=topic.test(current)||recurring.test(current)||/^(?:doch\s+)?(?:nein\b|an\s+allen\b|ab\b|bis\b|vor\b|am\b|nur\b|jeden\b|die\s+kommenden\b|die\s+nächsten\b|(?:20)?\d{1,2}[.:])/iu.test(current)
   const correction=!!prior&&directlyRelated&&(newest.mentionedStart||newest.mentionedEnd||newest.weekdays.length>0||!!newest.startTime)

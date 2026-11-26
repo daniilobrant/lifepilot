@@ -93,16 +93,17 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
   async function save(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const data = new FormData(event.currentTarget)
-    await change('/tasks/' + task.id + '/edit', { revision: task.revision, confirm: true, patch: {
+    const saved = await change('/tasks/' + task.id + '/edit', { revision: task.revision, confirm: true, patch: {
       title: data.get('title'), detail: data.get('detail'), due_date: data.get('date') || null,
       ...((data.has('project'))&&{project_id:data.get('project')||null}),
       priority: data.get('priority'), category: data.get('category') || null, related_id: data.get('related') || null, steps: steps.filter(step => step.title.trim()),
     } })
+    if (saved) onClose()
   }
   async function setStatus(status: 'open' | 'done' | 'archived') {
     if (status === 'archived' && !window.confirm('Diese Aufgabe aus der Liste entfernen? Ihr Verlauf bleibt erhalten.')) return
     if (await change('/tasks/' + task.id + '/edit', { revision: task.revision, confirm: true, patch: { status } })) {
-      if (status === 'archived') onClose()
+      onClose()
     }
   }
   return <article className="card settings workspace-editor">

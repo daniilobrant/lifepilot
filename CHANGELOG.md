@@ -2,6 +2,14 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.81 · 26. November 2026
+
+- Posteingang: Jede Mail hat einen kleinen Stift. Damit wählst du eine andere Kategorie, falls eine Mail falsch zugeordnet wurde; die Wahl wird lokal gespeichert (neue Tabelle `mail_label_overrides`, Datenbankversion 41).
+- Posteingang: Einkäufe, Versand und Retouren bilden eine Kategorie „Einkäufe“. Die Kategorie-Chips stehen in einer Zeile.
+- Mail-Prüfung: Der Prompt unterscheidet jetzt Termine, Fristen, wichtige Informationen und Irrelevantes und berücksichtigt auch Mails, die nur informieren. Mails mit Termin oder Frist erscheinen zusätzlich unter „Wichtige Nachrichten“ auf der Startseite, auch aus „Zu prüfen“.
+- Pilot: „morgen bis Ende des Jahres“ und „bis Ende des Jahres“ werden direkt erkannt. Ein einzelner Tag („morgen um 20 Uhr treffen“) wird nach einer früheren Serienfrage nicht mehr als Serie gedeutet.
+- Oberfläche: Der Termin-Editor schließt nach „Speichern“ (und nach „Erledigt“ oder „Archivieren“) automatisch.
+
 ## v1.0.80 · 26. November 2026
 
 - Startseite: Terminvorschläge, Fristen und Aufgabenvorschläge stehen wieder unter „Wartet auf dein OK“.

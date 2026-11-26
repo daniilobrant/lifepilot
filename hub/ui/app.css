@@ -1954,3 +1954,16 @@ input[type=file]::file-selector-button {
 .mail-finance .bulk-approval, .mail-finance .bulk-approval button { font-size:.82rem; }
 .briefing-grid > .section { max-height:none; }
 .mail-finance .proposal-actions button, .mail-finance .proposal-wide { height:auto; min-height:32px; padding:4px 8px; white-space:normal; line-height:1.15; }
+
+/* Kategorie ändern (Stift) */
+.inbox-edit { display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; min-height:22px; padding:0; border:0; background:transparent; color:var(--muted); border-radius:6px; }
+.inbox-edit:hover { color:var(--ink); background:var(--chip); }
+.inbox-edit svg { width:14px; height:14px; }
+.inbox-relabel { display:flex; flex-wrap:wrap; gap:6px; align-items:center; margin:.4rem 0 .6rem; }
+.inbox-relabel b { font-size:.8rem; color:var(--muted); width:100%; }
+.inbox-relabel button { display:inline-flex; align-items:center; gap:5px; height:28px; min-height:28px; padding:0 9px; font-size:.78rem; border-radius:999px; }
+.inbox-relabel button svg { width:14px; height:14px; }
+.inbox-relabel button[aria-pressed="true"] { background:var(--mint-soft, #dcebe1); border-color:var(--mint, #2f6048); font-weight:650; }
+/* Kategorien in einer Zeile */
+.inbox-filter { flex-wrap:nowrap; overflow-x:auto; scrollbar-width:thin; padding-bottom:4px; }
+.inbox-filter button { flex:none; white-space:nowrap; padding:0 8px; gap:5px; }
