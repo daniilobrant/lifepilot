@@ -19,6 +19,8 @@ test('PayPal-Zahlungen zählen nur nach Zuordnen und lassen sich umkehren',()=>{
     const card=add(store,{title:'Kartenzahlung Café',cents:900,date:'2026-11-07',refund:false,mailDate:true,direction:'outgoing',sourceKey:'k3',merchantPayment:{reference:''}},'k3')
     assert.equal(paypalOverview(store,'a').length,3)
     decidePayPal(store,'a',card,false)
+    assert.equal(paypalOverview(store,'a','2026-10').length,0)
+    assert.equal(paypalOverview(store,'a','2026-11').length,3)
     assert.equal(financeOverview(store,'2026-11').totals.balance,0)
     decidePayPal(store,'a',incoming,true)
     decidePayPal(store,'a',outgoing,false)

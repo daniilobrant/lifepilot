@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.85 · 26. November 2026
+
+- Finanzen & Abos: Die Liste „Zahlungen aus Mails“ zeigt nur Zahlungen des gewählten Monats und wechselt mit der Monatsauswahl.
+- Die getroffene Entscheidung ist dunkelgrün hinterlegt: „Zuordnen“ oder „Nicht beachten“. Offene Zahlungen haben keine der beiden Schaltflächen markiert.
+
 ## v1.0.84 · 26. November 2026
 
 - Finanzen & Abos: Die Übersicht folgt jetzt der Reihenfolge Festes Einkommen (Gehalt), danach Fixkosten und Abos als Spielraum, danach zugeordnete variable Einnahmen und Ausgaben als Monatssaldo.

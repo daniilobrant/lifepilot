@@ -237,7 +237,7 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
           <select value={filter} onChange={event=>setFilter(event.target.value)}><option value="">Alle Ausgaben</option>
             {[...new Set(view.entries.filter(item=>item.kind==='expense').map(item=>item.category))].map(category=><option key={category}>{category}</option>)}</select></label>:null)}
       </div>
-      <PayPalList api={api} refreshKey={refreshKey+':'+localRevision} onChange={reload}/>
+      <PayPalList api={api} month={month} refreshKey={refreshKey+':'+localRevision} onChange={reload}/>
       <section className="card settings finance-history"><h2>Sechsmonatsvergleich</h2><HistoryChart history={view.history}/></section>
     </>}
   </div>

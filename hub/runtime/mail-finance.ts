@@ -366,9 +366,9 @@ export function decideMailFinance(store:Store,account:string,id:string,approved:
 export type PayPalEntry = MailFinanceProposal & {state:'open'|'assigned'|'ignored'}
 const paypalState={pending:'open',accepted:'assigned',denied:'ignored'} as const
 /** Alle erkannten Zahlungen aus Mails, neueste zuerst. Einnahme oder Ausgabe ergibt sich aus der Richtung. */
-export function paypalOverview(store:Store,account:string):PayPalEntry[] {
-  return (store.db.prepare(`SELECT id,draft,state FROM gmail_finance_suggestions WHERE account=? AND ${pureTransfer('draft')}
-    ORDER BY json_extract(draft,'$.date') DESC,rowid DESC LIMIT 80`).all(account) as ProposalRow[])
+export function paypalOverview(store:Store,account:string,month?:string):PayPalEntry[] {
+  return (store.db.prepare(`SELECT id,draft,state FROM gmail_finance_suggestions WHERE account=? AND ${pureTransfer('draft')} AND (?='' OR substr(json_extract(draft,'$.date'),1,7)=?)
+    ORDER BY json_extract(draft,'$.date') DESC,rowid DESC LIMIT 150`).all(account,month??'',month??'') as ProposalRow[])
     .map(row=>({...JSON.parse(row.draft) as MailFinanceDraft,id:row.id,state:paypalState[row.state as keyof typeof paypalState]??'open'}))
 }
 /** „Zuordnen“ übernimmt die Zahlung in die variablen Einnahmen oder Ausgaben, „Nicht beachten“ lässt sie nur in der Liste. Beides ist umkehrbar. */

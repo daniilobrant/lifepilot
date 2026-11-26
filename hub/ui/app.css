@@ -1995,3 +1995,5 @@ input[type=file]::file-selector-button {
 .finance-in { color: var(--accent, #42775b); }
 .finance-out { color: var(--warm, #bc7051); }
 @media (max-width: 720px) { .finance-paypal-row { grid-template-columns: minmax(0,1fr) auto; } .finance-paypal-actions { grid-column: 1 / -1; } .finance-paypal-actions button { flex: 1; } }
+.finance-paypal-actions button.finance-chosen { background: #2f5d46; color: #fff; border-color: #2f5d46; font-weight: 650; }
+.finance-paypal-actions button.finance-chosen:hover:not(:disabled) { background: #264c39; }

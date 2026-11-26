@@ -1164,7 +1164,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path==='/api/inbox/paypal' && method==='GET') {
     const account=acceptance ? 'fixture' : await confirmedMailAccount(google)
-    return reply(res,200,account ? paypalOverview(store,acceptance ? account : mailAccountKey(account)) : [])
+    return reply(res,200,account ? paypalOverview(store,acceptance ? account : mailAccountKey(account),financeMonth(url.searchParams.get('month'))) : [])
   }
   if (path==='/api/inbox/paypal' && method==='POST') {
     const {entry,assign,confirm}=await body(req,['entry','assign','confirm'])
