@@ -664,7 +664,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const {suggestion,revision,approved,confirm}=await body(req,['suggestion','revision','approved','confirm'])
     confirmLocalChange(confirm)
     if(typeof approved!=='boolean'||typeof revision!=='number'||!Number.isSafeInteger(revision))
-      throw new Problem(400,'Bestätige einen aktuellen Mailvorschlag.')
+      throw new Problem(400,'Bestätige einen aktuellen Terminvorschlag.')
     const address=acceptance?'fixture':await confirmedMailAccount(google)
     if(!address)throw new Problem(409,'Das Gmail-Konto ist nicht verbunden.')
     decideProjectMail(store,id(suggestion),acceptance?address:mailAccountKey(address),revision,approved)

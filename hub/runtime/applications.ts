@@ -73,7 +73,7 @@ export function saveApplication(store: Store, value: unknown, existing?: { id: s
       .get(existing.id, existing.revision) as Application | undefined : undefined
     if (existing && !prior) throw new Problem(409, 'Die Bewerbung wurde inzwischen geändert.')
     const source = sourceId ? store.db.prepare("SELECT * FROM application_sources WHERE id=? AND state='pending'").get(sourceId) : undefined
-    if (sourceId && !source) throw new Problem(409, 'Der Mailvorschlag ist nicht mehr offen.')
+    if (sourceId && !source) throw new Problem(409, 'Der Terminvorschlag ist nicht mehr offen.')
     const id = prior?.id ?? randomUUID()
     const at = utcNow()
     const values = [draft.company,draft.role,draft.location,draft.salary,draft.description,draft.notes,draft.link,draft.applied_on,draft.follow_up,draft.status,at]
@@ -93,7 +93,7 @@ export function saveApplication(store: Store, value: unknown, existing?: { id: s
 
 export function denyApplicationSource(store: Store, id: string) {
   if (!store.db.prepare("UPDATE application_sources SET state='denied' WHERE id=? AND state='pending'").run(id).changes) {
-    throw new Problem(409, 'Der Mailvorschlag ist nicht mehr offen.')
+    throw new Problem(409, 'Der Terminvorschlag ist nicht mehr offen.')
   }
   return { id, state: 'denied' }
 }

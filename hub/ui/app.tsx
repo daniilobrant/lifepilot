@@ -36,6 +36,7 @@ import type { AttentionMail, InboxRefresh, InboxPlan } from '../runtime/refresh-
 import type { InboxProposal } from '../runtime/inbox.ts'
 import type { FreePlan } from '../runtime/availability.ts'
 import { MAX_SOURCE_BYTES, sourceNote, type SourceNote } from '../runtime/source-note.ts'
+import { isPersonMail } from './mail-filter.ts'
 import { inboxLabelNames, mailCategoryNames } from '../../agents/lifepilot/tools/classify-mail.ts'
 import { categoryLabels, suggestCategory } from '../runtime/categories.ts'
 import { dateInBerlin, mondayOf, shiftDay } from '../runtime/values.ts'
@@ -93,6 +94,11 @@ const iconPaths = {
   plus: 'M12 5v14M5 12h14',
   search: 'm20 20-4-4m2-5a7 7 0 1 1-14 0 7 7 0 0 1 14 0Z',
 } as const
+
+const mailLabelIcons = {
+  newsletter:'envelope', careers:'briefcase', finance:'wallet', travel:'plane', learning:'wand', orders:'basket', shipping:'parcel',
+  returns:'parcel', accounts:'settings', personal:'chat', leisure:'calendar', housing:'home', university:'listtodo', work:'briefcase', review:'search',
+} as const satisfies Record<keyof typeof inboxLabelNames, keyof typeof iconPaths>
 
 function Icon({ name }: { name: keyof typeof iconPaths }) {
   return <svg aria-hidden="true" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -267,8 +273,8 @@ const inboxPollMs = 120_000
 type InboxFeed = { account?:string, incomplete?:boolean, rateLimited?:boolean, messages: AttentionMail[], loadedAt: string }
 const mailDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' })
 
-function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectures, sourceId }: {
-  onDecision: () => void, batch?: InboxRefresh, lecturesOnly?:boolean, mailRefresh?:string, onLectures?:(rows:InboxProposal[])=>void,sourceId?:string,
+function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectures, sourceId, silent=false }: {
+  onDecision: () => void, batch?: InboxRefresh, lecturesOnly?:boolean, silent?:boolean, mailRefresh?:string, onLectures?:(rows:InboxProposal[])=>void,sourceId?:string,
 }) {
   const [proposals, setProposals] = useState<InboxProposal[]>()
   const [busy, setBusy] = useState(false)
@@ -294,8 +300,8 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
   useEffect(()=>{if(proposals)onLectures?.(proposals.filter(item=>item.state==='pending'&&item.lectureCancellation))},[proposals,onLectures])
 
   const pending = proposals?.filter(item => item.id===sourceId||item.state === 'pending' && item.category !== 'orders' && item.category !== 'returns' && (!lecturesOnly||Boolean(item.lectureCancellation))) ?? []
-  if (!pending.length && !error && !submitted) return null
-  const heading=lecturesOnly?'Vorgeschlagene Vorlesungsausfälle':'Vorschläge aus deinen Mails'
+  if (silent || (!pending.length && !error && !submitted)) return null
+  const heading=lecturesOnly?'Vorgeschlagene Vorlesungsausfälle':'Terminvorschläge'
   const visible=sourceId?[...pending].sort((a,b)=>Number(b.id===sourceId)-Number(a.id===sourceId)):pending
   const batchItems=visible.filter(item=>item.state==='pending'&&(!item.lectureCancellation||
     item.lectureCancellation.target&&!item.lectureCancellation.reason&&!item.lectureCancellation.approvedTarget))
@@ -314,7 +320,7 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
   const wrap=!lecturesOnly&&!sourceId
   const Shell=(wrap?'details':'section') as 'section'
   return <Shell className={wrap?'card settings mail-finance disclosure':'card settings'} aria-label={heading}>
-    {wrap ? <summary><strong>Mailvorschläge</strong><span className="count-badge">{pending.length} offen</span></summary> : <h2>{heading}</h2>}
+    {wrap ? <summary><strong>Terminvorschläge</strong><span className="count-badge">{pending.length} offen</span></summary> : <h2>{heading}</h2>}
 
     {error ? <p role="alert">{error}</p> : null}
     {visible.map(item => {
@@ -322,15 +328,16 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
       if(cancellation){
         const target=cancellation.target
         const destination=target?.google?.calendar==='primary'?'Google-Hauptkalender':target?.google?'Google-Kalender „LifePilot“':'LifePilot-Kalender'
-        return <section className="mail-lecture-cancellation" key={item.id}>
-          <h3>Ausfall vorgeschlagen · {target?.title??item.subject}</h3>
-          <p>{[cancellation.date?formatDate(cancellation.date):'',target?.google?.start.includes('T')?clockFormat.format(new Date(target.google.start)):
-            target?.local?.start?clockFormat.format(new Date(target.local.start)):cancellation.time,item.evidence,target?destination:''].filter(Boolean).join(' · ')}</p>
-          {cancellation.reason?<p>{cancellation.reason}</p>:null}
-          <div className="actions">
+        return <section className="proposal-card mail-lecture-cancellation" key={item.id}>
+          <div className="proposal-head"><strong>Ausfall · {target?.title??item.subject}</strong>
+            <small>{[cancellation.date?formatDate(cancellation.date):'',target?.google?.start.includes('T')?clockFormat.format(new Date(target.google.start)):
+              target?.local?.start?clockFormat.format(new Date(target.local.start)):cancellation.time,target?destination:''].filter(Boolean).join(' · ')}</small></div>
+          {cancellation.reason?<p className="proposal-note">{cancellation.reason}</p>:null}
+          <details className="proposal-details"><summary>Details</summary><p>{item.evidence}</p></details>
+          <div className="proposal-actions">
             <button type="button" className="primary" disabled={busy||!target||Boolean(cancellation.reason)}
               onClick={()=>void act(async()=>{await api('/inbox/decision',{proposal:item.id,decision:'accept',lectureTarget:target,confirm:true},20000);onDecision()})}>
-              {cancellation.approvedTarget?'Entfernen erneut versuchen':'Akzeptieren und Termin entfernen'}
+              {cancellation.approvedTarget?'Erneut entfernen':'Termin entfernen'}
             </button>
             {!cancellation.approvedTarget?<button type="button" disabled={busy} onClick={()=>void act(async()=>{
               await api('/inbox/decision',{proposal:item.id,decision:'deny',confirm:true});onDecision()
@@ -339,22 +346,27 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
         </section>
       }
       const plan: InboxPlan | undefined = batch?.plans.find(candidate => candidate.id === item.id)
-      return <section key={item.id}>
-      <h3>{inboxTopics[item.category]} · {item.subject}</h3>
-      <p>{item.evidence}</p>
-      {item.event ? <p>Veranstaltung · {formatDate(item.event.date)}</p> : item.due_date ? <p>Frist aus der Mail · {formatDate(item.due_date)}</p> : <p>Keine eindeutige Frist im Mailtext.</p>}
-      {plan && item.state === 'pending' ? <p>Zeitvorschlag · {displayTime(plan.at)}–{clockFormat.format(new Date(plan.endsAt))}</p> : null}
-      {item.state === 'pending' ? <div className="actions">
-        {plan ? <button disabled={busy} onClick={() => void act(async () => {
+      const when=item.event ? formatDate(item.event.date) : item.due_date ? 'Frist ' + formatDate(item.due_date) : ''
+      const slot=plan && item.state === 'pending' ? 'Zeitvorschlag ' + displayTime(plan.at) + '–' + clockFormat.format(new Date(plan.endsAt)) : ''
+      return <section className="proposal-card" key={item.id}>
+      <div className="proposal-head"><strong>{item.subject}</strong>
+        <small>{[inboxTopics[item.category],when,slot].filter(Boolean).join(' · ')}</small></div>
+      <details className="proposal-details"><summary>Details</summary>
+        <p>{item.evidence}</p>
+        {!item.event && !item.due_date ? <p>Keine eindeutige Frist im Mailtext.</p> : null}
+      </details>
+      {item.state === 'pending' ? <>
+        {plan ? <button type="button" className="proposal-wide" disabled={busy} onClick={() => void act(async () => {
           await api('/inbox/decision', { proposal: item.id, decision: 'accept', slot: plan.at, confirm: true }, 15000)
           onDecision()
         })}>Aufgabe und Zeitblock bestätigen</button> : null}
-        {(['accept', 'deny'] as const).map(decision => <button key={decision} disabled={busy}
+        <div className="proposal-actions">
+        {(['accept', 'deny'] as const).map(decision => <button key={decision} type="button" className={decision === 'accept' ? 'primary' : undefined} disabled={busy}
           onClick={() => void act(async () => {
             await api('/inbox/decision', { proposal: item.id, decision, confirm: true })
             onDecision()
           })}>{decision === 'accept' ? item.event ? 'In Kalender übernehmen' : 'Als Aufgabe bestätigen' : 'Ablehnen'}</button>)}
-      </div> : <p>{item.state === 'accepted' ? 'Aufgabe gespeichert' : 'Abgelehnt'}</p>}
+        </div></> : <p className="proposal-note">{item.state === 'accepted' ? 'Aufgabe gespeichert' : 'Abgelehnt'}</p>}
     </section>})}
     <BulkApproval items={batchItems} disabled={busy} approve={approveAll} description={lecturesOnly?
       'LifePilot entfernt die zugeordneten Vorlesungstermine aus den angegebenen Kalendern.':
@@ -1052,6 +1064,7 @@ function App() {
   const [lectureRefresh,setLectureRefresh]=useState(0)
   const [inboxFeed, setInboxFeed] = useState<InboxFeed>()
   // Mails, die einmal aufgeklappt wurden, verlieren die grüne Markierung (lokal im Browser gemerkt).
+  const [mailFilter, setMailFilter] = useState<string>('')
   const [seenMails, setSeenMails] = useState<Set<string>>(() => { try { return new Set<string>(JSON.parse(localStorage.getItem('lifepilot-seen-mails') ?? '[]')) } catch { return new Set<string>() } })
   const markSeen = (id: string) => setSeenMails(current => {
     if (current.has(id)) return current
@@ -1600,7 +1613,11 @@ function App() {
   }
 
   function inboxFeedContents(compact: boolean) {
-    const messages=compact ? inboxFeed?.messages.filter(item=>item.important).slice(0,3) : inboxFeed?.messages
+    const allMessages=inboxFeed?.messages
+    const messages=compact ? allMessages?.filter(item=>item.important&&isPersonMail(item)).slice(0,3) :
+      mailFilter ? allMessages?.filter(item=>item.label===mailFilter) : allMessages
+    const filterLabels=!compact&&allMessages ? (Object.keys(inboxLabelNames) as (keyof typeof inboxLabelNames)[])
+      .map(label=>({label,count:allMessages.filter(item=>item.label===label).length})).filter(entry=>entry.count) : []
     const account = compact ? undefined : inboxFeed?.account
     return <>
       {!compact && trashFeedback ? <p role={trashFeedback.error?'alert':'status'}>{trashFeedback.text}</p> : null}
@@ -1609,6 +1626,11 @@ function App() {
         {' '}<button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
       {inboxFeed?.loadedAt ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
       {!compact && inboxFeed?.incomplete ? <p role="status">{inboxFeed.rateLimited ? 'Gmail begrenzt gerade die Anfragen. LifePilot zeigt bereits geladene Mails und versucht es später erneut.' : 'Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.'}</p> : null}
+      {filterLabels.length>1 ? <div className="inbox-filter" role="group" aria-label="Nach Kategorie filtern">
+        <button type="button" aria-pressed={!mailFilter} onClick={()=>setMailFilter('')}><Icon name="inbox"/><span>Alle</span><small>{allMessages?.length}</small></button>
+        {filterLabels.map(({label,count})=><button type="button" key={label} aria-pressed={mailFilter===label} title={inboxLabelNames[label]}
+          onClick={()=>setMailFilter(current=>current===label?'':label)}><Icon name={mailLabelIcons[label]}/><span>{inboxLabelNames[label]}</span><small>{count}</small></button>)}
+      </div> : null}
       {messages?.length ? <ul className="inbox-feed-list">
         {messages.map(item => <li key={item.id} className="inbox-mail" data-important={item.important && !seenMails.has(item.id) ? 'true' : undefined}>
           <details onToggle={event => { if (event.currentTarget.open) markSeen(item.id) }}>
@@ -1644,7 +1666,7 @@ function App() {
             </div>
           </details>
         </li>)}
-      </ul> : inboxFeed ? <p className="empty">Keine relevanten Nachrichten gefunden.</p> : null}
+      </ul> : inboxFeed ? <p className="empty">{compact ? 'Keine Nachrichten von Personen, die deine Aufmerksamkeit brauchen.' : 'Keine relevanten Nachrichten gefunden.'}</p> : null}
     </>
   }
 
@@ -1710,7 +1732,7 @@ function App() {
           </div> : <div className="heading"><h1>{page}</h1></div>}
           {page === 'Kalender' ? <CalendarOverview key={page} mode="month" today={today} openTask={openTask}
             updateKey={calendarUpdateKey} lectureNotices={lectureNotices} /> : null}
-          {page === 'Kalender' ? <LiveInbox lecturesOnly onLectures={setLectureNotices} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt} /> : null}
+          {page === 'Kalender' ? <LiveInbox onLectures={setLectureNotices} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt} /> : null}
           {page === 'Kalender' ? <FreeWindowFinder key={projectWork?.title??'calendar-tools'} date={today} work={projectWork} allowMac={!snapshot.acceptance} onDraft={canChat ? openDraft : undefined} /> : null}
           {page==='Aufgaben & Fristen'?<TasksBoard api={api} mutate={mutate} today={today} busy={busy||!!offline}
             openTask={openTask} openProject={showProject} openSource={showBoardSource} changeProject={changeProjectBoard}
@@ -1737,7 +1759,7 @@ function App() {
               {inboxBatch?.applications ? <button className="quiet" onClick={() => navigate('Bewerbungen')}>Bewerbungen ansehen →</button> : null}
               {inboxBatch?.limited ? <button className="quiet" disabled={refreshingInbox} onClick={() => void runInboxRefresh(false, true)}>Weitere Mails prüfen</button> : null}
             </section>
-            <LiveInbox sourceId={boardSource?.source_type==='email'?boardSource.source_id:undefined} onLectures={setLectureNotices} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt} />
+            <LiveInbox silent={boardSource?.source_type!=='email'} sourceId={boardSource?.source_type==='email'?boardSource.source_id:undefined} onLectures={setLectureNotices} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt} />
           </> : null}
           {page === 'Start' ? <>
             <div className="start-grid briefing-grid">
@@ -1772,8 +1794,7 @@ function App() {
                 <OrderApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey}
                   onOpen={id=>{navigate('Bestellungstracker');setBoardSource({source_type:'order',source_id:id} as never)}} onUpdate={()=>void refresh()}/>
                 <ApplicationApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey} onOpen={()=>navigate('Bewerbungen')} onUpdate={()=>void refresh()}/>
-                <LiveInbox batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
-                <button type="button" className="quiet" onClick={()=>navigate('Posteingang')}>Mailvorschläge öffnen →</button>
+                <LiveInbox silent onLectures={setLectureNotices} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
                 <BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}
                   description="LifePilot übernimmt die angezeigten Pilot-Vorschläge. Kalenderänderungen werden lokal ausgeführt."/>
               </Section>

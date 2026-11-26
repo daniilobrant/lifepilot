@@ -1921,3 +1921,22 @@ input[type=file]::file-selector-button {
 .sub-review-status progress { width: 100%; }
 .application-suggestions .application-source, .application-approvals .application-source { padding: .5rem 0; border-top: 1px solid var(--line); margin-bottom: 0; }
 .application-suggestions .application-source:first-of-type, .application-approvals .application-source:first-of-type { border-top: 0; }
+
+/* Terminvorschläge: gleiche ruhige Karten wie bei Bestellungen */
+.proposal-card { display:grid; gap:7px; padding:10px 0; border-top:1px solid var(--line); font-size:.88rem; }
+.proposal-card:first-of-type { border-top:0; }
+.proposal-head { display:grid; gap:2px; }
+.proposal-head strong { font-size:.92rem; font-weight:650; overflow-wrap:anywhere; }
+.proposal-head small { color:var(--muted); font-size:.8rem; }
+.proposal-details > summary { color:var(--muted); font-size:.8rem; cursor:pointer; min-height:0; }
+.proposal-details p, .proposal-note { margin:4px 0 0; font-size:.84rem; line-height:1.4; color:var(--muted); }
+.proposal-actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.proposal-actions button, .proposal-wide { border-radius:8px; height:34px; min-height:34px; padding:0 8px; font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.proposal-wide { width:100%; }
+
+/* Posteingang: Kategorien zum Anklicken */
+.inbox-filter { display:flex; flex-wrap:wrap; gap:6px; margin:.65rem 0 .2rem; }
+.inbox-filter button { display:inline-flex; align-items:center; gap:6px; height:32px; min-height:32px; padding:0 10px; font-size:.8rem; border-radius:999px; }
+.inbox-filter button svg { width:15px; height:15px; flex:none; }
+.inbox-filter button small { color:var(--muted); font-size:.74rem; }
+.inbox-filter button[aria-pressed="true"] { background:var(--mint-soft, #dcebe1); border-color:var(--mint, #2f6048); color:var(--ink); font-weight:650; }

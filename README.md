@@ -1,4 +1,4 @@
-# LifePilot 1.0.78
+# LifePilot 1.0.79
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -34,7 +34,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 <table>
 <tr>
 <td width="50%" valign="top"><strong>Posteingang</strong><br>Wichtige Nachrichten priorisieren und begründen, warum sie wichtig sind.<br><a href="docs/screenshots/05-posteingang.png"><img src="docs/screenshots/05-posteingang.png" alt="Posteingang mit ausgewählten fiktiven Nachrichten"></a></td>
-<td width="50%" valign="top"><strong>Mailvorschläge</strong><br>Aus Mails abgeleitete Fristen und Aufgaben lassen sich einzeln oder gesammelt bestätigen.<br><a href="docs/screenshots/05b-mailvorschlaege.png"><img src="docs/screenshots/05b-mailvorschlaege.png" alt="Mailvorschlag für eine Aufgabe mit Bestätigen und Ablehnen"></a></td>
+<td width="50%" valign="top"><strong>Terminvorschläge</strong><br>Aus Mails abgeleitete Termine, Fristen und Aufgaben stehen unter dem Kalender und lassen sich einzeln oder gesammelt übernehmen.<br><a href="docs/screenshots/05b-mailvorschlaege.png"><img src="docs/screenshots/05b-mailvorschlaege.png" alt="Mailvorschlag für eine Aufgabe mit Bestätigen und Ablehnen"></a></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><strong>Bestellungstracker</strong><br>Lieferstatus verfolgen und je Artikel entscheiden, was behalten oder retourniert wird.<br><a href="docs/screenshots/06-bestellungen.png"><img src="docs/screenshots/06-bestellungen.png" alt="Musterbestellung mit Lieferstatus und Artikelentscheidungen"></a></td>
@@ -162,7 +162,8 @@ Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das gekl
 | Kalender | Woche und Monat, Zeitfenster, Serientermine, Feiertage und gesonderte Bestätigung von Kollisionen |
 | Aufgaben & Fristen | Aufgaben und Abgaben in Uni, Privat und Arbeit, mit Priorität, Datum und Projektbezug |
 | Projekte | Projektkarten, Phasen, Unterpunkte, Checkpoints, Fortschritt, Archiv und Wiederherstellung |
-| Posteingang | Relevante Nachrichten, gezielte Mail-Tiefenprüfung, Gmail-Kategorien und Vorschläge für Folgeaktionen |
+| Posteingang | Relevante Nachrichten, per Klick nach Kategorie filterbar, gezielte Mail-Tiefenprüfung und Vorschläge für Folgeaktionen. Auf der Startseite stehen nur wichtige Nachrichten von echten Personen |
+| Terminvorschläge | Aus Mails abgeleitete Termine, Fristen und Aufgaben als aufklappbare Liste unter dem Kalender |
 | Bestellungstracker | Lieferungen, Retouren, Behalten und Rückerstattungen je Artikel. Behaltene Kleidung kann in den Kleiderschrank übernommen werden |
 | Finanzen & Abos | Monatsübersicht, Einnahmen und Ausgaben, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
 | Urlaubsplaner | Vorschau für Städte und Inseln, Reisezeiträume, Buchungen, Vorbereitung und Packlisten |
@@ -216,7 +217,7 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.36–1.0.42 · 25./26. November 2026** | Agent mit Verzeichnis aller Bereiche, Zerlegung langer und diktierter Nachrichten, Entscheidungstabelle der Skills, Bestellungen und Bewerbungen im Chat, umschaltbarer Modellanbieter (Codex oder Claude Code), Testsatz mit 48 Beispielsätzen. |
 | **1.0.43–1.0.52 · 26. November 2026** | Sicherheitsprüfung des Gesamtprojekts, Kalender ohne Doppeleinträge, Rezeptauswahl und Zutatenabgleich, Bestellmails mit Warenkorb-Blöcken, Outfits passend zum Anlass, Terminvorschläge aus Mails. |
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
-| **1.0.58–1.0.78 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. |
+| **1.0.58–1.0.79 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. |
 
 [Entwicklungsverlauf](docs/ENTWICKLUNG.md)
 

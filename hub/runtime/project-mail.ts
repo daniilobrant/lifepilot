@@ -85,7 +85,7 @@ function deadlineDate(line:string|undefined,subject:string,today:string){
 export function decideProjectMail(store:Store,id:string,account:string,revision:number,approved:boolean){
   return store.transaction(()=>{
     const row=store.db.prepare("SELECT project_id,data FROM project_email_suggestions WHERE id=? AND account=? AND status='pending'").get(id,account)
-    if(!row)throw new Problem(409,'Dieser Mailvorschlag ist nicht mehr offen.')
+    if(!row)throw new Problem(409,'Dieser Terminvorschlag ist nicht mehr offen.')
     if(approved){
       const mail=JSON.parse(String(row.data)) as MailDraft
       const plan=mail.plan??projectPlan('update')

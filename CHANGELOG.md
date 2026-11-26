@@ -2,6 +2,14 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.79 · 26. November 2026
+
+- Oberfläche: „Mailvorschläge“ heißen jetzt „Terminvorschläge“ und stehen als aufklappbare Liste unter dem Kalender (wie Finanzen & Abos). Von der Startseite entfallen Block und Link „Mailvorschläge öffnen“.
+- Oberfläche: Vorschläge sind ruhige Karten wie bei Bestellungen (Titel, eine Zeile mit Thema, Datum und Zeitvorschlag, Beleg unter „Details“). „In Kalender übernehmen“ und „Ablehnen“ stehen gleich groß nebeneinander; Schrift und Buttons sind kompakter.
+- Startseite: „Wichtige Nachrichten“ zeigt nur noch Mails von echten Personen. Automatische Absender (no-reply, PayPal, Shops, Versanddienste), Transaktions- und Finanzmails sowie Bestell- und Versandmails bleiben dort draußen.
+- Posteingang: Die Kategorien stehen oben als anklickbare Icon-Chips mit Anzahl (kein Dropdown). Ein Klick zeigt nur diese Kategorie, ein zweiter Klick oder „Alle“ hebt den Filter auf.
+- Meldungen: „Mailvorschlag“ heißt in Fehlermeldungen „Terminvorschlag“.
+
 ## v1.0.78 · 26. November 2026
 
 - Pilot: Nachrichten mit neuem Thema während einer offenen Rückfrage (z. B. Rezept nach einer Terminfrage) werden neu bearbeitet, statt die alte Frage zu wiederholen. Die Serien-Rückfrage nimmt Antworten wie „15 Uhr“ oder „Bis 16:30 Uhr“ an und fragt nur nach der fehlenden Angabe.

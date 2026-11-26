@@ -121,7 +121,7 @@ export function inboxProposal(store:Store,id:string){
 export function decideInbox(store: Store, id: string, decision: 'accept' | 'deny', via: Channel, slot?: FreeWindow) {
   return store.transaction(() => {
     const row = store.db.prepare('SELECT * FROM inbox_proposals WHERE id=?').get(id) as InboxProposal | undefined
-    if (!row) throw new Problem(404, 'Der Mailvorschlag ist nicht vorhanden.')
+    if (!row) throw new Problem(404, 'Der Terminvorschlag ist nicht vorhanden.')
     if (row.state !== 'pending') throw new Problem(409, 'Über diesen Vorschlag wurde bereits entschieden.')
     const state = decision === 'accept' ? 'accepted' : 'denied'
     const title = topics.find(([category]) => category === row.category)![2] + ' · ' + row.subject

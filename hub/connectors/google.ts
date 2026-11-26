@@ -574,7 +574,7 @@ export class GoogleConnector {
     if (category) {
       const current = classifyMail(await this.mailContent(id))
       this.ensureEpoch('gmail-content', readEpoch)
-      if (current.category !== category) throw new Problem(409, 'Die Kategorie hat sich geändert. Prüfe den Mailvorschlag erneut.')
+      if (current.category !== category) throw new Problem(409, 'Die Kategorie hat sich geändert. Prüfe den Terminvorschlag erneut.')
     }
     const message = gmailEndpoint + '/' + id
     const metadata = await request(message + '?format=minimal&fields=id,labelIds')

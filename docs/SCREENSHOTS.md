@@ -1,6 +1,6 @@
 # LifePilot im Testprofil
 
-Alle Aufnahmen zeigen die Version 1.0.78 mit vollständig fiktiven Daten (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen.
+Alle Aufnahmen zeigen die Version 1.0.79 mit vollständig fiktiven Daten (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen.
 
 ## Planung und Pilot
 
@@ -54,11 +54,11 @@ Wichtige Nachrichten priorisieren und begründen, warum sie wichtig sind.
 
 ![Posteingang mit ausgewählten fiktiven Nachrichten](screenshots/05-posteingang.png)
 
-### Mailvorschläge
+### Terminvorschläge
 
 Aus Mails abgeleitete Fristen und Aufgaben lassen sich einzeln oder gesammelt bestätigen.
 
-![Mailvorschlag für eine Aufgabe mit Bestätigen und Ablehnen](screenshots/05b-mailvorschlaege.png)
+![Terminvorschlag für eine Aufgabe mit Bestätigen und Ablehnen](screenshots/05b-mailvorschlaege.png)
 
 ### Bestellungstracker
 
