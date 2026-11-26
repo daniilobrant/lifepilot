@@ -38,3 +38,7 @@ test('Abo-Prüfung sendet nur Abo-Angaben und den Ort nur bei lokalen Anbietern'
   assert.equal(data[1].city,'Esslingen')
   assert.equal(JSON.stringify(data).includes('privat'),false)
 })
+test('Abo-Prüfung entfernt Markdown-Links aus Texten', () => {
+  const review=readReview(raw([item('Streaming',{reasoning:'Fair bepreist. [Apple-Tarife](https://www.apple.com/de/icloud/) · [Hinweise](https://support.apple.com/x) Mehr auf https://example.org/a'})]),[entry('Streaming',1000)],'')
+  assert.equal(review.items[0].reasoning,'Fair bepreist. Mehr auf')
+})

@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.69 · 26. November 2026
+
+- Abo-Prüfung: Live mit der Websuche getestet (drei Abos, ca. eine Minute). Markdown-Links und Adressen im Fließtext der Antwort werden entfernt, Links stehen nur noch als geprüfte Schaltflächen bei den Alternativen.
+
 ## v1.0.68 · 26. November 2026
 
 - Auslieferung: Die Oberfläche der Versionen 1.0.65 bis 1.0.67 (Abo-Button, Reisekästchen, Abo-Prüfung mit Übersichtsfenster) wurde nicht mit ausgeliefert. 1.0.68 enthält sie.
