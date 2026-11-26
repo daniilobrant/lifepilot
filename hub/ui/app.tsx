@@ -311,8 +311,11 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
       return result
     }finally{setBusy(false)}
   }
-  return <section className="card settings" aria-label={heading}>
-    <h2>{heading}</h2>
+  const wrap=!lecturesOnly&&!sourceId
+  const Shell=(wrap?'details':'section') as 'section'
+  return <Shell className={wrap?'card settings mail-finance disclosure':'card settings'} aria-label={heading}>
+    {wrap ? <summary><strong>Mailvorschläge</strong><span className="count-badge">{pending.length} offen</span></summary> : <h2>{heading}</h2>}
+
     {error ? <p role="alert">{error}</p> : null}
     {visible.map(item => {
       const cancellation=item.lectureCancellation
@@ -356,7 +359,7 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
     <BulkApproval items={batchItems} disabled={busy} approve={approveAll} description={lecturesOnly?
       'LifePilot entfernt die zugeordneten Vorlesungstermine aus den angegebenen Kalendern.':
       'LifePilot übernimmt Aufgaben und Termine, ohne vorgeschlagene Zeitblöcke zu buchen. Eindeutig zugeordnete Vorlesungsausfälle entfernen den angezeigten Termin.'}/>
-  </section>
+  </Shell>
 }
 
 function RunRow({ run, onClick }: { run: Run, onClick: () => void }) {

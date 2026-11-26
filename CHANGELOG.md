@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.52 · 26. November 2026
+
+- Start: Mailvorschläge unter „Wartet auf dein OK“ sind wie die Finanzvorschläge aufklappbar mit Zähler.
+
 ## v1.0.51 · 26. November 2026
 
 - Posteingang: Persönliche Terminmails („heute Meeting um 15 Uhr auf Teams“) erscheinen als Terminvorschlag unter „Wartet auf dein OK“ und als wichtige Nachricht.
