@@ -51,7 +51,7 @@ export function startSubscriptionReview(api:Api,month:string) {
 export function SubscriptionReviewPanel() {
   const state=useSubscriptionJob()
   if(state.status==='idle')return null
-  if(state.status==='running')return <div className="loading sub-review-status" role="status"><span>Pilot sucht Tarife und Alternativen … bis zu drei Minuten. Du kannst solange weiterarbeiten.</span><progress aria-label="Suche läuft"/></div>
+  if(state.status==='running')return <div className="loading sub-review-status" role="status"><span>Pilot sucht nach alternativen Tarifen …</span><progress aria-label="Suche läuft"/></div>
   if(state.status==='error')return <p className="sub-review-status" role="alert">{state.error}</p>
   const review=state.review!
   const saving=review.items.reduce((sum,item)=>sum+(item.verdict==='cancel'?item.currentMonthlyCents*12:

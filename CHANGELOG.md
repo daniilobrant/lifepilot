@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.72 · 26. November 2026
+
+- Abo-Prüfung: Während der Suche steht in der Karte nur noch „Pilot sucht nach alternativen Tarifen …“.
+
 ## v1.0.71 · 26. November 2026
 
 - Reisen: Die Reisevorschau hat jetzt einen Button „Abbrechen“, der die entworfene Reise verwirft. Nur er löscht den Entwurf. „Neue Reise“ öffnet einen vorhandenen Entwurf wieder, statt ihn zu ersetzen.
