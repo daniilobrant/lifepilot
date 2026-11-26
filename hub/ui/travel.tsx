@@ -546,6 +546,11 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
     return ()=>{active=false}
   },[api,plan,startId])
   const [window,setWindow]=useState<{start:string,end:string}>()
+  /** Verwirft die entworfene Reise. Nur dieser Weg löscht die Vorschau, Wechsel in andere Bereiche lassen sie offen. */
+  function discardPreview() {
+    localStorage.removeItem('lifepilot-trip-draft')
+    setPreview(undefined);setWindow(undefined);setError('');setView('new')
+  }
   const [busy,setBusy]=useState(false)
   const [feedback,setFeedback]=useState('')
   const [error,setError]=useState('')
@@ -612,7 +617,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   return <div className="travel-stack travel-space">
     <nav className="actions" aria-label="Urlaubsplaner">
       <button type="button" disabled={busy} aria-pressed={view==='list'||view==='trip'} className={view==='list'||view==='trip'?'primary':undefined} onClick={()=>{setView('list');setError('');onSelect(undefined)}}>Meine Reisen</button>
-      <button type="button" disabled={busy} aria-pressed={view==='new'||view==='preview'} className={view==='new'||view==='preview'?'primary':undefined} onClick={()=>{setView('new');setError('');setPreview(undefined);setWindow(undefined);onSelect(undefined)}}>Neue Reise</button>
+      <button type="button" disabled={busy} aria-pressed={view==='new'||view==='preview'} className={view==='new'||view==='preview'?'primary':undefined} onClick={()=>{setView(preview?'preview':'new');setError('');if(!preview)setWindow(undefined);onSelect(undefined)}}>Neue Reise</button>
       <button type="button" disabled={busy} aria-pressed={view==='windows'} className={view==='windows'?'primary':undefined} onClick={()=>{setView('windows');setError('')}}>Freie Reisezeiträume</button>
     </nav>
     {error ? <p role="alert" className="banner">{error}</p>:null}
@@ -645,7 +650,8 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           {preview.plan.draft.brief&&<details><summary>Übernommene Reisewünsche</summary><p>{preview.plan.draft.brief}</p></details>}
           <p>Pilot recherchiert nach deiner Freigabe und erstellt daraus den Reiseguide.</p>
           <div className="actions"><button type="button" className="primary" onClick={()=>startGuide(preview)}>Reisesuche akzeptieren</button>
-            <button type="button" onClick={()=>setView('new')}>Angaben ändern</button></div>
+            <button type="button" onClick={()=>setView('new')}>Angaben ändern</button>
+            <button type="button" onClick={discardPreview}>Abbrechen</button></div>
         </>}
       </section> : <>
       <div className="card actions"><strong>Reisevorschau</strong><button type="button" className="primary" disabled={busy}
@@ -654,7 +660,8 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           setCurrent(saved);onSelect(saved.id);setView('trip');setCalendarOffer(!saved.googleCalendar)
           localStorage.removeItem('lifepilot-trip-draft')
           setEntries(await api('/trips'));setFeedback('Reise und privater LifePilot-Kalenderblock gespeichert.')
-        })}>Reise speichern</button><button type="button" disabled={busy} onClick={()=>setView('new')}>Angaben ändern</button></div>
+        })}>Reise speichern</button><button type="button" disabled={busy} onClick={()=>setView('new')}>Angaben ändern</button>
+        <button type="button" disabled={busy} onClick={discardPreview}>Abbrechen</button></div>
       <TripGuide plan={preview.plan} api={api} wardrobe={wardrobe} />
       </>}
     </>:null}

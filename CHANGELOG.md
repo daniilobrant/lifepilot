@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.71 · 26. November 2026
+
+- Reisen: Die Reisevorschau hat jetzt einen Button „Abbrechen“, der die entworfene Reise verwirft. Nur er löscht den Entwurf. „Neue Reise“ öffnet einen vorhandenen Entwurf wieder, statt ihn zu ersetzen.
+
 ## v1.0.70 · 26. November 2026
 
 - Abo-Prüfung: Die Suche läuft im Hintergrund. Der Ladebalken steht nur in der Abo-Karte, die App bleibt bedienbar und die Suche läuft beim Wechsel des Bereichs weiter. Das Ergebnis erscheint kompakt und aufklappbar in der Karte statt als Fenster. Behoben: Die Anfrage brach nach 7 Sekunden mit „Fetch is aborted“ ab, jetzt gelten 180 Sekunden.
