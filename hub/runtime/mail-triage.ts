@@ -39,8 +39,9 @@ export function triageCandidates(store: Store, mails: MailContent[], account: st
     if (mail.previewOnly || mail.mailingList || mail.clothing || mail.text.trim().length < 15 || mail.text.length > 12_000) return false
     if (/no[-.]?reply|newsletter|noreply|notification|mailer-daemon|@.*\b(?:amazon|paypal|google|github|apple)\./iu.test(mail.from)) return false
     const item = classifyMail(mail)
-    if (item.category || item.important || item.shipment || item.university) return false
-    if (inboxLabel(mail, item) !== 'review' || readTicketEvent(mail) || readMeetingMail(mail)) return false
+    // Weitergeleitete Hochschulmails, die die Regeln nicht als wichtig einstufen, prüft das Modell ebenfalls.
+    if (item.important || item.shipment || (item.category && !item.university) || (item.university && item.university.kind === 'cancellation')) return false
+    if ((!item.university && inboxLabel(mail, item) !== 'review') || readTicketEvent(mail) || readMeetingMail(mail)) return false
     return !known.get(sourceKey(account, mail))
   }).slice(0, MAX_MAILS)
 }

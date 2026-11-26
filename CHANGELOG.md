@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.60 · 26. November 2026
+
+- Posteingang: Weitergeleitete Mails vom Studierendenkonto der HfWU werden wie Hochschulmails erkannt. Anmeldefristen und Terminänderungen erscheinen unter „Wichtig für dich“, Einladungen zu Veranstaltungen und Zustellfehler nicht.
+- Die tiefere Mailprüfung per Modell bewertet weitergeleitete Hochschulmails, die die Regeln nicht als wichtig einstufen. Als wichtig eingestufte Mails erscheinen im Posteingang.
+
 ## v1.0.59 · 26. November 2026
 
 - Sicherheitsaudit: Prüfung mit npm audit, Semgrep und Mustersuche nach privaten Daten und Geheimnissen, [Bericht](SECURITY_REPORT.md). Lokaler Befehl `npm run security:check`.

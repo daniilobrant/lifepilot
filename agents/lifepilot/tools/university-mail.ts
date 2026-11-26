@@ -1,12 +1,13 @@
 import {dateInBerlin,isDate,shiftDay} from '../../../hub/runtime/values.ts'
 
-const universityAddress=/\b[\w.%+-]+@(?:[\w-]+\.)*hfu\.de\b/iu
+// Hochschuladressen, von denen weitergeleitet wird (HFU und HfWU Nürtingen-Geislingen).
+const universityAddress=/\b[\w.%+-]+@(?:[\w-]+\.)*(?:hfu|hfwu)\.de\b/iu
 const forwarding=/^\s*(?:-{2,}\s*)?(?:weitergeleitete nachricht|forwarded message|begin forwarded message):?(?:\s*-{2,})?\s*$/imu
 const courseWords=/\b(?:vorlesung|seminar|modul|übung|tutorium|klausur|prüfung|praktikum|lehrveranstaltung|lecture|class)\b/iu
 const cancelled=/\bfällt\b[^.!?\n]{0,80}\baus\b|\bentfällt\b|\b(?:vorlesungs|veranstaltungs)ausfall\b|\bausfall(?:\s+(?:der|von))?\b|(?:findet|finde)[^.!?\n]{0,50}nicht statt|\b(?:is cancelled|is canceled|cancellation of)\b/iu
 const social=/\b(?:dinner|stammtisch|afterwork|party|feier|sommerfest|weihnachtsfeier|infoveranstaltung|informationsveranstaltung|campusfest|networking|get-together|alumni|schnupperveranstaltung|karrieremesse|webinar)\b/iu
 const explicitReply=/\b(?:bitte (?:antworten|antworte|antwortet|bestätigen|bestätige|bestätigt|melde[n]? (?:dich|sich)|meldet euch)|(?:bitte um|brauch(?:e|en))\s+(?:eine |deine |ihre )?rückmeldung|(?:kannst du|können sie|könnt ihr|passt dir|passt euch)[^\n?]{2,100}\?|please (?:reply|confirm|respond)\b)/iu
-const academicAction=/\b(?:raumänderung|raumwechsel|verschoben|abgabe|abgabefrist|anmeldefrist|prüfungsanmeldung|prüfungstermin|prüfungsergebnis|pflichttermin|lehrveranstaltung|vorlesung|klausur|seminar|tutorium|übung|modul)\b/iu
+const academicAction=/termin[^\n.!?]{0,30}(?:später|früher|verlegt|geändert)|\b(?:raumänderung|raumwechsel|verschoben|abgabe|abgabefrist|anmeldefrist|prüfungsanmeldung|prüfungstermin|prüfungsergebnis|pflichttermin|lehrveranstaltung|vorlesung|klausur|seminar|tutorium|übung|modul)\b/iu
 const dateWords=['januar','februar','märz','april','mai','juni','juli','august','september','oktober','november','dezember']
 
 type Mail={from:string,subject:string,text:string,at?:string|null,mailingList?:boolean,replyToMessage?:boolean,originalRecipients?:string,previewOnly?:boolean}
