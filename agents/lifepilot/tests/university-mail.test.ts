@@ -115,3 +115,14 @@ test('Google deletion requires the new grant and retries against the single pinn
     assert.equal(tries,2)
   }finally{store.db.close()}
 })
+
+test('Mails forwarded from the HfWU student account are recognised like university mails',()=>{
+  const base={from:'Student <student@stud.hfwu.de>',at:'2026-11-23T08:43:45Z'}
+  const deadline=hfuMail({...base,subject:'WG: Ende der Anmeldefrist für Modulprüfungen im WiSe 2026/27',
+    text:'Von: Prüfungsamt\nGesendet: Montag, 23. November 2026 09:43:28\nBetreff: Ende der Anmeldefrist\n\nBitte melden Sie sich bis zum 30.11. für Ihre Modulprüfungen an.'})!
+  assert.equal(deadline.important,true)
+  const change=hfuMail({...base,subject:'Fw: [HfWU neo] [101-171: Data Science und KI (4 SWS)] Termin morgen später',
+    text:'Von: Prof. Beispiel <p@hfwu.de>\nBetreff: Termin morgen später\n\nWe start at 10:30.'})!
+  assert.equal(change.important,true)
+  assert.equal(hfuMail({...base,subject:'Fw: Correction: Karaoke & Games@Café',text:'Von: Beispiel <a@hfwu.de>\nBetreff: Karaoke & Games Party\n\nJoin us.'})!.important,false)
+})
