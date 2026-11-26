@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.47 · 26. November 2026
+
+- Bestellungstracker: Bestätigungen ohne lesbare Bestellnummer und Artikel im Mailtext (adidas) erscheinen trotzdem unter „Bestellt“.
+
 ## v1.0.46 · 26. November 2026
 
 - Rezeptideen: zehn weitere Rezepte, die Auswahl wechselt bei jeder Anfrage; gleichwertige Zutaten (Hähnchen/Hähnchenfleisch, Hackfleisch, Öle, Nudeln) werden nicht erneut auf die Einkaufsliste gesetzt.

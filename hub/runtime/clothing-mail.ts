@@ -281,17 +281,23 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const identifiers=new Set([...(mail.subject+'\n'+text).matchAll(trackingPattern)]
     .map(match=>reference(match[1])).filter(value=>value.length>=10))
   if (!tracking && identifiers.size===1) tracking=[...identifiers][0]
+  // Bestätigungen mancher Shops (z. B. adidas) nennen Nummer und Artikel nur als Bild: Die Bestellung wird trotzdem unter „Bestellt“ geführt.
+  let fallback=false
+  if (kind==='order' && !code && !merchant && mail.at && Number.isFinite(Date.parse(mail.at)) &&
+      /^\s*(?:danke|vielen dank|bestellbestätigung|deine bestellbestätigung)/iu.test(mail.subject)) {code='MAIL-'+Date.parse(mail.at);fallback=true}
   if (!kind || !code && !(kind==='delivery' && tracking)) return
   const deadline=explicitDeadline(text)
   if (kind==='return' && !deadline && !receivedReturn.test(mail.subject)) return
   const htmlItems=structured.length?structured:linkedRows(html)
   const plain=plainItems(mail.text || text)
   const retailer=amazon ? amazonItems(mail.text||text,html) : merchant ? retailerItems(lines,html,merchant) : []
+  const placeholder:ClothingProduct[]=fallback?[{sku:'',quantity:1,image:'',draft:{name:'Bestellung bei '+shopName(shopDomain(sender))+' (Artikel stehen in der Mail)',category:'accessory',isClothing:false,
+    garmentType:'',color:'',size:'',brand:'',model:'',material:'',fit:'',season:'',tags:'',source:''}}]:[]
   const items=retailer.length ? retailer : structured.length ? structured : htmlItems.length ? htmlItems.map(item=>{
     const fromText=plain.find(row=>row.draft.name.toLowerCase()===item.draft.name.toLowerCase())
     return {...item,quantity:fromText?.quantity??item.quantity,
       draft:{...item.draft,color:item.draft.color||fromText?.draft.color||'',size:item.draft.size||fromText?.draft.size||''}}
-  }) : plain
+  }) : plain.length ? plain : placeholder
   if (kind==='order' && !items.length) return
   const totalCents=kind==='order' ? amountAfter(lines,/^(?:gesamtbetrag|gesamt:)$/iu) ??
     euroCents(/^(?:Gesamtbetrag|Gesamtsumme|Gesamt)\s*:\s*(.+)$/imu.exec(lines.join('\n'))?.[1]??'') : undefined

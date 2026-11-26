@@ -74,3 +74,12 @@ test('Underwear and socks are recognised before shorts and never count as wardro
     assert.ok(['Unterwäsche','Socken'].includes(outfitGarment(name)!.garmentType),name)
   assert.equal(outfitGarment('Beispiel Cargo Shorts')!.garmentType,'Shorts')
 })
+
+test('An order confirmation without number and items (adidas) is still tracked as ordered',()=>{
+  const parsed=parseClothingMail({subject:'Danke für deine Bestellung, Daniil',from:'adidas <adidas@de-info.adidas.com>',
+    text:'Du erhältst alle Daten zur Sendungsverfolgung, sobald deine Bestellung unterwegs ist. Danke für deinen Einkauf bei adidas',at:'2026-11-26T00:09:18Z'},'')!
+  assert.equal(parsed.kind,'order')
+  assert.equal(parsed.merchant,'Adidas')
+  assert.equal(parsed.items.length,1)
+  assert.equal(parsed.items[0].draft.isClothing,false)
+})
