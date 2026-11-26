@@ -93,9 +93,14 @@ export function outfitSlot(item: Pick<WardrobeDraft, 'name' | 'category' | 'garm
  * Wofür ein Teil gedacht ist, aus Typ, Material, Schnitt und Stil-Tags abgeleitet. Die Labels
  * erscheinen an jedem Teil im Look und helfen bei der Auswahl passend zum angegebenen Anlass.
  */
+/** Sportkleidung (Trikot, Training, Laufen, Fußball …) gehört nur zu Sportanlässen, nie zu Uni, Büro oder Alltag. */
+export function isSportItem(item: Pick<WardrobeDraft, 'name' | 'garmentType' | 'material' | 'tags'> & {fit?:string}): boolean {
+  const text = [item.name, item.garmentType, item.material, item.tags, item.fit].filter(Boolean).join(' ').toLowerCase()
+  return /(?:\b(?:sport\w*|training\w*|fitness|funktions\w*|lauf\w*|jogger|fu(?:ß|ss)ball\w*|dfb|yoga|gym|running|workout|radtrikot|badehose|schwimm\w*|leggings?|tanktop|kompression\w*)\b|trikot)/u.test(text)
+}
 export function itemOccasion(item: Pick<WardrobeDraft, 'name' | 'category' | 'garmentType' | 'material' | 'tags'> & {fit?:string}): string {
   const text = [item.name, item.garmentType, item.material, item.tags, item.fit].filter(Boolean).join(' ').toLowerCase()
-  if (/\b(?:sport\w*|training|fitness|funktions\w*|lauf\w*|jogger)\b/u.test(text)) return 'Sport · Freizeit'
+  if (isSportItem(item)) return 'Sport · Freizeit'
   if (item.category === 'accessory') return /uhr|gürtel|leder/u.test(text) ? 'Büro · Dinner' : 'Alltag · Ergänzung'
   if (/\b(?:hemd|bluse|blazer|anzug|bundfalte\w*|chino|loafer|chelsea|oxford|derby|kaschmir|merino\w*|rollkragen|polokragen|wollmantel|mantel)\b|eleganz|business/u.test(text)) return 'Büro · Dinner'
   if (item.category === 'outer' && /\b(?:leder\w*|lederoptik)\b/u.test(text)) return 'Abends · Ausgehen'

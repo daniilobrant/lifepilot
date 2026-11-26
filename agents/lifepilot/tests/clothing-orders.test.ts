@@ -157,3 +157,21 @@ test('An order item with a verified product link can queue a photo without a kno
     assert.deepEqual(clothingPhotoTargets(store,tracked.id).map(item=>item.source),[source,''])
   } finally {store.db.close()}
 })
+
+test('Behaltene Teile werden automatisch als Ausgabe gebucht und wachsen mit weiteren',()=>{
+  const store=new Store(':memory:')
+  try {
+    scanClothingOrders(store,[received,order],'account-a')
+    const [{id,items}]=clothingOrders(store)
+    const price=(itemId:string,cents:number)=>{
+      const row=store.db.prepare('SELECT details FROM clothing_order_items WHERE id=?').get(itemId) as {details:string}
+      store.db.prepare('UPDATE clothing_order_items SET details=? WHERE id=?').run(JSON.stringify({...JSON.parse(row.details),cents}),itemId)
+    }
+    price(items[0].id,2550);price(items[1].id,1000)
+    changeClothingOrder(store,id,'kept',items[0].id)
+    const booked=()=>store.db.prepare("SELECT json_extract(data,'$.cents') AS cents FROM finance_entries WHERE kind='expense'").all().map(row=>Number(row.cents))
+    assert.deepEqual(booked(),[2550])
+    changeClothingOrder(store,id,'kept',items[1].id)
+    assert.deepEqual(booked(),[3550])
+  } finally {store.db.close()}
+})

@@ -5,7 +5,7 @@ import { Problem } from './settings.ts'
 import { isUnderwear, parseClothingMail, shopDomain, type ClothingMail, type ClothingProduct, type OrderProductDraft } from './clothing-mail.ts'
 import { saveWardrobe } from './outfits.ts'
 import { outfitGarment } from './outfit-fields.ts'
-import type { WardrobeDraft } from './outfit-types.ts'
+import { isSportItem, type WardrobeDraft } from './outfit-types.ts'
 import type { TaskPatch } from './workspace.ts'
 import { financeMonth, saveFinance } from './finance.ts'
 import { dateInBerlin, isDate, shiftDay } from './values.ts'
@@ -152,6 +152,30 @@ export function bookOrderFinance(store:Store,key:string,kind:unknown,date:unknow
       AND instr(lower(json_extract(draft,'$.title')),?)>0`).run(entryId,order.account,date,cents,refund?1:0,merchant)
     return asView(store,order)
   })
+}
+
+const keptNote='Beim Behalten im Bestellungstracker gebucht.'
+/** Behält man Teile einer Bestellung, entsteht die Ausgabe automatisch (Summe der behaltenen Teile) und wächst mit weiteren behaltenen Teilen. */
+function bookKeptItems(store:Store,key:string) {
+  const order=loadOrder(store,key)
+  const items=orderItems(store,key)
+  const kept=items.filter(item=>item.decision==='kept')
+  const priced=kept.map(item=>JSON.parse(item.details) as OrderProductDraft)
+  if(!kept.length || priced.some(draft=>!draft.cents)) return
+  const cents=kept.length===items.length && order.total_cents ? order.total_cents : priced.reduce((sum,draft)=>sum+(draft.cents??0),0)
+  if(cents<1 || cents>=10_000_000) return
+  const date=order.delivered_on ?? order.ordered_on
+  const month=financeMonth(date.slice(0,7))
+  const title=(order.merchant+' · '+priced.map(draft=>draft.name).join(', ')).slice(0,120)
+  const category=priced.every(draft=>isSportItem(draft)) ? 'Freizeit & Kultur' : 'Shopping & Alltag'
+  const booked=store.db.prepare("SELECT f.entry_id AS id,e.revision,e.data FROM order_finance_entries f JOIN finance_entries e ON e.id=f.entry_id WHERE f.order_id=? AND f.kind='purchase'").get(key)
+  if(booked){
+    const data=JSON.parse(String(booked.data)) as {note?:string,cents:number}
+    if(data.note===keptNote && data.cents!==cents) saveFinance(store,{...data,title,cents,category,date},month,{id:String(booked.id),revision:Number(booked.revision)})
+    return
+  }
+  const entry=saveFinance(store,{kind:'expense',title,cents,date,category,note:keptNote},month)
+  store.db.prepare('INSERT INTO order_finance_entries VALUES (?,?,?)').run(key,'purchase',entry.id)
 }
 
 function syncReturnTask(store:Store,id:string) {
@@ -346,6 +370,7 @@ export function changeClothingOrder(store:Store,key:string,action:unknown,itemId
       const wardrobe=item.wardrobe_id ?? (action==='kept' && details.isClothing!==false ? saveWardrobe(store,details).id:null)
       store.db.prepare('UPDATE clothing_order_items SET decision=?,wardrobe_id=? WHERE id=?').run(String(action),wardrobe,item.id)
       if (item.decision!==action) recordOrderActivity(store,key,dateInBerlin())
+      if (action==='kept') bookKeptItems(store,key)
       if (action==='returned' && wardrobe) store.db.prepare('DELETE FROM wardrobe_travel WHERE wardrobe_id=?').run(wardrobe)
     }
     syncReturnTask(store,key)

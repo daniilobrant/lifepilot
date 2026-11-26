@@ -387,6 +387,9 @@ test('Cold looks always layer a shirt under knitwear and skip clashing colours w
     assert.ok(paletteScore({color:'Weinrot'},[{color:'Blau'}],'Schlicht')<paletteScore({color:'Schwarz'},[{color:'Blau'}],'Schlicht'))
     assert.equal(itemOccasion({name:'Steppjacke',category:'outer',garmentType:'Jacke',material:'',tags:''}),'Kalte Tage · Alltag')
     assert.equal(itemOccasion({name:'Loafer ADRIAN',category:'shoes',garmentType:'Loafer',material:'',tags:''}),'Büro · Dinner')
+    for(const name of ['Deutschland 26 Heimtrikot','Fußball Shorts','Laufschuhe Pegasus','Trainingsjacke'])
+      assert.equal(itemOccasion({name,category:'top',garmentType:'T-Shirt',material:'',tags:''}),'Sport · Freizeit',name)
+    assert.equal(itemOccasion({name:'Basic T-Shirt',category:'top',garmentType:'T-Shirt',material:'',tags:''}),'Alltag · Uni')
     const titled=studio.generate(store,{...query,mode:'occasion',occasion:'Abendessen mit Freunden',variant:0}).look
     assert.equal(titled.title,'Dein Look für Abendessen mit Freunden')
   } finally {store.db.close()}

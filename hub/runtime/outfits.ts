@@ -7,7 +7,7 @@ import { dateInBerlin } from './values.ts'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { bodyProportions, emptyStyle, fitsOccasion, isLongOrHeavyBaseTop, itemOccasion, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
-  type OutfitSlot, type OutfitWeather, type StyleProfile, type WardrobeCategory, type WardrobeDraft, type WardrobeItem } from './outfit-types.ts'
+  isSportItem, type OutfitSlot, type OutfitWeather, type StyleProfile, type WardrobeCategory, type WardrobeDraft, type WardrobeItem } from './outfit-types.ts'
 
 const idPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu
 const maxPhotos = 256 * 1024 * 1024
@@ -331,6 +331,9 @@ export class OutfitStudio {
 
     function pick(items:WardrobeItem[],category:WardrobeCategory) {
       // Nur Teile, die zum genannten Anlass passen; gibt es keines, bleibt die ganze Auswahl.
+      // Sportkleidung kommt nur bei Sportanlässen oder als gewähltes Ankerteil infrage.
+      const sportAllowed=occasionKind==='Sport'||chosen.some(isSportItem)
+      if(!sportAllowed)items=items.filter(item=>!isSportItem(item))
       const fitting=occasionKind?items.filter(item=>fitsOccasion(occasionKind,itemOccasion(item))):items
       const ranked=rankItems(fitting.length?fitting:items,category)
       if (!ranked.length) return

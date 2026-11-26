@@ -322,7 +322,7 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
       draft:{...item.draft,color:item.draft.color||fromText?.draft.color||'',size:item.draft.size||fromText?.draft.size||''}}
   }) : plain.length ? plain : placeholder
   if (kind==='order' && !items.length) return
-  const totalCents=kind==='order' ? amountAfter(lines,/^(?:gesamtbetrag|gesamt:)$/iu) ??
+  const totalCents=kind==='order' ? amountAfter(lines,/^(?:gesamtbetrag|gesamtsumme|gesamt:?)$/iu) ??
     euroCents(/^(?:Gesamtbetrag|Gesamtsumme|Gesamt)\s*:\s*(.+)$/imu.exec(lines.join('\n'))?.[1]??'') : undefined
   const refundCents=kind==='refund' ? amountAfter(lines,/^summe rückerstattungsbetrag$/iu) : undefined
   const fieldDate=(pattern:RegExp)=>{
