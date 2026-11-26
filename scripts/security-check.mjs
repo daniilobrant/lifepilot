@@ -5,7 +5,7 @@ import { existsSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { join } from 'node:path'
 
-const path = [process.env.PATH, join(homedir(), 'Library/Python/3.9/bin'), '/opt/homebrew/bin', '/usr/local/bin'].filter(Boolean).join(':')
+const path = [process.env.PATH, join(homedir(), 'Library/Python/3.9/bin'), join(homedir(), '.local/bin'), '/opt/homebrew/bin', '/usr/local/bin'].filter(Boolean).join(':')
 const env = { ...process.env, PATH: path }
 const results = []
 const run = (command, args, options = {}) => spawnSync(command, args, { encoding: 'utf8', env, maxBuffer: 64 * 1024 * 1024, ...options })
