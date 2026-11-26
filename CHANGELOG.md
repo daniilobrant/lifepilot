@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.43 · 26. November 2026
+
+- Sicherheit: Wechselkursabruf folgt keinen Weiterleitungen mehr.
+
 ## v1.0.42 · 26. November 2026
 
 - Entscheidungstabelle: einmalige Erinnerung ohne Uhrzeit wird eine Aufgabe ohne Rückfrage.
