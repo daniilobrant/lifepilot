@@ -1,5 +1,5 @@
 /.runtime/
-/node_modules/
+/node_modules
 /dist/
 /user-data/
 /.playwright-cli/
