@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.64 · 26. November 2026
+
+- Terminvorschläge aus Mails: Englische Uhrzeiten mit am und pm werden richtig umgerechnet (1 pm wird 13:00, 12 am wird 00:00), auch bei der Modellprüfung.
+
 ## v1.0.63 · 26. November 2026
 
 - Posteingang: Die grüne Markierung wichtiger Mails verschwindet, sobald die Mail einmal aufgeklappt wurde. Der Zustand bleibt im Browser gespeichert.

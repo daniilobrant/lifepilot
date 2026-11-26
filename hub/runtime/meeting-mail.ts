@@ -9,11 +9,20 @@ import type {TicketEvent} from './event-mail.ts'
 const meetingWord=/(?<![\p{L}\p{N}])(?:meeting|besprechung|call|videocall|videokonferenz|telefonat|gespräch|termin|treffen|sprechstunde|teams|zoom|webex|google meet|präsentation|presentation|präsi|agenda|session|seminar|lecture|vorlesung|sitzung)(?![\p{L}\p{N}])/iu
 const timeSpan=/(?<![\d:.])(?:um\s+)?(\d{1,2})(?::(\d{2}))?\s*(?:uhr|h)(?![\p{L}])(?:\s*(?:bis|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*(?:uhr|h)?)?|(?<![\d:.])([01]?\d|2[0-3]):([0-5]\d)(?![\d:])(?:\s*(?:bis|-|–)\s*([01]?\d|2[0-3]):([0-5]\d))?/iu
 const range=/(?<![\d:.])(\d{1,2})(?::(\d{2}))?\s*(?:bis|-|–)\s*(\d{1,2})(?::(\d{2}))?\s*uhr/iu
+/** Englische Uhrzeiten („1 pm“, „1:00 p.m.“, „12 am“) in 24-Stunden-Schreibweise („13:00“, „00:00“). */
+export function twentyFourHour(text:string){
+  return text.replace(/(?<![\d:.])(\d{1,2})(?::(\d{2}))?\s*([ap])\.?\s?m\b\.?/giu,(whole,hour:string,minute:string|undefined,half:string)=>{
+    const value=Number(hour)
+    if(value<1||value>12)return whole
+    const converted=half.toLowerCase()==='p'?(value%12)+12:value%12
+    return String(converted).padStart(2,'0')+':'+(minute??'00')
+  })
+}
 const pad=(value:string|undefined)=>(value??'00').padStart(2,'0')
 
 export function readMeetingMail(mail:{subject:string,text:string,from:string,at?:string|null,mailingList?:boolean},today?:string):TicketEvent|undefined {
   if(mail.mailingList||/no[-.]?reply|newsletter|noreply|notification|info@|news@/iu.test(mail.from))return
-  const body=mail.text.split(/\r?\n/u).filter(line=>!line.trimStart().startsWith('>')).join('\n').slice(0,2500)
+  const body=twentyFourHour(mail.text.split(/\r?\n/u).filter(line=>!line.trimStart().startsWith('>')).join('\n').slice(0,2500))
   const text=mail.subject+'\n'+body
   if(!meetingWord.test(text)||/abmelden|unsubscribe|angebot|gutschein|rabatt|webinar/iu.test(text))return
   const sent=mail.at&&Number.isFinite(Date.parse(mail.at))?dateInBerlin(new Date(mail.at)):today
@@ -27,7 +36,7 @@ export function readMeetingMail(mail:{subject:string,text:string,from:string,at?
   const weekday=Object.entries(found).filter(([label])=>!/\d/u.test(label)&&!/^(?:heute|morgen|übermorgen)$/u.test(label)).map(([,value])=>value)
   const day=[...explicit,...relative,...(english?[english]:[]),...weekday].filter(value=>value>=sent)[0]
   const spanned=range.exec(body)
-  const match=spanned??timeSpan.exec(body)??timeSpan.exec(mail.subject)
+  const match=spanned??timeSpan.exec(body)??timeSpan.exec(twentyFourHour(mail.subject))
   if(!day||!match)return
   const hour=match[1]??match[5], minute=match[2]??match[6]
   const endHour=spanned?match[3]:(match[3]??match[7]), endMinute=spanned?match[4]:(match[4]??match[8])

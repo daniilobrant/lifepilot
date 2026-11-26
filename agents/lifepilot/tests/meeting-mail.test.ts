@@ -61,3 +61,13 @@ test('Sender information shows the name once and, for forwarded mails, the origi
   assert.equal(forwardedOriginal({subject:'Kurs',text:'Von: jemand\nText'}),undefined)
   assert.equal(mailPreview(forwarded.text),'Hallo zusammen.')
 })
+
+test('English am and pm times become 24-hour times in meeting proposals',async()=>{
+  const {twentyFourHour}=await import('../../../hub/runtime/meeting-mail.ts')
+  assert.equal(twentyFourHour('at 1 pm'),'at 13:00')
+  assert.equal(twentyFourHour('start 1:30 p.m. sharp'),'start 13:30 sharp')
+  assert.equal(twentyFourHour('12 am and 12 pm and 9 AM'),'00:00 and 12:00 and 09:00')
+  assert.equal(twentyFourHour('um 13 Uhr, Raum 5'),'um 13 Uhr, Raum 5')
+  assert.equal(readMeetingMail(mail({subject:'Meeting today',text:'Hi, our meeting is today at 1 pm on Teams. Tom'}))!.time,'13:00')
+  assert.equal(readMeetingMail(mail({subject:'Meeting today',text:'Hi, the call is today 1:00 p.m.-2:00 p.m. on Zoom.'}))!.end,'14:00')
+})
