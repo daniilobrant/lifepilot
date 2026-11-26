@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.82 · 26. November 2026
+
+- Pilot: Relative Datumsangaben werden zentral aufgelöst ([relative-dates.ts](hub/runtime/relative-dates.ts)): „nächsten Dienstag“, „nächste Woche Mittwoch“, „in zwei Wochen“, „nächstes Wochenende“, „Anfang/Mitte/Ende des Monats“, „nächsten Monat“, „Ende des Jahres“, „Neujahr“. Der Serien-Handler nutzt sie für „ab …“ und „bis …“, das Modell bekommt sie als aufgelöste Daten in der Vorzerlegung.
+- Pilot: Prompt-Regel 11 beschreibt diese Signalwörter, Einzeltermine und „bis 0 Uhr“ (= 23:59). Neue Live-Fälle `datum-*` (5).
+- Tests: Auflösung der Datumsangaben, Serien in einer Nachricht, gespeicherte Mail-Kategorien.
+
 ## v1.0.81 · 26. November 2026
 
 - Posteingang: Jede Mail hat einen kleinen Stift. Damit wählst du eine andere Kategorie, falls eine Mail falsch zugeordnet wurde; die Wahl wird lokal gespeichert (neue Tabelle `mail_label_overrides`, Datenbankversion 41).

@@ -3,10 +3,11 @@ import type {ModelMessage,ModelPayload} from './model-payload.ts'
 import {weekdayNames,type SeriesPlan} from './calendar-series-types.ts'
 import {holidayRegion} from './calendar-series.ts'
 import {isDate,shiftDay} from './values.ts'
+import {findRelativeSpan,relativeDateSource,resolveRelativeDate} from './relative-dates.ts'
 
 const monthNames=['januar','februar','märz','april','mai','juni','juli','august','september','oktober','november','dezember']
 const month=monthNames.join('|')
-const dateToken=String.raw`(?:20\d\d-\d\d-\d\d|\d{1,2}\.\d{1,2}(?:\.(?:20\d\d|\d\d)\b)?\.?|(?:\d{1,2}\.\s*)?(?:${month})(?:\s+20\d\d)?|(?:letzte[nr]?\s+tag|ende|monatsende)\s+(?:(?:im|des)\s+)?(?:${month})(?:\s+20\d\d)?|(?:das\s+)?(?:ende\s+des\s+jahres|jahresende)|heute|morgen|weihnachten|heiligabend|silvester)`
+const dateToken=String.raw`(?:20\d\d-\d\d-\d\d|\d{1,2}\.\d{1,2}(?:\.(?:20\d\d|\d\d)\b)?\.?|(?:\d{1,2}\.\s*)?(?:${month})(?:\s+20\d\d)?|(?:letzte[nr]?\s+tag|ende|monatsende)\s+(?:(?:im|des)\s+)?(?:${month})(?:\s+20\d\d)?|${relativeDateSource}|heute|morgen|weihnachten|heiligabend|silvester)`
 const spoken:Record<string,number>={null:0,eins:1,ein:1,zwei:2,drei:3,vier:4,fünf:5,sechs:6,sieben:7,acht:8,neun:9,zehn:10,elf:11,zwölf:12,
   dreizehn:13,vierzehn:14,fünfzehn:15,sechzehn:16,siebzehn:17,achtzehn:18,neunzehn:19,zwanzig:20,einundzwanzig:21,zweiundzwanzig:22,dreiundzwanzig:23}
 const clock='(?:[01]?\\d|2[0-3])(?:[:.][0-5]\\d)?|'+Object.keys(spoken).sort((a,b)=>b.length-a.length).join('|')
@@ -22,8 +23,10 @@ const time=(value:string|undefined)=>{
   const [hours,minutes='00']=value.toLowerCase().split(/[:.]/u)
   return String(spoken[hours]??Number(hours)).padStart(2,'0')+':'+minutes
 }
-export function dateInText(text:string,anchor:string,before=false){
+export function dateInText(text:string,anchor:string,before=false,edge:'start'|'end'='start'){
   const boundary=(day:string)=>before?shiftDay(day,-1):day
+  const relative=resolveRelativeDate(text,anchor)
+  if(relative)return boundary(edge==='end'?relative.end:relative.start)
   if(/^(?:das\s+)?(?:ende\s+des\s+jahres|jahresende)$/iu.test(text))return boundary(anchor.slice(0,4)+'-12-31')
   if(/^heute$/iu.test(text))return boundary(anchor)
   if(/^morgen$/iu.test(text))return boundary(shiftDay(anchor,1))
@@ -96,9 +99,11 @@ function detailsFrom(input:string,day:string){
   const before=!!stop&&/^vor\b/iu.test(stop[0])
   const bare=new RegExp(String.raw`^\s*(${dateToken})\s*[.!]?\s*$`,'iu').exec(text)
   const until=stop??bare
-  const begin=from?dateInText(from[1],day):coming.test(text)?day:null
-  const end=until?dateInText(until[1],begin??day,before):null
-  return {begin,end,mentionedStart:!!from||coming.test(text),mentionedEnd:!endOnly.test(input)&&(!!until||/\b(?:bis|vor)\s+\S/iu.test(text)),
+  // „nächsten Monat“ ohne ab/bis beschreibt Beginn und Ende der Serie zugleich.
+  const span=!from&&!stop&&!bare?findRelativeSpan(text,day):null
+  const begin=from?dateInText(from[1],day):span?span.start:coming.test(text)?day:null
+  const end=until?dateInText(until[1],begin??day,before,'end'):span?span.end:null
+  return {begin,end,mentionedStart:!!from||!!span||coming.test(text),mentionedEnd:!endOnly.test(input)&&(!!until||!!span||/\b(?:bis|vor)\s+\S/iu.test(text)),
     startTime:time(times?.[1]??single?.[1]),endTime:time(times?.[2]),
     // Weekday names come from a fixed table.
     weekdays:weekdayNames.flatMap((name,index)=>new RegExp('\\b'+name+'s?\\b','iu').test(text)?[index]:[])} // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp

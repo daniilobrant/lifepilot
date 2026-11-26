@@ -1,4 +1,5 @@
 import {shiftDay} from './values.ts'
+import {relativeDatesIn} from './relative-dates.ts'
 
 /*
  * Lokale Vorzerlegung einer (oft diktierten) Nachricht: Abschnitte anhand von Signalwörtern, je Abschnitt
@@ -37,7 +38,8 @@ export function mentionedDates(text:string,today:string){
   if(/\bheute\b/u.test(lower))found.set('heute',today)
   if(/(?<!\p{L})übermorgen(?!\p{L})/u.test(lower))found.set('übermorgen',shiftDay(today,2))
   else if(/(?<!\p{L})morgen(?!\p{L})/u.test(lower))found.set('morgen',shiftDay(today,1))
-  for(const match of lower.matchAll(/\b(nächste[nrs]?\s+|kommende[nrs]?\s+|diese[nrs]?\s+|am\s+)?(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/gu)){
+  Object.entries(relativeDatesIn(lower,today)).forEach(([phrase,day])=>found.set(phrase,day))
+  for(const match of lower.matchAll(/(?<!woche\s)\b(nächste[nrs]?\s+|kommende[nrs]?\s+|diese[nrs]?\s+|am\s+)?(montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b/gu)){
     const target=weekdays.indexOf(match[2])
     let offset=(target-weekdayOf(today)+7)%7
     if(offset===0)offset=7

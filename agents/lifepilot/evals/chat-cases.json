@@ -821,6 +821,70 @@
           ]
         ]
       }
+    },
+    {
+      "id": "datum-morgen-bis-mitternacht",
+      "input": "Ich treffe mich morgen mit Unikollegen in Stuttgart um circa 20:20 Uhr bis 0:00 Uhr, lege bitte den Termin ein.",
+      "expect": {
+        "units": [
+          "termin"
+        ],
+        "dates": [
+          "2026-11-26"
+        ],
+        "noQuestion": true
+      }
+    },
+    {
+      "id": "datum-serie-anfang-naechster-monat",
+      "input": "Trag jeden Mittwoch von 10 bis 11 Uhr den Termin Yoga ein, ab nächstem Montag bis Mitte nächsten Monats.",
+      "expect": {
+        "units": [
+          "calendar_series"
+        ],
+        "dates": [
+          "2026-11-30",
+          "2026-12-15"
+        ],
+        "noQuestion": true
+      }
+    },
+    {
+      "id": "datum-ende-des-monats",
+      "input": "Die Hausarbeit muss ich bis Ende des Monats abgeben.",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-30"
+        ]
+      }
+    },
+    {
+      "id": "datum-naechste-woche-wochentag",
+      "input": "Zahnarzt nächste Woche Mittwoch um 9 Uhr für eine Stunde.",
+      "expect": {
+        "units": [
+          "termin"
+        ],
+        "dates": [
+          "2026-12-02"
+        ],
+        "noQuestion": true
+      }
+    },
+    {
+      "id": "datum-in-zwei-wochen",
+      "input": "Erinner mich in zwei Wochen an die Steuererklärung.",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-12-09"
+        ]
+      }
     }
   ]
 }
