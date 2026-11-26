@@ -39,6 +39,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
   const relevant: AttentionMail[] = []
   const seen = new Set<string>()
   let account: string | undefined
+  let incomplete = false
   const collect = (mails: MailContent[], account?: string) => {
     const modelImportant = store && account ? triagedImportant(store, mails, account) : new Set<string>()
     for (const mail of mails) {
@@ -54,8 +55,11 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
   }
   else {
     let cursor: GmailPage | undefined
-    for (let i=0; i<refreshPageLimit; i++) {
-      const result = await google.recentInbox(key => key === account ? cursor : undefined)
+    const afterEpoch = Math.floor(Date.now()/1000) - 7*86400
+    const deadline = Date.now()+40_000
+    const pageTokens = new Set<string>()
+    do {
+      const result = await google.recentInbox(key => key === account ? cursor : undefined, false, undefined, afterEpoch)
       if (account && result.account !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere erneut.')
       account = result.account
       collect(result.mails, account)
@@ -66,13 +70,16 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
         scanHfuCancellations(store,result.mails,result.account)
         scanProjectMails(store,result.mails,result.account)
       }
-      if (!result.next || relevant.length >= 10) break
-      cursor = result.next
-      account = result.account
-    }
+      cursor = result.next ?? undefined
+      if (cursor && (Date.now() >= deadline || pageTokens.has(cursor.pageToken))) {
+        incomplete = true
+        break
+      }
+      if (cursor) pageTokens.add(cursor.pageToken)
+    } while (cursor)
   }
-  return { account, messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
-    (b.at ?? '').localeCompare(a.at ?? '')).slice(0,10) }
+  return { account, incomplete, messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
+    (b.at ?? '').localeCompare(a.at ?? '')) }
 }
 
 export async function refreshInbox(store: Store, google: GoogleConnector, synthetic: boolean, restart = false, deep = false): Promise<RefreshResult> {

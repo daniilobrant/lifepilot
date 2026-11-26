@@ -610,7 +610,7 @@ export class GoogleConnector {
     return /^[^@\s]+@[^@\s]+$/u.test(address) ? address : null
   }
 
-  async recentInbox(readPage: (account: string) => GmailPage | undefined, restart = false, range?:GmailRange) {
+  async recentInbox(readPage: (account: string) => GmailPage | undefined, restart = false, range?:GmailRange, inboxAfterEpoch?:number) {
     const service = 'gmail-content'
     const epoch = this.epochs[service]
     const token = await this.access(service)
@@ -623,7 +623,7 @@ export class GoogleConnector {
     const account = createHash('sha256').update(address).digest('hex')
     if(range?.account && account!==range.account) throw new Problem(409,'Automatische Gmail-Kategorien sind für ein anderes Konto eingerichtet.')
     const page = restart ? undefined : readPage(account)
-    const afterEpoch = range?.afterEpoch ?? page?.afterEpoch ?? Math.floor(Date.now() / 1000) - 30 * 86400
+    const afterEpoch = range?.afterEpoch ?? page?.afterEpoch ?? inboxAfterEpoch ?? Math.floor(Date.now() / 1000) - 30 * 86400
     const params = new URLSearchParams({q: 'after:' + afterEpoch +
       (range ? ' before:'+range.beforeEpoch+' -in:sent -in:drafts' : ''),
       ...(!range && {labelIds:'INBOX'}), maxResults: '10', fields: 'messages(id),nextPageToken' })

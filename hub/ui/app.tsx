@@ -264,7 +264,7 @@ const shipmentLabels = { order: 'Bestellung', 'return-open': 'Retoure offen', 'r
   'return-closed': 'Retoure eingegangen oder erledigt', 'return-unknown': 'Retourenstatus unklar' }
 
 const inboxPollMs = 120_000
-type InboxFeed = { account?:string, messages: AttentionMail[], loadedAt: string }
+type InboxFeed = { account?:string, incomplete?:boolean, messages: AttentionMail[], loadedAt: string }
 const mailDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' })
 
 function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectures, sourceId }: {
@@ -1588,6 +1588,7 @@ function App() {
       {inboxFeedError ? <p role="alert">Gmail konnte nicht aktualisiert werden. {inboxFeedError}
         {' '}<button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
       {inboxFeed ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
+      {!compact && inboxFeed?.incomplete ? <p role="status">Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.</p> : null}
       {messages?.length ? <ul className="inbox-feed-list">
         {messages.map(item => <li key={item.id}>
           <span><strong>{item.subject}</strong><small>{item.from}</small>
@@ -1688,7 +1689,7 @@ function App() {
           {page === 'Posteingang' ? <>
             <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline}/>
             <section className="card settings" aria-label="Relevante Nachrichten">
-              <div className="editor-title inbox-header"><h2>Wichtig für dich</h2>
+              <div className="editor-title inbox-header"><h2>Wichtig für dich · letzte 7 Tage</h2>
                 <div className="actions">
                   <button className="primary" disabled={refreshingInbox || !!offline} onClick={() => void runInboxRefresh(true, true)}>
                     {refreshingInbox ? 'Wird geprüft …' : snapshot.chatMode==='private' ?
