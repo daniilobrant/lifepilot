@@ -19,6 +19,23 @@ function applicationReviewDraft(source?: ApplicationSource, existing?: Applicati
     applied_on:existing.applied_on??draft.applied_on,link:existing.link||draft.link,
     description:supplement(existing.description,draft.description,2500),notes:supplement(existing.notes,draft.notes,1600)}
 }
+
+/** Vorschläge aus Mails, die eindeutig zugeordnet und vollständig sind, lassen sich mit einem Klick bestätigen. */
+function eligibleSources(data?:ApplicationOverview){
+  const sources=data?.sources??[]
+  const counts=new Map<string,number>()
+  for(const source of sources)counts.set(applicationKey(source),(counts.get(applicationKey(source))??0)+1)
+  return sources.flatMap(source=>{
+    const key=applicationKey(source)
+    const matching=data?.items.filter(item=>applicationKey(item)===key)??[]
+    const existing=source.application_id?data?.items.find(item=>item.id===source.application_id):matching[0]
+    if(counts.get(key)!==1||matching.length>1||source.application_id&&!existing||
+      !existing&&![source.company,source.role].every(value=>value.trim()))return []
+    return [{id:source.id,title:source.title,existing,draft:applicationReviewDraft(source,existing)}]
+  })
+}
+const sourceLine=(source:ApplicationSource)=>[source.location,applicationStatuses[source.status],
+  source.follow_up?'Termin '+source.follow_up.split('-').reverse().join('.'):source.applied_on?'Beworben '+source.applied_on.split('-').reverse().join('.'):''].filter(Boolean).join(' · ')
 const fields = [
   ['company','Firma',120,true], ['role','Stelle oder Jobbeschreibung',160,true], ['location','Ort',120,false],
   ['salary','Gehalt oder Gehaltsspanne',100,false], ['link','Link zur Stelle',500,false],
@@ -74,19 +91,7 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
     })
   }
   const sources=data?.sources??[]
-  const sourceCounts=new Map<string,number>()
-  for(const source of sources) {
-    const key=applicationKey(source)
-    sourceCounts.set(key,(sourceCounts.get(key)??0)+1)
-  }
-  const eligible=sources.flatMap(source=>{
-    const key=applicationKey(source)
-    const matching=data?.items.filter(item=>applicationKey(item)===key)??[]
-    const existing=source.application_id?data?.items.find(item=>item.id===source.application_id):matching[0]
-    if(sourceCounts.get(key)!==1||matching.length>1||source.application_id&&!existing||
-      !existing&&![source.company,source.role].every(value=>value.trim()))return []
-    return [{id:source.id,title:source.title,existing,draft:applicationReviewDraft(source,existing)}]
-  })
+  const eligible=eligibleSources(data)
   async function approveSources(items:readonly (typeof eligible)[number][]){
     setBusy(true);setError('');setBatchReviewed(true)
     try{
@@ -158,18 +163,23 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
         <li key={index}>{applicationStatuses[event.status]} · {new Date(event.changed_at).toLocaleDateString('de-DE',{timeZone:'Europe/Berlin'})}</li>)}</ul></details> : null}
       <button className="primary" disabled={busy}>Bewerbung speichern</button>
     </form> : null}
-    {(sources.length||batchReviewed) ? <section className="card settings"><h3>Vorschläge aus Gmail</h3>
-      {sources.map(source => <article className="application-source" key={source.id}>
-        <div><strong>{source.title}</strong><p>{applicationStatuses[source.status]}</p></div>
-        <div className="actions"><button disabled={busy} onClick={() => open(source)}>Prüfen</button>
-          <button className="quiet" disabled={busy} onClick={() => void act(async () => {
-            await api('/applications/deny', { source: source.id, confirm: true }); await reload()
-          })}>Ablehnen</button></div>
-      </article>)}
+    {(sources.length||batchReviewed) ? <details className="card settings mail-finance disclosure application-suggestions" open>
+      <summary><strong>Bewerbungsvorschläge aus Mails</strong><span className="count-badge">{sources.length} offen</span></summary>
+      {sources.map(source => {
+        const quick=eligible.find(item=>item.id===source.id)
+        return <article className="application-source" key={source.id}>
+          <div><strong>{source.company||source.title}{source.role?' · '+source.role:''}</strong><p>{sourceLine(source)}</p></div>
+          <div className="actions">
+            {quick?<button type="button" className="primary" disabled={busy} onClick={()=>void approveSources([quick])}>Passt</button>:null}
+            <button type="button" disabled={busy} onClick={() => open(source)}>Prüfen</button>
+            <button type="button" className="quiet" disabled={busy} onClick={() => void act(async () => {
+              await api('/applications/deny', { source: source.id, confirm: true }); await reload()
+            })}>Ablehnen</button></div>
+        </article>})}
       {eligible.length<sources.length?<p>Vorschläge mit fehlenden Angaben oder mehreren möglichen Zuordnungen brauchen eine Einzelprüfung.</p>:null}
       <BulkApproval items={eligible} disabled={busy} approve={approveSources}
         description="LifePilot speichert vollständige Bewerbungen und übernimmt neue Status für eindeutig zugeordnete Bewerbungen."/>
-    </section> : null}
+    </details> : null}
     <div className="application-toolbar">
       <label className="application-search">Bewerbungen suchen<input type="search" value={query} onChange={event => setQuery(event.target.value)} placeholder="Firma, Stelle oder Ort" /></label>
       <button type="button" className="primary" disabled={busy} onClick={() => open()}>Bewerbung hinzufügen</button>
@@ -188,4 +198,38 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
       })}
     </div>
   </section>
+}
+
+/** Auf der Startseite unter „Wartet auf dein OK“: Bewerbungen, die LifePilot in Mails erkannt hat, zum Bestätigen. */
+export function ApplicationApprovals({api,refreshKey,onOpen,onUpdate}:{api:Api,refreshKey:string,onOpen:()=>void,onUpdate:()=>void}){
+  const [data,setData]=useState<ApplicationOverview>()
+  const [busy,setBusy]=useState(false)
+  const [error,setError]=useState('')
+  const load=()=>api<ApplicationOverview>('/applications').then(value=>{setData(value);setError('')})
+  useEffect(()=>{
+    let active=true
+    void api<ApplicationOverview>('/applications').then(value=>{if(active){setData(value);setError('')}}).catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'Bewerbungen konnten nicht geladen werden.')})
+    return ()=>{active=false}
+  },[api,refreshKey])
+  const sources=data?.sources??[]
+  if(!sources.length&&!error)return null
+  const eligible=eligibleSources(data)
+  async function run(action:()=>Promise<unknown>){
+    setBusy(true);setError('')
+    try{await action();await load();onUpdate()}catch(reason){setError(reason instanceof Error?reason.message:'Die Änderung konnte nicht gespeichert werden.')}finally{setBusy(false)}
+  }
+  return <details className="card settings mail-finance disclosure application-approvals" aria-label="Bewerbungen, die auf dich warten">
+    <summary><strong>Bewerbungen</strong><span className="count-badge">{sources.length} offen</span></summary>
+    {error?<p role="alert">{error}</p>:null}
+    {sources.map(source=>{
+      const quick=eligible.find(item=>item.id===source.id)
+      return <article className="application-source" key={source.id}>
+        <div><strong>{source.company||source.title}{source.role?' · '+source.role:''}</strong><p>{sourceLine(source)}</p></div>
+        <div className="actions">
+          {quick?<button type="button" className="primary" disabled={busy} onClick={()=>void run(()=>api('/applications/save',{draft:quick.draft,source:quick.id,existing:quick.existing?.id,revision:quick.existing?.revision,confirm:true}))}>Passt</button>:null}
+          <button type="button" disabled={busy} onClick={onOpen}>Prüfen</button>
+          <button type="button" className="quiet" disabled={busy} onClick={()=>void run(()=>api('/applications/deny',{source:source.id,confirm:true}))}>Ablehnen</button>
+        </div>
+      </article>})}
+  </details>
 }

@@ -1918,3 +1918,5 @@ input[type=file]::file-selector-button {
 .sub-review-status { display: grid; gap: 6px; margin: 4px 0 8px; padding: 10px 12px; border-radius: 12px; background: var(--accent-soft); font-size: .9rem; }
 .sub-review-status p { margin: 0; }
 .sub-review-status progress { width: 100%; }
+.application-suggestions .application-source, .application-approvals .application-source { padding: .5rem 0; border-top: 1px solid var(--line); margin-bottom: 0; }
+.application-suggestions .application-source:first-of-type, .application-approvals .application-source:first-of-type { border-top: 0; }

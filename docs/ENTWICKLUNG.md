@@ -1,6 +1,6 @@
 # Entwicklungsverlauf von LifePilot
 
-Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.0.73 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die einzelnen Änderungen je Version stehen im [Changelog](../CHANGELOG.md), die kompakte Zeitleiste in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
+Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.0.74 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die einzelnen Änderungen je Version stehen im [Changelog](../CHANGELOG.md), die kompakte Zeitleiste in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
 
 Quellen sind zwei Arbeitsprotokolle: ein Chat mit ChatGPT und Codex (Version 0.1 bis 1.0.57) und eine Sitzung mit Claude Code (Version 1.0.11 bis 1.0.59). Die frühen Versionen 0.x sind im Protokoll nicht datiert und nach Reihenfolge und Versionsbereich eingeordnet.
 
@@ -247,7 +247,7 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 - **Mehrere KIs mit klaren Rollen** ergänzen sich: Planung und Analyse in Antigravity und Gemini, Umsetzung in Codex und Claude Code, Prüfung durch Tests und statische Analyse.
 - **Dokumentation entsteht mit der Entwicklung.** Changelog, Skill-Dateien, README und dieses Dokument wurden laufend gepflegt, nicht erst am Ende.
 
-## 8. Kennzahlen (Stand 1.0.73)
+## 8. Kennzahlen (Stand 1.0.74)
 
 | Merkmal | Wert |
 |---|---|

@@ -25,7 +25,7 @@ import { createRoot } from 'react-dom/client'
 import { ProfilePanel } from './personal-profile.tsx'
 import { Dictation } from './dictation.tsx'
 import { OutfitAssistant } from './outfit.tsx'
-import { Applications } from './applications.tsx'
+import { ApplicationApprovals, Applications } from './applications.tsx'
 import { NewTask, TaskEditor, TaskList, displayTime, priorityNames } from './workspace.tsx'
 import type { CalendarProposal, CalendarTarget } from '../connectors/mac-calendar.ts'
 import type { ConnectorEntry } from '../connectors/catalog.ts'
@@ -1767,6 +1767,7 @@ function App() {
                 <MailFinance api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion} onUpdate={financeMailUpdated}/>
                 <OrderApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey}
                   onOpen={id=>{navigate('Bestellungstracker');setBoardSource({source_type:'order',source_id:id} as never)}} onUpdate={()=>void refresh()}/>
+                <ApplicationApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey} onOpen={()=>navigate('Bewerbungen')} onUpdate={()=>void refresh()}/>
                 <LiveInbox batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
                 <button type="button" className="quiet" onClick={()=>navigate('Posteingang')}>Mailvorschläge öffnen →</button>
                 <BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}

@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.74 · 26. November 2026
+
+- Bewerbungen: In Mails erkannte Bewerbungen erscheinen als aufklappbarer Bereich „Bewerbungen“ mit Zähler unter „Wartet auf dein OK“ auf der Startseite und als „Bewerbungsvorschläge aus Mails“ im Bereich Bewerbungen. Eindeutige Vorschläge lassen sich mit „Passt“ bestätigen, sonst mit „Prüfen“ einzeln anpassen oder mit „Ablehnen“ verwerfen.
+
 ## v1.0.73 · 26. November 2026
 
 - Abo-Prüfung: Auch mit Claude als Modell ist nur noch die Websuche erlaubt, kein Seitenabruf. Damit kann der Aufruf keine Abo-Daten an beliebige Adressen senden. Codex war bereits auf die Suche beschränkt.
