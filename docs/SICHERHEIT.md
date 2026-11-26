@@ -9,17 +9,21 @@ LifePilot bindet an 127.0.0.1. Die CLI öffnet den Browser mit einem einmaligen 
 
 Für eine lokale Sicherung verwende **./bin/lifepilot backup --confirm**. Der CLI-Hilfetext erklärt Status und Wiederherstellung. Prüfe Wiederherstellungen mit einer Testkopie.
 
-## Wiederkehrende Prüfung
-
-Mit Gitleaks und Semgrep im PATH führt `npm run security:check` den Quellcode-, Historien- und npm-Audit aus. Die Prüfungen laufen auch bei Pull Requests. [Auditbericht](../SECURITY_REPORT.md)
 
 
 ## Privaten Chat lokal freigeben
 
 Die private Freigabe gilt für den installierten Build. LifePilot prüft die Versionsnummer, das Manifest **SHA256SUMS** und das Browser-Bundle gegen die lokale Freigabedatei im Hauptprofil. Mit fehlender Freigabe oder abweichenden Prüfsummen bleibt der private Chat deaktiviert. Lokale Prüfsummen erkennen Abweichungen zur Freigabe. Die Vertrauensgrenze liegt beim lokalen Benutzerkonto, das für Dateien und Freigabe Schreibrechte hat.
 
+## Modellanbieter Codex oder Claude
+
+Standard ist Codex (OpenAI über die signierte Codex CLI der ChatGPT-App). Seit 1.0.39 kann der Nutzer in Einstellungen › Übersicht auf Claude (Anthropic über die lokal installierte Claude Code CLI) umstellen. Dann gehen dieselben Daten wie bei Codex – Chatverlauf, freigegebener Kontext, Verzeichnis, Vorzerlegung, Reisedaten oder das freigegebene Bild – an Anthropic statt an OpenAI. LifePilot startet die CLI nur aus dem eigenen Konto (Datei des Nutzers oder von root, nicht fremd beschreibbar), in einem leeren Temp-Ordner, mit minimaler Umgebung, ohne Werkzeuge und MCP-Server; meldet Claude einen Werkzeugaufruf, bricht LifePilot ab. Die Antwort wird wie bei Codex gegen das Schema geprüft und erst nach Freigabe ausgeführt. Testprofile bleiben ohne externes Modell.
+
+## Verzeichnis im privaten Chat
+
+Seit 1.0.36 (auf Wunsch des Nutzers, 25. November 2026) erhält jede freigegebene Pilot-Nachricht ein kompaktes Verzeichnis: Titel, Datum und ID von Terminen der nächsten acht Wochen, offenen Aufgaben, aktiven Projekten mit offenen Schritten, Abos und Fixkosten (nur Name und Turnus), offenen Bestellungen, Bewerbungen (Firma, Stelle, Status), Reisen, Vorratskategorien mit knappen Artikeln, Einkaufsliste und Kleiderschrank-Anzahlen. Beträge, Mailinhalte, Notizen und Profilangaben gehen nicht mit. Zu Einträgen, die zur Nachricht passen, werden zusätzlich deren Zeiten, Schritte oder Bestellteile übertragen. Synthetische und Testprofile senden kein Verzeichnis.
+
 ## Optionale Fotoanalyse per Codex
 
-Ohne Übertragung verwendet LifePilot die native Fotoaufbereitung und Texterkennung. Für modellgestützte Vorschläge zeigt die App vor jeder Übertragung einen Hinweis. In der CLI bedeutet **--codex-image** zusammen mit **--confirm**, dass das Bild extern verarbeitet werden darf. Die Befehle dafür sind **outfit-analyze**, **outfit-look-analyze** und **grocery-scan**. Testprofile und Hauptprofile ohne lokale Freigabe weisen diese Freigabe serverseitig ab.
+Ohne Übertragung verwendet LifePilot die native Fotoaufbereitung und Texterkennung. Für modellgestützte Vorschläge zeigt die App vor jeder Übertragung einen Hinweis. Ausnahme auf Wunsch des Nutzers (25. November 2026): Die Analyse eigener Look-Fotos unter „Meine Looks“ sendet das aufbereitete Foto im freigegebenen Hauptprofil ohne erneute Rückfrage an Codex; Kleiderschrank- und Vorratsfotos fragen weiterhin. In der CLI bedeutet **--codex-image** zusammen mit **--confirm**, dass das Bild extern verarbeitet werden darf. Die Befehle dafür sind **outfit-analyze**, **outfit-look-analyze** und **grocery-scan**. Testprofile und Hauptprofile ohne lokale Freigabe weisen diese Freigabe serverseitig ab.
 
-Den Restore aus einem öffentlichen Checkout prüft **node scripts/trinity-restore-check.mjs --checkout** in einer temporären Kopie mit synthetischen Daten. Der lokale Testport 45139 muss frei sein.

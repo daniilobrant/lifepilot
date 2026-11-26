@@ -171,7 +171,6 @@ export function TasksBoard({api,mutate,today,busy,openTask,openProject,openSourc
   }
   return <>
     <div className="editor-title board-header"><p>{openCount} offen · {soon} bald fällig</p>
-      <button type="button" className="primary" onClick={()=>setArea(current=>current??'privat')}>+ Aufgabe / Frist</button>
     </div>
     <div className="board-filters">
       {Object.entries(filters).map(([key,label])=><button type="button" key={key} aria-pressed={filter===key}

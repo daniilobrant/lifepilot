@@ -1,8 +1,8 @@
 export const financeKinds = {income:'Einnahme', fixed:'Fixkosten', subscription:'Abo', expense:'Ausgabe'} as const
 export type FinanceKind = keyof typeof financeKinds
-export const expenseCategories = ['Lebensmittel & Einkauf','Essen & Trinken','Freizeit & Kultur','Transport & Mobilität','Shopping & Alltag','Sonstiges'] as const
+export const expenseCategories = ['Lebensmittel & Einkauf','Essen & Trinken','Freizeit & Kultur','Transport & Mobilität','Shopping & Alltag','Freunde & Familie','Sonstiges'] as const
 export const budgetCategories = ['Wohnen & Haushalt','Lebensmittel','Mobilität','Freizeit & Abos','Versicherung & Verwaltung',
-  'Gesundheit & Pflege','Bildung & Arbeit','Sonstiges'] as const
+  'Gesundheit & Pflege','Bildung & Arbeit','Freunde & Familie','Sonstiges'] as const
 export type BudgetCategory = typeof budgetCategories[number]
 export const financeCategories = [...new Set<string>([...budgetCategories,...expenseCategories])]
 

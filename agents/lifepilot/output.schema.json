@@ -102,6 +102,13 @@
               "string",
               "null"
             ]
+          },
+          "link": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "ID eines Termins, einer Aufgabe oder eines Projekts aus directory, zu dem diese Aufgabe gehört; sonst null."
           }
         }
       }
@@ -460,17 +467,47 @@
             "totalCents"
           ],
           "properties": {
-            "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
+            "servings": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 24
+            },
             "preferences": {
               "type": "object",
               "additionalProperties": false,
-              "required": ["excluded"],
+              "required": [
+                "excluded"
+              ],
               "properties": {
-                "excluded": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
-                "include": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-                "mode": {"enum": ["meat", "fish", "vegetarian", "vegan"]},
-                "allergy": {"type": "boolean"},
-                "side": {"type":"string","maxLength":70}
+                "excluded": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 12
+                },
+                "include": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  },
+                  "maxItems": 6
+                },
+                "mode": {
+                  "enum": [
+                    "meat",
+                    "fish",
+                    "vegetarian",
+                    "vegan"
+                  ]
+                },
+                "allergy": {
+                  "type": "boolean"
+                },
+                "side": {
+                  "type": "string",
+                  "maxLength": 70
+                }
               }
             },
             "groceryIntent": {
@@ -1074,6 +1111,115 @@
             "startDate",
             "notes"
           ]
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Entscheidung zu einer vorhandenen Bestellung aus directory.bestellungen (behalten, zurücksenden, Retoure abgegeben, angekommen).",
+          "required": [
+            "orderIntent",
+            "order",
+            "item",
+            "decision"
+          ],
+          "properties": {
+            "orderIntent": {
+              "type": "string",
+              "enum": [
+                "decide"
+              ]
+            },
+            "order": {
+              "type": "string"
+            },
+            "item": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "decision": {
+              "type": "string",
+              "enum": [
+                "kept",
+                "return",
+                "returned",
+                "received"
+              ]
+            }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Bewerbung anlegen oder ändern; bei einem Vorstellungsgespräch mit Datum entsteht zusätzlich ein Termin.",
+          "required": [
+            "applicationIntent",
+            "application",
+            "company",
+            "role",
+            "status",
+            "appliedOn",
+            "interviewDate",
+            "interviewTime",
+            "note"
+          ],
+          "properties": {
+            "applicationIntent": {
+              "type": "string",
+              "enum": [
+                "create",
+                "update"
+              ]
+            },
+            "application": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "company": {
+              "type": "string"
+            },
+            "role": {
+              "type": "string"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "applied",
+                "reply",
+                "interview",
+                "offer",
+                "rejected",
+                "withdrawn"
+              ]
+            },
+            "appliedOn": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "interviewDate": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "interviewTime": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "note": {
+              "type": [
+                "string",
+                "null"
+              ]
+            }
+          }
         }
       ]
     },
@@ -1185,6 +1331,13 @@
                     "string",
                     "null"
                   ]
+                },
+                "link": {
+                  "type": [
+                    "string",
+                    "null"
+                  ],
+                  "description": "ID eines Termins, einer Aufgabe oder eines Projekts aus directory, zu dem diese Aufgabe gehört; sonst null."
                 }
               }
             }
@@ -1543,17 +1696,47 @@
                   "totalCents"
                 ],
                 "properties": {
-                  "servings": { "type": "integer", "minimum": 1, "maximum": 24 },
+                  "servings": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 24
+                  },
                   "preferences": {
                     "type": "object",
                     "additionalProperties": false,
-                    "required": ["excluded"],
+                    "required": [
+                      "excluded"
+                    ],
                     "properties": {
-                      "excluded": {"type": "array", "items": {"type": "string"}, "maxItems": 12},
-                      "include": {"type": "array", "items": {"type": "string"}, "maxItems": 6},
-                      "mode": {"enum": ["meat", "fish", "vegetarian", "vegan"]},
-                      "allergy": {"type": "boolean"},
-                      "side": {"type":"string","maxLength":70}
+                      "excluded": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 12
+                      },
+                      "include": {
+                        "type": "array",
+                        "items": {
+                          "type": "string"
+                        },
+                        "maxItems": 6
+                      },
+                      "mode": {
+                        "enum": [
+                          "meat",
+                          "fish",
+                          "vegetarian",
+                          "vegan"
+                        ]
+                      },
+                      "allergy": {
+                        "type": "boolean"
+                      },
+                      "side": {
+                        "type": "string",
+                        "maxLength": 70
+                      }
                     }
                   },
                   "groceryIntent": {
@@ -2157,6 +2340,115 @@
                   "startDate",
                   "notes"
                 ]
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Entscheidung zu einer vorhandenen Bestellung aus directory.bestellungen (behalten, zurücksenden, Retoure abgegeben, angekommen).",
+                "required": [
+                  "orderIntent",
+                  "order",
+                  "item",
+                  "decision"
+                ],
+                "properties": {
+                  "orderIntent": {
+                    "type": "string",
+                    "enum": [
+                      "decide"
+                    ]
+                  },
+                  "order": {
+                    "type": "string"
+                  },
+                  "item": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "decision": {
+                    "type": "string",
+                    "enum": [
+                      "kept",
+                      "return",
+                      "returned",
+                      "received"
+                    ]
+                  }
+                }
+              },
+              {
+                "type": "object",
+                "additionalProperties": false,
+                "description": "Bewerbung anlegen oder ändern; bei einem Vorstellungsgespräch mit Datum entsteht zusätzlich ein Termin.",
+                "required": [
+                  "applicationIntent",
+                  "application",
+                  "company",
+                  "role",
+                  "status",
+                  "appliedOn",
+                  "interviewDate",
+                  "interviewTime",
+                  "note"
+                ],
+                "properties": {
+                  "applicationIntent": {
+                    "type": "string",
+                    "enum": [
+                      "create",
+                      "update"
+                    ]
+                  },
+                  "application": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "company": {
+                    "type": "string"
+                  },
+                  "role": {
+                    "type": "string"
+                  },
+                  "status": {
+                    "type": "string",
+                    "enum": [
+                      "applied",
+                      "reply",
+                      "interview",
+                      "offer",
+                      "rejected",
+                      "withdrawn"
+                    ]
+                  },
+                  "appliedOn": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "interviewDate": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "interviewTime": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  },
+                  "note": {
+                    "type": [
+                      "string",
+                      "null"
+                    ]
+                  }
+                }
               }
             ]
           }

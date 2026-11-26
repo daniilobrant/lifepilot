@@ -1,6 +1,7 @@
 import {readAmazonOrder,readRecurringCharge,type RecurringCharge} from './purchase-mail.ts'
 import {eventIdentity,readTicketEvent} from './event-mail.ts'
 import {paypalSender,readPayPalPayment} from './paypal-mail.ts'
+import {merchantKey,readMerchantPayment,readMerchantRefund} from './refund-mail.ts'
 import { createHash, randomUUID } from 'node:crypto'
 import { inboxLabel } from '../../agents/lifepilot/tools/classify-mail.ts'
 import type { MailContent } from '../connectors/google.ts'
@@ -10,7 +11,7 @@ import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { dateInBerlin, isDate } from './values.ts'
 
-export type MailFinanceDraft = {title:string, cents:number, date:string, refund:boolean, mailDate:boolean, direction?:'incoming'|'outgoing'|'refund', counterparty?:string, description?:string, sourceKey?:string, ticket?:{reference:string,merchants:string[]}, paypal?:{reference:string}, category?:string, orderReference?:string, subscription?:RecurringCharge, recurrenceKey?:string}
+export type MailFinanceDraft = {title:string, cents:number, date:string, refund:boolean, mailDate:boolean, direction?:'incoming'|'outgoing'|'refund', counterparty?:string, description?:string, sourceKey?:string, ticket?:{reference:string,merchants:string[]}, paypal?:{reference:string}, merchantRefund?:{reference:string}, merchantPayment?:{reference:string}, category?:string, orderReference?:string, subscription?:RecurringCharge, recurrenceKey?:string}
 export type MailFinanceProposal = MailFinanceDraft & {id:string}
 type ProposalRow = {id:string,draft:string,state:string,entry_id:string|null,fingerprint:string}
 
@@ -25,7 +26,7 @@ function legacyFinanceFromMail(mail:MailContent) {
   const subject=mail.subject
   const label=inboxLabel(mail)
   if (label!=='finance' && label!=='returns' && label!=='orders') return
-  const refund=/rückzahlung|rückerstattung|erstattung|refunded|refund (?:sent|received)/iu.test(subject)
+  const refund=/rückzahlung|rückerstattung|erstattung|erstattet|gutschrift|gutgeschrieben|refunded|refund (?:sent|received)/iu.test(subject)
   if ((!refund && !/zahlung (?:gesendet|bestätigt)|zahlungsbestätigung|bezahlt|payment sent|payment confirmation|paid receipt|quittung|kassenbon/iu.test(subject)) ||
       /offen|ausstehend|fehlgeschlagen|storniert|fehlgeschlagene|gescheitert|betrugsverdacht|payment failed|pending|your password/iu.test(subject)) return
   const text=mail.text.split(/\r?\n/u).filter(line=>!line.trimStart().startsWith('>')).join('\n')
@@ -58,6 +59,28 @@ function legacyFinanceFromMail(mail:MailContent) {
   return {draft,fingerprint:createHash('sha256').update(JSON.stringify(identity)).digest('hex')}
 }
 
+// Zahlungen zwischen Personen (PayPal „Freunde und Familie“) sind kein Shopping.
+const company=/\b(?:gmbh|ag|bv|b\.v\.|ltd|limited|inc|llc|s\.a\.|sarl|payments?|europe|services?|shop|store|markt|online|\.com|\.de|dac|plc|co\.?)\b/iu
+export function personalTransfer(draft:Pick<MailFinanceDraft,'paypal'|'counterparty'|'title'|'direction'>) {
+  if (!draft.paypal) return false
+  const name=(draft.counterparty ?? draft.title.split(' · ')[0] ?? '').trim()
+  return /^\p{Lu}[\p{L}'’-]+(?:\s+\p{Lu}?[\p{L}'’-]+){1,3}$/u.test(name) && !company.test(name)
+}
+export function recategorizePersonal(store:Store,account:string) {
+  const rows=store.db.prepare(`SELECT id,draft,entry_id FROM gmail_finance_suggestions WHERE account=?
+    AND coalesce(json_extract(draft,'$.category'),'')<>'Freunde & Familie'`).all(account) as {id:string,draft:string,entry_id:string|null}[]
+  for (const row of rows) {
+    const draft=JSON.parse(row.draft) as MailFinanceDraft
+    // Ältere PayPal-Vorschläge tragen noch keine PayPal-Markierung, aber Richtung und Gegenpartei.
+    const legacy=!draft.paypal && Boolean(draft.direction && draft.counterparty && !draft.ticket && !draft.orderReference &&
+      !draft.merchantPayment && !draft.merchantRefund && !draft.subscription)
+    if (!personalTransfer(legacy ? {...draft,paypal:{reference:''}} : draft)) continue
+    store.db.prepare('UPDATE gmail_finance_suggestions SET draft=? WHERE id=?').run(JSON.stringify({...draft,category:'Freunde & Familie'}),row.id)
+    if (row.entry_id) store.db.prepare(`UPDATE finance_entries SET data=json_set(data,'$.category','Freunde & Familie'),revision=revision+1
+      WHERE id=? AND coalesce(json_extract(data,'$.category'),'') IN ('','Shopping & Alltag','Sonstiges')`).run(row.entry_id)
+  }
+}
+
 const hash=(value:unknown)=>createHash('sha256').update(JSON.stringify(value)).digest('hex')
 export function financeFromMail(mail:MailContent){
   if(mail.previewOnly)return
@@ -84,6 +107,24 @@ export function financeFromMail(mail:MailContent){
       ticket:{reference:ticket.reference,merchants:ticket.merchants},category:'Freizeit & Kultur'}
     return {draft,fingerprint:sourceKey,legacyFingerprint:undefined}
   }
+  const merchantRefund=readMerchantRefund(mail)
+  if(merchantRefund){
+    const {cents,counterparty,description,reference,date,domain}=merchantRefund
+    const sourceKey=hash(['merchant-refund',domain,reference??'',cents,mail.id])
+    const title=(description?[description,counterparty]:[counterparty??'Erstattung',reference&&'Bestellung '+reference]).filter(Boolean).join(' · ').slice(0,120)
+    const draft:MailFinanceDraft={title,cents,date,refund:true,mailDate:true,direction:'refund',sourceKey,
+      merchantRefund:{reference:reference??''},...(counterparty&&{counterparty}),...(description&&{description})}
+    return {draft,fingerprint:sourceKey,legacyFingerprint:undefined}
+  }
+  const merchantPayment=readMerchantPayment(mail)
+  if(merchantPayment){
+    const {cents,counterparty,description,reference,date,domain,category}=merchantPayment
+    const sourceKey=hash(['merchant-payment',domain,reference??'',cents,mail.id])
+    const title=[description,counterparty??'Zahlung'].filter(Boolean).join(' · ').slice(0,120)
+    const draft:MailFinanceDraft={title,cents,date,refund:false,mailDate:true,direction:'outgoing',sourceKey,
+      merchantPayment:{reference:reference??''},...(category&&{category}),...(counterparty&&{counterparty}),...(description&&{description})}
+    return {draft,fingerprint:sourceKey,legacyFingerprint:undefined}
+  }
   const legacy=legacyFinanceFromMail(mail)
   const paypal=readPayPalPayment(mail)
   if(!paypal){
@@ -102,6 +143,7 @@ export function financeFromMail(mail:MailContent){
   const recurrenceKey=direction==='outgoing'?paymentSeries(counterparty,description):undefined
   const draft:MailFinanceDraft={title,cents,recurrenceKey,date:stated??dateInBerlin(new Date(mail.at)),refund,mailDate:!stated,
     direction,sourceKey,paypal:{reference:paypal.orderReference},...(counterparty&&{counterparty}),...(description&&{description})}
+  if (personalTransfer(draft)) draft.category='Freunde & Familie'
   return {draft,fingerprint:sourceKey,legacyFingerprint:legacy?.fingerprint}
 }
 export const financeMailNote=(draft:MailFinanceDraft)=>
@@ -146,8 +188,24 @@ function inferSubscription(store:Store,account:string,draft:MailFinanceDraft){
     date:days[match],cycle:'monthly',confirmed:false})
 }
 
+// Händler und PayPal melden dieselbe Zahlung oder Erstattung oft getrennt. Gleicher Betrag, gleiche Richtung,
+// gleicher Händler und höchstens drei Tage Abstand ergeben einen Vorschlag.
+function refundTwin(store:Store,account:string,draft:MailFinanceDraft){
+  const key=merchantKey(draft.counterparty)
+  if(key.length<3)return false
+  const rows=store.db.prepare(`SELECT draft FROM gmail_finance_suggestions WHERE account=? AND coalesce(json_extract(draft,'$.refund'),0)=?
+    AND json_extract(draft,'$.cents')=? AND abs(julianday(json_extract(draft,'$.date'))-julianday(?))<=3`)
+    .all(account,draft.refund?1:0,draft.cents,draft.date) as {draft:string}[]
+  const merchant=(item:MailFinanceDraft)=>Boolean(item.merchantRefund||item.merchantPayment)
+  return rows.some(row=>{
+    const other=JSON.parse(row.draft) as MailFinanceDraft
+    return Boolean((merchant(draft)&&other.paypal||draft.paypal&&merchant(other))&&merchantKey(other.counterparty)===key)
+  })
+}
+
 export function scanMailFinances(store:Store,mails:MailContent[],account:string,existingOnly=false){
   return store.transaction(()=>{
+    recategorizePersonal(store,account)
     const insert=store.db.prepare('INSERT OR IGNORE INTO gmail_finance_suggestions (id,account,fingerprint,draft) VALUES (?,?,?,?)')
     const find=store.db.prepare('SELECT * FROM gmail_finance_suggestions WHERE account=? AND fingerprint=?')
     const update=store.db.prepare('UPDATE gmail_finance_suggestions SET fingerprint=?,draft=? WHERE id=?')
@@ -194,6 +252,7 @@ export function scanMailFinances(store:Store,mails:MailContent[],account:string,
           present=keep
         }
       }
+      if(!present&&(draft.merchantRefund||draft.merchantPayment||draft.paypal)&&refundTwin(store,account,draft))continue
       if(!present){
         if(!existingOnly){
           added+=Number(insert.run(randomUUID(),account,fingerprint,JSON.stringify(draft)).changes)

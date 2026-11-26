@@ -4,7 +4,7 @@ import { Resolver } from 'node:dns/promises'
 import { request } from 'node:https'
 import { isIP } from 'node:net'
 import type { IncomingMessage } from 'node:http'
-import { productWardrobeFields, textProductColor } from '../runtime/outfit-fields.ts'
+import { outfitGarment, productWardrobeFields, textProductColor } from '../runtime/outfit-fields.ts'
 import { Problem } from '../runtime/settings.ts'
 
 const execute = promisify(execFile)
@@ -35,8 +35,8 @@ export async function uploadOutfitPhoto(req: IncomingMessage, limit = photoLimit
   return Buffer.concat(parts)
 }
 
-export function productAddress(raw: unknown) {
-  if (typeof raw !== 'string' || raw.length > 1500) throw new Problem(400,'Gib eine öffentliche HTTPS-Produktadresse ein.')
+export function productAddress(raw: unknown, maxLength=1500) {
+  if (typeof raw !== 'string' || raw.length > maxLength) throw new Problem(400,'Gib eine öffentliche HTTPS-Produktadresse ein.')
   const invalid = () => new Problem(400,'Gib eine öffentliche HTTPS-Produktadresse ein.')
   let url: URL
   try { url = new URL(raw) } catch { throw invalid() }
@@ -170,7 +170,45 @@ function productVariantAddress(value: unknown, base: URL) {
   catch { return '' }
 }
 
+/**
+ * Uniqlo liefert als Seitenbild immer die Standardfarbe. Die Farbliste (displayCode + Name) und das
+ * Bild je Farbe (eugoods_<Farbcode>_<Artikel>) stehen aber in der Seite. Die Farbe aus dem Link
+ * (colorDisplayCode) oder die gewählte Farbe bestimmt das Bild.
+ */
+export function uniqloVariants(html:string,url:URL,selectedColor='') {
+  if (!/(?:^|\.)uniqlo\.com$/iu.test(url.hostname)) return
+  const item=/eugoods_\d{2}_(\d{6})/u.exec(html)?.[1]
+  if (!item) return
+  // Feste Muster, der Artikel wird danach verglichen (keine aus Seitendaten gebauten regulären Ausdrücke).
+  const found=[...html.matchAll(/(https:\/\/[^"'\s]+\/)?eugoods_(\d{2})_(\d{6})/gu)].filter(match=>match[3]===item)
+  const base=found.find(match=>match[1])?.[1] ?? `https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/${item}/item/`
+  const pictured=new Set(found.map(match=>match[2]))
+  const colors:{code:string,name:string}[]=[]
+  for (const [,code,raw] of html.matchAll(/"displayCode":"(\d{2})","name":"([^"]{2,30})"/gu)) {
+    if (!pictured.has(code) || colors.some(color=>color.code===code)) continue
+    const name=raw.toLocaleLowerCase('de-DE').replace(/(^|[\s-])\p{L}/gu,letter=>letter.toLocaleUpperCase('de-DE'))
+    colors.push({code,name})
+  }
+  if (!colors.length) return
+  const linked=url.searchParams.get('colorDisplayCode') ?? url.searchParams.get('colordisplaycode') ?? ''
+  const chosen=colors.find(color=>color.name.localeCompare(selectedColor,'de',{sensitivity:'base'})===0) ??
+    (selectedColor ? undefined : colors.find(color=>color.code===linked))
+  const image=chosen ? base+`eugoods_${chosen.code}_${item}_3x4.jpg` : undefined
+  return {colors:colors.map(color=>color.name),color:chosen?.name??'',image}
+}
+
 export function completeProductMetadata(html: string, url: URL, selectedColor = '', originalUrl = url) {
+  const uniqlo=uniqloVariants(html,originalUrl,selectedColor)
+  if (uniqlo) {
+    const base=completeProductMetadataGeneric(html,url,'',originalUrl)
+    const images=uniqlo.image ? [uniqlo.image] : []
+    return {...base,colors:uniqlo.colors,image:images[0]??null,images,
+      draft:{...base.draft,...(uniqlo.color ? {color:uniqlo.color} : {color:''})}}
+  }
+  return completeProductMetadataGeneric(html,url,selectedColor,originalUrl)
+}
+
+function completeProductMetadataGeneric(html: string, url: URL, selectedColor = '', originalUrl = url) {
   const meta=readProductMeta(html)
   const og = productMetadata(html,url,meta)
   const root = structuredProduct(html)
@@ -256,7 +294,7 @@ async function downloadWithCurl(url:URL,max:number,allowed:RegExp,signal:AbortSi
     if (!addresses.length || addresses.some(ip=>!publicIPv4(ip))) throw new Error('Public address required')
     target.push('--resolve',url.hostname+':443:'+addresses[0])
   }
-  const {stdout}=await execute('/usr/bin/curl',['--disable','--silent','--show-error','--noproxy','*',
+  const {stdout}=await execute('/usr/bin/curl',['--disable','--globoff','--silent','--show-error','--noproxy','*',
     '--proto','=https','--max-time','6','--max-filesize',String(max),...target,
     '--write-out','\n%{http_code}\t%{content_type}\t%{redirect_url}','--url',url.href],
     {encoding:'buffer',maxBuffer:max+4096,signal})
@@ -287,17 +325,65 @@ export async function publicRecipeHtml(address:string){
   return {html:result.bytes.toString('utf8'),url:result.address}
 }
 
+function linkedProduct(url:URL) {
+  const parts=url.pathname.split('/').reverse()
+  let name=''
+  for (const part of parts) {
+    let words:string
+    try { words=decodeURIComponent(part).replace(/\.html?$/iu,'').replace(/[-_]+/gu,' ').trim() } catch { continue }
+    if (words.includes(' ') && outfitGarment(words)) {
+      name=words.slice(0,120).replace(/\b\p{L}/gu,letter=>letter.toLocaleUpperCase('de'))
+      break
+    }
+  }
+  const sku=/^\/(?:[^/]+\/)*p\/(\d{8})\/?$/u.exec(url.pathname)?.[1]
+  const martens=Boolean(sku && /^(?:www\.)?drmartens\.com$/u.test(url.hostname))
+  const images=martens ? [`https://cdn.media.amplience.net/i/drmartens/NX_${sku}.80?fmt=jpg&w=800`] : []
+  const brand=martens?'Dr. Martens':''
+  return { name, image:images[0]??null, images, colors:[], sizes:[], description:'', fragranceNotes:'', brand,
+    structured:false, source:url.href, draft:productWardrobeFields(name,'','',{source:url.href,...(brand&&{brand})}) }
+}
+
+// Gesperrte Shopseiten (etwa Zara, Bershka): Produktbild über die Bildersuche, nur Treffer derselben Shop-Domain.
+async function shopImageSearch(product:ReturnType<typeof linkedProduct>,url:URL) {
+  if (!product.name) return product
+  const shop=url.hostname.replace(/^www\./iu,'').split('.').slice(-2).join('.')
+  const brand=shop.split('.')[0]
+  try {
+    // Seite und Bild müssen zum Shop gehören (etwa zara.com und static.zara.net), sonst droht ein fremdes Foto.
+    const hits=(await searchProductImages(product.name+' '+brand)).filter(hit=>{
+      const host=new URL(hit.source).hostname
+      const imageHost=new URL(hit.image).hostname
+      return (host===shop || host.endsWith('.'+shop)) && imageHost.split('.').includes(brand)
+    })
+    const images=hits.map(hit=>hit.image).filter(image=>!/transparent|placeholder|logo/iu.test(image)).slice(0,4)
+    return images.length ? {...product,image:images[0],images,imageFromSearch:true} : product
+  } catch { return product }
+}
+
 export async function inspectProduct(raw: unknown, color?:string,useCurl=false) {
-  const url = productAddress(raw)
+  const url = productAddress(raw,8192)
+  for (const key of [...url.searchParams.keys()]) {
+    if (/^(?:utm_|gclid$|gbraid$|wbraid$|gad_|fbclid$|msclkid$|srsltid$)/iu.test(key)) url.searchParams.delete(key)
+  }
   if (url.href.length > 500) throw new Problem(400,'Der Produktlink ist zu lang.')
   try {
     const result = await boundedDownload(url,3*1024*1024,/^text\/html\b/iu,true,useCurl)
     const metadata = completeProductMetadata(result.bytes.toString('utf8'),result.address,color,url)
+    // Platzhalter wie ein transparentes Hintergrundbild sind kein Produktfoto.
+    const placeholder=(image:string)=>/transparent|placeholder|blank|spacer|logo|default[-_]?image|no[-_]?image/iu.test(image)
+    metadata.images=metadata.images.filter(image=>!placeholder(image))
+    metadata.image=metadata.images[0] ?? null
     if (color && !metadata.colors.includes(color)) throw new Problem(400,'Diese Farbvariante konnte nicht bestätigt werden.')
+    if (!metadata.structured && !metadata.colors.length && (!metadata.name || /access denied|just a moment|zugriff verweigert|captcha/iu.test(metadata.name) || !metadata.image)) {
+      const linked=linkedProduct(url)
+      return linked.image ? linked : shopImageSearch(metadata.name&&!/access denied|just a moment/iu.test(metadata.name)?{...linked,name:metadata.name}:linked,url)
+    }
     return { ...metadata, source:url.href, draft:{...metadata.draft,source:url.href} }
   } catch (error) {
     if (error instanceof Problem) throw error
-    return { name:'', image:null, images:[], colors:[], sizes:[], description:'', fragranceNotes:'', brand:'', structured:false, source:url.href, draft:{source:url.href} }
+    const linked=linkedProduct(url)
+    return linked.image ? linked : shopImageSearch(linked,url)
   }
 }
 

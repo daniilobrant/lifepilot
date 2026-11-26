@@ -1,7 +1,7 @@
 export const groceryCategories = [
-  ['produce','Obst & Gemüse','🥦'], ['bakery','Brot & Gebäck','🥖'], ['dairy','Milch & Käse','🧀'],
+  ['produce','Obst & Gemüse','🥦'], ['herbs','Frische Kräuter','🌿'], ['bakery','Brot & Gebäck','🥖'], ['dairy','Milch & Käse','🧀'],
   ['meat','Fleisch & Fisch','🥩'], ['breakfast','Frühstück & Aufstriche','🍯'],
-  ['oil','Öle & Essig','🫒'], ['sauce','Soßen & Würzmittel','🧂'], ['pantry','Zutaten & Gewürze','🍝'], ['frozen','Tiefkühl & Fertiggerichte','❄️'],
+  ['oil','Öle & Essig','🫒'], ['sauce','Soßen & Würzmittel','🧂'], ['pantry','Zutaten & Gewürze','🍝'], ['canned','Konserven & Hülsenfrüchte','🥫'], ['baking','Backen & Süßen','🧁'], ['frozen','Tiefkühl & Fertiggerichte','❄️'],
   ['plant','Pflanzliche Alternativen','🌱'], ['snacks','Snacks & Süßwaren','🍫'], ['drinks','Getränke','🥤'], ['home','Haushalt & Reinigung','🧼'],
   ['paper','Papier, Folien & Beutel','🧻'], ['dental','Zahnpflege','🪥'], ['care','Körperpflege & Gesundheit','🧴'], ['pets','Tierbedarf','🐾'], ['other','Sonstiges','📦'],
 ] as const

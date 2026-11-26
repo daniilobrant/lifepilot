@@ -25,6 +25,11 @@ export type TaskContext = Pick<TaskRow, 'id' | 'title' | 'detail' | 'kind' | 'du
 type RawTask = Omit<TaskRow, 'steps'> & { steps: string }
 const decode = ({ steps, ...task }: RawTask): TaskRow => ({ ...task, steps: JSON.parse(steps) as Step[] })
 
+const appointmentStop=new Set(['und','and','vorlesung','übung','uebung','seminar','tutorium','praktikum','termin','in','der','die','das','im','am','zum','zur','für','fuer','mit','von','halten','vorstellen','präsentation','praesentation','projekt','abgabe'])
+export function appointmentWords(text:string){
+  return new Set(text.toLocaleLowerCase('de-DE').replace(/&/gu,' und ').split(/[^\p{L}\p{N}]+/u).filter(word=>word.length>1&&!appointmentStop.has(word)))
+}
+
 export class Workspace {
   readonly db: DatabaseSync
   constructor(db: DatabaseSync) { this.db = db }
@@ -38,6 +43,19 @@ export class Workspace {
     const task = this.db.prepare('SELECT * FROM tasks WHERE id=?').get(id) as RawTask | undefined
     if (!task) throw new Problem(404, 'Aufgabe nicht gefunden.')
     return decode(task)
+  }
+
+  /** Kontext für bestimmte Aufgaben und Termine (z. B. die zur Nachricht passenden), mit ihren nächsten Zeitblöcken. */
+  contextOf(ids: readonly string[]): TaskContext[] {
+    const from = utcNow()
+    return ids.flatMap(id => {
+      const task = this.db.prepare("SELECT * FROM tasks WHERE id=? AND status='open'").get(id) as RawTask | undefined
+      if (!task) return []
+      const schedule = (this.db.prepare(`SELECT id,kind,at,ends_at FROM schedule WHERE task_id=? AND state!='dismissed'
+        AND coalesce(ends_at, at)>? ORDER BY at LIMIT 8`).all(id, from) as TaskContext['schedule'])
+      const { title, detail, due_date, kind, priority, revision, related_id } = decode(task)
+      return [{ id, title, detail, due_date, kind, priority, revision, related_id, schedule }]
+    })
   }
 
   context(query = ''): TaskContext[] {
@@ -70,7 +88,7 @@ export class Workspace {
         ({ id, title, detail, due_date, kind, priority, revision, related_id, schedule: withPlans.get(id) ?? [] }))
   }
 
-  add(run: string | null, task: { title: string, detail: string, date: string | null, kind: TaskRow['kind'], steps?: string[], category?: Category | null, projectId?:string|null, priority?:Priority }, actor: string) {
+  add(run: string | null, task: { title: string, detail: string, date: string | null, kind: TaskRow['kind'], steps?: string[], category?: Category | null, projectId?:string|null, priority?:Priority, link?:string|null }, actor: string) {
     const id = randomUUID()
     if(task.projectId)this.checkProject(task.projectId,task.kind)
     this.db.prepare(`INSERT INTO tasks (id,run_id,title,detail,due_date,kind,priority,status,steps,updated_at,category)
@@ -81,7 +99,37 @@ export class Workspace {
     )
     if(task.projectId)this.db.prepare('UPDATE tasks SET project_id=? WHERE id=?').run(task.projectId,id)
     this.event(id, actor, 'Erstellt')
+    const linked=task.link?this.db.prepare("SELECT id,kind FROM tasks WHERE id=? AND status<>'archived'").get(task.link) as {id:string,kind:string}|undefined:undefined
+    const project=task.link&&!linked&&task.kind==='task'?this.db.prepare("SELECT id FROM projects WHERE id=? AND json_extract(data,'$.status')='active'").get(task.link) as {id:string}|undefined:undefined
+    if(linked&&linked.id!==id){
+      this.db.prepare('UPDATE tasks SET related_id=? WHERE id=?').run(linked.id,id)
+      this.event(id,actor,'Verknüpft')
+      if(linked.kind==='appointment'&&task.date)this.remindAtAppointment(id,linked.id,task.date)
+    }else if(project)this.db.prepare('UPDATE tasks SET project_id=? WHERE id=?').run(project.id,id)
+    else if(task.kind==='task'&&task.date)this.linkAppointment(id,task.title+' '+task.detail,task.date,actor)
     return this.get(id)
+  }
+
+  /** Eine Abgabe, die eine Vorlesung oder einen Termin am selben Tag nennt, wird damit verknüpft und zur Startzeit erinnert. */
+  private linkAppointment(id:string,text:string,date:string,actor:string){
+    const candidates=this.db.prepare(`SELECT t.id,t.title,min(s.at) AS at FROM tasks t JOIN schedule s ON s.task_id=t.id
+      WHERE t.kind='appointment' AND t.status='open' AND s.kind='slot' AND s.state<>'dismissed'
+        AND date(s.at) BETWEEN date(?,'-1 day') AND ? GROUP BY t.id,s.at`).all(date,date) as {id:string,title:string,at:string}[]
+    const sameDay=[...new Map(candidates.filter(item=>dateInBerlin(new Date(item.at))===date).map(item=>[item.id,item])).values()]
+    const words=appointmentWords(text)
+    const scored=sameDay.map(item=>{const own=appointmentWords(item.title);return {item,hits:[...own].filter(word=>words.has(word)).length,size:own.size}})
+      .filter(entry=>entry.hits>=Math.min(2,entry.size)).sort((a,b)=>b.hits-a.hits)
+    if(!scored.length||scored[1]?.hits===scored[0].hits)return
+    const match=scored[0].item
+    this.db.prepare('UPDATE tasks SET related_id=? WHERE id=?').run(match.id,id)
+    this.event(id,actor,'Mit Termin verknüpft: '+match.title)
+    if(match.at>utcNow())this.db.prepare("INSERT OR IGNORE INTO schedule VALUES (?,?,'reminder',?,NULL,'pending')").run(randomUUID(),id,match.at)
+  }
+
+  private remindAtAppointment(id:string,appointment:string,date:string){
+    const slot=(this.db.prepare("SELECT at FROM schedule WHERE task_id=? AND kind='slot' AND state<>'dismissed' AND date(at) BETWEEN date(?,'-1 day') AND ? ORDER BY at")
+      .all(appointment,date,date) as {at:string}[]).find(row=>dateInBerlin(new Date(row.at))===date)
+    if(slot&&slot.at>utcNow())this.db.prepare("INSERT OR IGNORE INTO schedule VALUES (?,?,'reminder',?,NULL,'pending')").run(randomUUID(),id,slot.at)
   }
 
   private checkProject(id:string,kind:TaskRow['kind']){

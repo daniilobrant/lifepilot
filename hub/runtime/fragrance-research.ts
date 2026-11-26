@@ -1,5 +1,6 @@
 import { inspectProduct, searchFragranceDirectory, searchProductImages, searchProductPages } from '../connectors/outfit-import.ts'
 import type { FragranceDraft } from './wardrobe-extras-types.ts'
+import { scentGuide } from './scent-profile.ts'
 
 type Research = {draft:FragranceDraft,images:string[]}
 const concentration=/eau de (?:parfum|toilette|cologne)|le parfum|l.absolu|extrait de parfum|\b(?:parfum|perfume|duft|edp|edt|cologne)\b/iu
@@ -25,10 +26,10 @@ const knownMyslf={
   source:'https://www.yslbeauty.de/dufte/dufte-fur-ihn/myslf/myslf-eau-de-parfum/WW-51115YSL.html',
   description:'Holzig-blumiger Duft mit frischer Bergamotte und Orangenblüte auf einer warmen, holzigen Basis.',
   notes:'Bergamotte, Orangenblüte, Patschuli, Ambrofix',
-  pairing:'Zu frischer Baumwolle, hellen Hemden oder einem schlichten Sakko.',
+  pairing:'Zu hellen Farben, Henley-Shirts und feinem Strick.',
   containerMl:null,
   profile:'Ausgewogen',
-  occasions:['Alltag','Büro','Date'],
+  occasions:['Büro','Date'],
   seasons:['Frühling','Sommer','Herbst'],
   times:['Tagsüber','Abends'],
 } satisfies FragranceDraft
@@ -55,19 +56,12 @@ export function fragranceDraft(name:string,brand:string,description:string,sourc
   const notes=noteTerms.filter(([,pattern])=>pattern.test(descriptor)).map(([note])=>note)
   const warm=/\b(?:oud|ambra|amber|tabak|tobacco|vanille|vanilla|warm|wurzig|spicy)\b/u.test(descriptor)
   const fresh=/aquatisch|aquatic|zitrus|citrus|frisch|\bfresh\b|bergamot/u.test(descriptor)
-  const profile=warm===fresh?'Ausgewogen':warm?'Warm & intensiv':'Frisch'
-  const style=profile==='Warm & intensiv' ? {
-    pairing:'Zu dunklem Strick, Leder oder einem eleganten Mantel.',
-    occasions:['Date','Feier'],seasons:['Herbst','Winter'],times:['Abends'],
-  } : profile==='Frisch' ? {
-    pairing:'Zu hellen Basics, Leinen oder einem sportlichen Alltagslook.',
-    occasions:['Alltag','Büro','Sport & Freizeit'],seasons:['Frühling','Sommer'],times:['Tagsüber'],
-  } : {
-    pairing:'Zu einem schlichten Freizeitlook oder einem Hemd mit Sakko.',
-    occasions:['Alltag','Büro','Date'],seasons:['Frühling','Sommer','Herbst','Winter'],times:['Tagsüber','Abends'],
-  }
-  return {name,brand,source,profile,...style,containerMl:null,notes:notes.slice(0,10).join(', '),
+  const profile:FragranceDraft['profile']=warm===fresh?'Ausgewogen':warm?'Warm & intensiv':'Frisch'
+  const draft={name,brand,source,profile,containerMl:null,notes:notes.slice(0,10).join(', '),
     description:description.slice(0,330).trim()||'Zum Duft sind auf der abgerufenen Produktseite noch keine Details verfügbar.'}
+  // Anlass, Jahreszeit, Tageszeit und Styling folgen aus den Duftnoten und der Konzentration.
+  const {occasions,seasons,times,pairing}=scentGuide(draft)
+  return {...draft,occasions,seasons,times,pairing}
 }
 
 function oneEdit(a:string,b:string) {

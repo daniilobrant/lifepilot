@@ -41,10 +41,12 @@ export function readRecurringCharge(mail:BillingMail):RecurringCharge|undefined{
   if(!/rechnung|beleg|invoice|receipt|zahlung|payment|abo[- ]?verlängerung|subscription renewal/iu.test(mail.subject)||
     /fehlgeschlagen|ausstehend|storniert|erstatte|mahnung|kündigung|failed|pending|cancelled|refund/iu.test(mail.subject))return
   const lines=usefulLines(mail.text)
-  const plan=lines.find(line=>/\b(?:monatlich|jährlich|monthly|yearly|annually|pro monat|pro jahr)\b/iu.test(line)&&line.length<=120&&
-    /\b(?:abo|abonnement|mitgliedschaft|tarif|plan|subscription|membership)\b|icloud\+/iu.test(line))
-  if(!plan)return
   const apple=appleSender(mail.from)
+  // App-Store-Belege nennen den Tarif ohne „Abo“ („Claude Pro - Monthly (Monatlich)“); das Wort steht in der Zeile davor.
+  const plan=lines.find((line,index)=>/\b(?:monatlich|jährlich|monthly|yearly|annually|pro monat|pro jahr)\b/iu.test(line)&&line.length<=120&&
+    (/\b(?:abo|abonnement|mitgliedschaft|tarif|plan|subscription|membership)\b|icloud\+/iu.test(line)||
+      apple&&/\b(?:abo|plan|subscription|mitgliedschaft)\b|icloud/iu.test(lines[index-1]??'')))
+  if(!plan)return
   const cloud=apple&&/icloud\+/iu.test(plan)
   const paid=lines.findIndex(line=>/^(?:visa|mastercard|amex|american express|paypal|lastschrift|apple (?:pay|account-guthaben))\b/iu.test(line))
   const explicitPaid=lines.some(line=>/^(?:zahlung (?:erfolgreich|bestätigt)|bezahlt|erfolgreich abgebucht|payment received|payment successful|paid)\b/iu.test(line))
@@ -58,7 +60,8 @@ export function readRecurringCharge(mail:BillingMail):RecurringCharge|undefined{
   const date=dated>=0?(documentaryDate(lines[dated])??documentaryDate(lines[dated+1]??'')):undefined
   const paidDate=date??(mail.at&&Number.isFinite(Date.parse(mail.at))?dateInBerlin(new Date(mail.at)):undefined)
   const title=plan.replace(/^(?:abo|abonnement|tarif|plan|subscription|mitgliedschaft)\s*:\s*/iu,'')
-    .replace(/\s*\(?(?:monatlich|jährlich|monthly|yearly|annually|pro Monat|pro Jahr)\)?\s*$/iu,'').trim().slice(0,120)
+    .replace(/\s*\(?(?:monatlich|jährlich|monthly|yearly|annually|pro Monat|pro Jahr)\)?\s*$/iu,'')
+    .replace(/\s+-\s+(?:monthly|yearly|annual|monatlich|jährlich)$/iu,'').trim().slice(0,120)
   const domain=/@([a-z0-9.-]+\.[a-z]{2,})>?\s*$/iu.exec(mail.from)?.[1]?.toLowerCase()
   if(!paidDate||!domain||!title||!amount)return
   const renewal=lines.filter(line=>/^(?:verlängerung|verlängert|nächste (?:abbuchung|zahlung)|next (?:billing|payment|renewal)|renews)/iu.test(line)).map(documentaryDate).find(Boolean)
