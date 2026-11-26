@@ -105,3 +105,17 @@ export function itemOccasion(item: Pick<WardrobeDraft, 'name' | 'category' | 'ga
   if (/\b(?:jeans|denim|henley|t-?shirt|langarm\w*)\b/u.test(text)) return 'Alltag · Uni'
   return item.category === 'shoes' ? 'Alltag' : 'Alltag · Uni'
 }
+
+/** Welche Teile für welchen Anlass gedacht sind (Labels aus itemOccasion). Ein Look kommt nur bei passendem Anlass infrage. */
+const occasionFits: Record<string, RegExp> = {
+  Büro: /Büro|Alltag · Uni|Uni · Café/u,
+  Dinner: /Büro|Abends|Uni · Café/u,
+  Ausgehen: /Abends|Büro|Streetwear|Alltag · Uni/u,
+  Sport: /Sport|Streetwear/u,
+  Uni: /Alltag|Uni|Kalte Tage|Streetwear/u,
+  Alltag: /Alltag|Uni|Kalte Tage|Streetwear|Ergänzung/u,
+}
+export function fitsOccasion(kind: string, label: string) {
+  const pattern = occasionFits[kind]
+  return !pattern || pattern.test(label)
+}

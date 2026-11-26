@@ -351,7 +351,9 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
         }
       }
       return <details className="grocery-saved-recipe" key={recipe.id}>
-      <summary><strong>{recipe.title}</strong><small>{statuses.filter(status=>status==='enough').length}/{recipe.ingredients.length} Zutaten ausreichend</small></summary>
+      <summary><strong>{recipe.title}</strong><small>{statuses.filter(status=>status==='enough').length}/{recipe.ingredients.length} Zutaten ausreichend</small>
+        <button type="button" className="quiet recipe-remove" aria-label={recipe.title+' entfernen'} title="Rezept entfernen" disabled={busy}
+          onClick={event=>{event.preventDefault();event.stopPropagation();if(window.confirm('„'+recipe.title+'“ aus deinen Rezepten entfernen?'))void act({action:'remove',recipeId:recipe.id},'Rezept entfernt.')}}>×</button></summary>
       {recipe.sourceUrl?<p><a href={recipe.sourceUrl} target="_blank" rel="noreferrer">Originalrezept ansehen</a></p>:null}
       <RecipePortions value={servings} disabled={busy} onChange={value=>setRecipePortions(previous=>({...previous,[recipe.id]:value}))}/>
       {edits?<div className="recipe-quantity-editor">

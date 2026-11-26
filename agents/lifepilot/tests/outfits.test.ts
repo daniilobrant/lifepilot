@@ -408,3 +408,13 @@ test('Uniqlo links use the photo of the linked or chosen colour instead of the d
   assert.match(chosen.image!,/eugoods_38_123456/u)
   assert.equal(chosen.draft.color,'Dunkelbraun')
 })
+
+test('Pieces are only offered for occasions they are meant for',async()=>{
+  const {fitsOccasion}=await import('../../../hub/runtime/outfit-types.ts')
+  assert.equal(fitsOccasion('Büro','Büro · Dinner'),true)
+  assert.equal(fitsOccasion('Büro','Alltag · Streetwear'),false)
+  assert.equal(fitsOccasion('Dinner','Alltag · Streetwear'),false)
+  assert.equal(fitsOccasion('Uni','Sport · Freizeit'),false)
+  assert.equal(fitsOccasion('Sport','Sport · Freizeit'),true)
+  assert.equal(fitsOccasion('Unbekannt','Alltag'),true)
+})

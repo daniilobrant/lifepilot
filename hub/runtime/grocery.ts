@@ -5,7 +5,7 @@ import { randomUUID } from 'node:crypto'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { dateInBerlin, isDate } from './values.ts'
-import {covers, measured, recipeStockStatus, ingredientStock, hasRecipeQuantity, stockedIngredients, scaleRecipeIngredients, validRecipeServings, legacyRecipeServings} from './recipe-portions.ts'
+import {recipeStockKey, covers, measured, recipeStockStatus, ingredientStock, hasRecipeQuantity, stockedIngredients, scaleRecipeIngredients, validRecipeServings, legacyRecipeServings} from './recipe-portions.ts'
 import { saveFinance } from './finance.ts'
 import { groceryCategories, locations, stockStates, type GroceryInput, type StockItem, type ShoppingItem,
   type GroceryOverview, type GroceryPlan, type GroceryAnswer, type GroceryCategory, type SavedRecipe, type RecipeChoice, type RecipePreference, type RecipeSource } from './grocery-types.ts'
@@ -137,6 +137,16 @@ export function acceptGroceryRows(store:Store,kind:'stock'|'receipt',rows:Grocer
 }
 
 const meals: { title:string, items:[string,string][], steps:string[] }[] = [
+  {title:'Hähnchen-Gemüse-Pfanne',items:[['Hähnchen','150 g'],['Paprika','½ Stück'],['Zwiebel','½ Stück'],['Olivenöl','1 EL'],['Reis','70 g']],steps:['Hähnchen in Stücke schneiden und in Öl anbraten.','Paprika und Zwiebel zugeben und mitbraten.','Mit Reis servieren.']},
+  {title:'Rührei mit Schinken',items:[['Eier','2 Stück'],['Schinken','50 g'],['Butter','10 g'],['Brot','2 Scheiben']],steps:['Schinken in Würfel schneiden und in Butter anbraten.','Verquirlte Eier zugeben und stocken lassen.','Mit Brot servieren.']},
+  {title:'Spaghetti Carbonara',items:[['Spaghetti','100 g'],['Schinken','60 g'],['Eier','1 Stück'],['Parmesan','20 g']],steps:['Spaghetti kochen.','Schinken anbraten, Ei und Parmesan verquirlen.','Pasta mit Schinken und der Eiermischung vom Herd vermengen.']},
+  {title:'Hackfleisch-Reispfanne',items:[['Hackfleisch','125 g'],['Reis','70 g'],['Zwiebel','½ Stück'],['Paprika','½ Stück'],['Olivenöl','1 EL']],steps:['Reis garen.','Hack mit Zwiebel in Öl krümelig braten, Paprika zugeben.','Mit dem Reis mischen und würzen.']},
+  {title:'Schweinemedaillons mit Kartoffeln',items:[['Schweinefilet','150 g'],['Kartoffeln','200 g'],['Butter','10 g'],['Zwiebel','½ Stück']],steps:['Kartoffeln kochen.','Filet in Scheiben schneiden und in Butter braten.','Mit Zwiebeln und Kartoffeln servieren.']},
+  {title:'Thunfisch-Nudeln',items:[['Nudeln','100 g'],['Thunfisch','1 Dose'],['Passierte Tomaten','150 g'],['Zwiebel','½ Stück']],steps:['Nudeln kochen.','Zwiebel anschwitzen, Tomaten und Thunfisch zugeben.','Mit den Nudeln mischen.']},
+  {title:'Rindergulasch mit Nudeln',items:[['Rindfleisch','150 g'],['Zwiebel','1 Stück'],['Paprika','½ Stück'],['Passierte Tomaten','100 g'],['Nudeln','100 g']],steps:['Fleisch würfeln und scharf anbraten.','Zwiebel, Paprika und Tomaten zugeben und weich schmoren.','Mit Nudeln servieren.']},
+  {title:'Käse-Schinken-Omelett',items:[['Eier','2 Stück'],['Käse','30 g'],['Schinken','40 g'],['Butter','10 g']],steps:['Eier verquirlen und in Butter stocken lassen.','Mit Käse und Schinken füllen und zusammenklappen.']},
+  {title:'Gebratener Lachs mit Kartoffeln',items:[['Lachs','150 g'],['Kartoffeln','200 g'],['Zitrone','½ Stück'],['Butter','10 g']],steps:['Kartoffeln kochen.','Lachs in Butter von beiden Seiten braten.','Mit Zitrone und Kartoffeln servieren.']},
+  {title:'Wurst-Kartoffel-Pfanne',items:[['Wurst','1 Stück'],['Kartoffeln','200 g'],['Zwiebel','½ Stück'],['Olivenöl','1 EL']],steps:['Kartoffeln kochen und in Scheiben schneiden.','Mit Wurst und Zwiebel in Öl braten.']},
   {title:'Tomatenpasta',items:[['Spaghetti','100 g'],['Passierte Tomaten','150 g'],['Zwiebel','½ Stück'],['Knoblauch','1 Zehe'],['Olivenöl','1 EL']],steps:['Spaghetti nach Packungsangabe kochen.','Zwiebel und Knoblauch in Olivenöl anschwitzen, Tomaten dazugeben und einkochen.','Pasta mit der Sauce mischen.']},
   {title:'Pasta Bolognese',items:[['Spaghetti','100 g'],['Hackfleisch','125 g'],['Passierte Tomaten','150 g'],['Zwiebel','½ Stück'],['Knoblauch','1 Zehe'],['Olivenöl','1 EL'],['Parmesan','15 g']],steps:['Zwiebel und Knoblauch fein schneiden und in Olivenöl anbraten.','Hackfleisch anbraten, Tomaten dazugeben und die Sauce köcheln.','Spaghetti kochen und mit Sauce und Parmesan servieren.']},
   {title:'Gemüseomelett',items:[['Eier','2 Stück'],['Paprika','½ Stück'],['Zwiebel','½ Stück'],['Olivenöl','1 TL']],steps:['Gemüse klein schneiden und in der Pfanne anschwitzen.','Eier verquirlen, darübergeben und stocken lassen.']},
@@ -265,7 +275,7 @@ export function groceryIdeas(store:Store,day=dateInBerlin(),stock=groceryOvervie
   const local:RecipeSource[]=meals.map(meal=>({title:meal.title,servings:1,steps:meal.steps,
     ingredients:meal.items.map(([name,quantity])=>({name,quantity}))}))
   const side=preference.side?sideRecipes[groceryKey(preference.side)]:undefined
-  const queue=new Set(groceryOverview(store).shopping.map(item=>groceryKey(item.name)))
+  const queue=new Set(groceryOverview(store).shopping.flatMap(item=>[groceryKey(item.name),recipeStockKey(item.name)]))
   const options=[...web,...local].flatMap((source,index)=>{
     const original=source.ingredients
     if(side&&original.some(item=>groceryKey(item.name)===groceryKey(side.name)))return []
@@ -279,7 +289,7 @@ export function groceryIdeas(store:Store,day=dateInBerlin(),stock=groceryOvervie
     const statuses=ingredientStock(ingredients,stock,day)
     const available=ingredients.filter((_,i)=>statuses[i]==='enough').map(item=>item.name)
     const missing=ingredients.filter((item,i)=>statuses[i]!=='enough'&&Boolean(measured(item.quantity)))
-    const rows=ingredients.filter((item,i)=>Boolean(measured(item.quantity))&&!queue.has(groceryKey(item.name))&&
+    const rows=ingredients.filter((item,i)=>Boolean(measured(item.quantity))&&!queue.has(groceryKey(item.name))&&!queue.has(recipeStockKey(item.name))&&
       ['missing','short'].includes(statuses[i]))
     const matched=available.length
     const priority=stock.filter(item=>item.status==='low'&&available.some(name=>groceryKey(name)===groceryKey(item.name))).length
@@ -297,7 +307,10 @@ export function groceryIdeas(store:Store,day=dateInBerlin(),stock=groceryOvervie
     return [answer]
   })
   const ready=distinct.filter(idea=>!idea.missing.length)
-  const selection=(ready.length>=3?ready:distinct).slice(0,4)
+  // Aus den besten Treffern wechselt die Auswahl bei jeder Anfrage, damit nicht immer dieselben Rezepte erscheinen.
+  const pool=(ready.length>=3?ready:distinct).slice(0,10)
+  const offset=pool.length>4?Math.abs(rotation)%pool.length:0
+  const selection=[...pool.slice(offset),...pool.slice(0,offset)].slice(0,4)
   const online=distinct.find(idea=>idea.sourceUrl&&(idea.available.length>=2||idea.missing.length<=3))
   if(online&&!selection.some(idea=>idea.sourceUrl))return [...selection.slice(0,3),online]
   return selection

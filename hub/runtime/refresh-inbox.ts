@@ -1,6 +1,6 @@
 import {scanProjectMails} from './project-mail.ts'
 import { scanClothingOrders } from './clothing-orders.ts'
-import type { GmailPage, GoogleConnector, MailContent } from '../connectors/google.ts'
+import { GmailRateLimit, type GmailPage, type GoogleConnector, type MailContent } from '../connectors/google.ts'
 import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
 import { classifyMail, inboxLabel, type InboxLabel, type MailClassification } from '../../agents/lifepilot/tools/classify-mail.ts'
@@ -12,9 +12,10 @@ import { dateInBerlin } from './values.ts'
 
 export type RefreshResult = {
   checked: number, added: number, applications: number, labeled: number, limited: boolean, labelsAvailable: boolean,
-  labelError: string | null, classified: MailClassification[],
+  modelChecked: number, modelIncomplete: boolean, labelError: string | null, classified: MailClassification[],
 }
 import { financeFromMail, scanMailFinances } from './mail-finance.ts'
+import { triageMails, triagedImportant } from './mail-triage.ts'
 
 export const refreshPageLimit = 3
 export type AttentionMail = MailClassification & { from: string, at: string | null, label:InboxLabel }
@@ -37,12 +38,16 @@ function needsAttention(item:MailClassification,mail?:MailContent) {
 export async function readInboxFeed(google: GoogleConnector, synthetic: boolean, store?:Store) {
   const relevant: AttentionMail[] = []
   const seen = new Set<string>()
-  const collect = (mails: MailContent[]) => {
+  let account: string | undefined
+  let incomplete = false
+  let rateLimited = false
+  const collect = (mails: MailContent[], account?: string) => {
+    const modelImportant = store && account ? triagedImportant(store, mails, account) : new Set<string>()
     for (const mail of mails) {
       if (seen.has(mail.id)) continue
       seen.add(mail.id)
-      const classified = classifyMail(mail)
-      if (needsAttention(classified,mail)) relevant.push({ ...classified, from:classified.university?.sender??mail.from, at:mail.at,label:inboxLabel(mail,classified) })
+      const classified = modelImportant.has(mail.id) ? { ...classifyMail(mail), important: true, reasons: ['Vom Modell als wichtig eingestuft'] } : classifyMail(mail)
+      if (modelImportant.has(mail.id) || needsAttention(classified,mail)) relevant.push({ ...classified, from:classified.university?.sender??mail.from, at:mail.at,label:inboxLabel(mail,classified) })
     }
   }
   if (synthetic) {
@@ -51,11 +56,22 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
   }
   else {
     let cursor: GmailPage | undefined
-    let account: string | undefined
-    for (let i=0; i<refreshPageLimit; i++) {
-      const result = await google.recentInbox(key => key === account ? cursor : undefined)
+    const afterEpoch = Math.floor(Date.now()/1000) - 7*86400
+    const deadline = Date.now()+40_000
+    const pageTokens = new Set<string>()
+    do {
+      const result = await google.recentInbox(key => key === account ? cursor : undefined, false, undefined, afterEpoch)
+        .catch(error => {
+          if (!(error instanceof GmailRateLimit)) throw error
+          return null
+        })
+      if (!result) {
+        rateLimited = incomplete = true
+        break
+      }
       if (account && result.account !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere erneut.')
-      collect(result.mails)
+      account = result.account
+      collect(result.mails, account)
       if (store) {
         scanClothingOrders(store,result.mails,result.account)
         scanMailFinances(store,result.mails,result.account)
@@ -63,18 +79,21 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
         scanHfuCancellations(store,result.mails,result.account)
         scanProjectMails(store,result.mails,result.account)
       }
-      if (!result.next || relevant.length >= 10) break
-      cursor = result.next
-      account = result.account
-    }
+      cursor = result.next ?? undefined
+      if (cursor && (Date.now() >= deadline || pageTokens.has(cursor.pageToken))) {
+        incomplete = true
+        break
+      }
+      if (cursor) pageTokens.add(cursor.pageToken)
+    } while (cursor)
   }
-  return { messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
-    (b.at ?? '').localeCompare(a.at ?? '')).slice(0,10) }
+  return { account, incomplete, rateLimited, messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
+    (b.at ?? '').localeCompare(a.at ?? '')) }
 }
 
-export async function refreshInbox(store: Store, google: GoogleConnector, synthetic: boolean, restart = false): Promise<RefreshResult> {
+export async function refreshInbox(store: Store, google: GoogleConnector, synthetic: boolean, restart = false, deep = false): Promise<RefreshResult> {
   const result: RefreshResult = {
-    checked: 0, added: 0, applications: 0, labeled: 0, limited: false, labelsAvailable: false, labelError: null, classified: [],
+    checked: 0, added: 0, applications: 0, labeled: 0, limited: false, labelsAvailable: false, labelError: null, classified: [], modelChecked:0, modelIncomplete:false,
   }
   if (synthetic) {
     scanClothingOrders(store,clothingDemoMail,'fixture')
@@ -86,12 +105,22 @@ export async function refreshInbox(store: Store, google: GoogleConnector, synthe
   }
   const status = google.status()
   result.labelsAvailable = status.some(item => item.service === 'gmail-sort' && item.connected)
+  const modelBudget = AbortSignal.timeout(65_000)
   for (let page = 0; page < refreshPageLimit; page++) {
     const batch = await google.recentInbox(account => readGmailPage(store, account), restart && page === 0)
     scanClothingOrders(store,batch.mails,batch.account)
     scanMailFinances(store,batch.mails,batch.account)
     result.added+=scanTicketEvents(store,batch.mails,batch.account)+scanHfuCancellations(store,batch.mails,batch.account)+scanProjectMails(store,batch.mails,batch.account)
-    const classified = batch.mails.map(mail=>({mail,item:classifyMail(mail)})).filter(({mail,item})=>needsAttention(item,mail)).map(({item})=>item)
+    // Unklare Mails prüft das Modell einmalig; wichtige erscheinen unter „Wichtige Nachrichten“.
+    try {
+      const review = await triageMails(store,batch.mails,batch.account,modelBudget,undefined,deep?1800:700)
+      result.added += review.proposals
+      result.modelChecked += review.checked
+      result.modelIncomplete ||= review.failed
+    } catch { result.modelIncomplete = true }
+    const modelImportant = triagedImportant(store,batch.mails,batch.account)
+    const classified = batch.mails.map(mail=>({mail,item:modelImportant.has(mail.id)?{...classifyMail(mail),important:true,reasons:['Vom Modell als wichtig eingestuft']}:classifyMail(mail)}))
+      .filter(({mail,item})=>modelImportant.has(mail.id)||needsAttention(item,mail)).map(({item})=>item)
     const matching = new Set(classified.map(item => item.id))
     const relevant = batch.mails.filter(mail => matching.has(mail.id))
     result.applications += scanApplicationMails(store, relevant, batch.account, true)

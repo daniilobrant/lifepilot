@@ -32,6 +32,7 @@ import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTri
 import { travelWindows } from './trip-windows.ts'
 import { tripCalendarTitle } from './trip-types.ts'
 import {searchTripAddresses,searchTripPlaces} from '../connectors/trip-places.ts'
+import { weatherFromChat } from './weather-chat.ts'
 import { fetchOutfitWeather, outfitLocation } from '../connectors/outfit-weather.ts'
 import { outfitGarment, productWardrobeFields, textProductColor } from './outfit-fields.ts'
 import { matchProductPhoto } from './outfit-catalog.ts'
@@ -190,7 +191,7 @@ function queueOrderPhotos(order?:string){
 }
 let attentionFeed:ReturnType<typeof readInboxFeed>|undefined
 async function runAutomaticMailSync() {
-  if(acceptance || scanningInbox || stopping) return
+  if(acceptance || scanningInbox || attentionFeed || stopping) return
   scanningInbox=true
   try {
     const synced = await syncCategorizedMail(store,google)
@@ -392,6 +393,14 @@ async function work() {
   active = { id: next.id, controller }
   try {
     const latest=next.payload.messages.at(-1)?.input??''
+    if (!acceptance) {
+      const weather = await weatherFromChat(latest, personalProfile(store).fields.location,
+        next.payload.messages.at(-1)?.referenceDay ?? dateInBerlin())
+      if (weather) {
+        if (!stopping && !controller.signal.aborted) store.finish(next.id, weather, null, offlineMetrics)
+        return
+      }
+    }
     const previous=store.previousRecipePlan(next.id)
     const stated=localRecipePreference(latest)
     const refinement=previous&&Boolean(stated.include?.length||stated.side||stated.mode||stated.excluded.length)&&
@@ -1189,6 +1198,15 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     void runAutomaticMailSync()
     return reply(res,200,{enabled:true})
   }
+  if (path === '/api/inbox/trash' && method === 'POST') {
+    const { message, account, confirm } = await body(req, ['message','account','confirm'])
+    confirmLocalChange(confirm)
+    if (acceptance) throw new Problem(403, 'Der Gmail-Papierkorb ist im Testprofil gesperrt.')
+    const address = await confirmedMailAccount(google)
+    if (!address || mailAccountKey(address) !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere den Posteingang.')
+    await google.trashInboxMessage(mailAccountKey(address), message)
+    return reply(res, 200, { ok:true })
+  }
   if (path==='/api/inbox/feed' && method==='GET') return reply(res,200,await readInboxFeed(google,acceptance))
   if (path==='/api/inbox/feed' && method==='POST') {
     const {confirm}=await body(req,['confirm'])
@@ -1243,13 +1261,13 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path === '/api/inbox' && method === 'GET') return reply(res, 200, await inboxWithLectureTargets(store,acceptance?undefined:google))
   if (path === '/api/inbox/refresh' && method === 'POST') {
-    const { confirm, restart } = await body(req, ['confirm','restart'])
+    const { confirm, restart, deep } = await body(req, ['confirm','restart','deep'])
     confirmLocalChange(confirm)
     if (restart !== undefined && typeof restart !== 'boolean') throw new Problem(400, 'Ungültiger Synchronisierungsmodus.')
     if (scanningInbox) throw new Problem(409, 'Ein Mail-Durchlauf läuft bereits.')
     scanningInbox = true
     try {
-      const result = await refreshInbox(store, google, acceptance, restart === true)
+      const result = await refreshInbox(store, google, acceptance, restart === true, deep === true)
       return reply(res, 200, { ...result, ...await planRefreshedInbox(store, google, acceptance) })
     } finally { scanningInbox = false }
   }
