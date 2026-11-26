@@ -1072,6 +1072,7 @@ function App() {
   // Mails, die einmal aufgeklappt wurden, verlieren die grüne Markierung (lokal im Browser gemerkt).
   const [mailFilter, setMailFilter] = useState<string>('')
   const [editingMail, setEditingMail] = useState<string>()
+  const [relabelError, setRelabelError] = useState('')
   const [seenMails, setSeenMails] = useState<Set<string>>(() => { try { return new Set<string>(JSON.parse(localStorage.getItem('lifepilot-seen-mails') ?? '[]')) } catch { return new Set<string>() } })
   const markSeen = (id: string) => setSeenMails(current => {
     if (current.has(id)) return current
@@ -1625,7 +1626,7 @@ function App() {
       setInboxFeed(current => current ? { ...current, messages: current.messages.map(mail => mail.id === item.id ? { ...mail, label } : mail) } : current)
       setEditingMail(undefined)
     } catch (reason) {
-      setTrashFeedback({ text: reason instanceof Error ? reason.message : 'Die Kategorie konnte nicht geändert werden.', error: true })
+      setRelabelError(reason instanceof Error ? reason.message : 'Die Kategorie konnte nicht geändert werden.')
     }
   }
 
@@ -1655,27 +1656,30 @@ function App() {
               <span className="inbox-mail-main"><strong>{item.subject}</strong><small className="inbox-sender">{item.from}{item.forwardedBy ? <em> · weitergeleitet</em> : null}</small>
                 <span className="inbox-row-meta">
                   <small className="inbox-category" data-category={item.label}>{shownLabelName(item.label) || (item.category && mailCategoryNames[item.category])}</small>
-                  {!compact ? <button type="button" className="inbox-edit" aria-label={`Kategorie ändern: ${item.subject}`} title="Kategorie ändern"
-                    onClick={event => { event.preventDefault(); event.stopPropagation(); event.currentTarget.closest('details')?.setAttribute('open', ''); markSeen(item.id); setEditingMail(item.id) }}><Icon name="pencil"/></button> : null}
-                  {item.reply && <small>Antwort erbeten</small>}
                   {item.shipment && <small>{shipmentLabels[item.shipment]}</small>}
                 </span></span>
-              {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+              <span className="inbox-mail-side">
+                {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+                {!compact ? <button type="button" className="inbox-edit" aria-label={`Kategorie ändern: ${item.subject}`} title="Kategorie ändern"
+                  onClick={event => { event.preventDefault(); event.stopPropagation(); event.currentTarget.closest('details')?.setAttribute('open', ''); markSeen(item.id); setRelabelError(''); setEditingMail(current => current === item.id ? undefined : item.id) }}><Icon name="pencil"/></button> : null}
+              </span>
             </summary>
             <div className="inbox-mail-detail">
               {!compact && editingMail === item.id ? <div className="inbox-relabel" role="group" aria-label="Kategorie wählen">
-                <b>Richtige Kategorie:</b>
+                <b>Bereich ändern:</b>
                 {shownLabels.map(label => <button type="button" key={label}
                   aria-pressed={shownLabel(item.label) === label} onClick={() => void relabelMail(item, label)}><Icon name={mailLabelIcons[label]}/><span>{shownLabelName(label)}</span></button>)}
                 <button type="button" className="quiet" onClick={() => setEditingMail(undefined)}>Abbrechen</button>
+                {relabelError ? <p role="alert" className="inbox-relabel-error">{relabelError}</p> : null}
               </div> : null}
               {item.reasons.length ? <p className="inbox-why"><b>Warum hier:</b> {item.reasons.join(' · ')}</p> : null}
               {item.preview ? <p className="inbox-preview">{item.preview}</p> : <p className="inbox-preview muted">Kein Textauszug verfügbar.</p>}
               <dl>
                 <div><dt>{item.forwardedBy ? 'Ursprünglich von' : 'Von'}</dt><dd>{item.from}</dd></div>
                 {item.forwardedBy ? <div><dt>Weitergeleitet über</dt><dd>{item.forwardedBy}</dd></div> : null}
+                {item.reply ? <div><dt>Hinweis</dt><dd>Die Mail bittet um eine Antwort.</dd></div> : null}
                 {item.at ? <div><dt>Eingang</dt><dd>{mailDate.format(new Date(item.at))}</dd></div> : null}
-                <div><dt>Bereich</dt><dd>{shownLabelName(item.label) || (item.category && mailCategoryNames[item.category]) || 'Allgemein'}</dd></div>
+                <div><dt>Bereich</dt><dd>{shownLabelName(item.label) || (item.category && mailCategoryNames[item.category]) || 'Allgemein'}{!compact ? <button type="button" className="inbox-edit" aria-label="Bereich ändern" title="Bereich ändern" onClick={() => { setRelabelError(''); setEditingMail(item.id) }}><Icon name="pencil"/></button> : null}</dd></div>
               </dl>
               <div className="inbox-mail-footer">
               {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?

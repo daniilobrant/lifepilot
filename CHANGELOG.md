@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.83 · 26. November 2026
+
+- Posteingang: Der Stift zum Ändern der Kategorie steht ganz rechts unter dem Datum, ohne weitere Beschriftung. Er klappt die Mail auf und zeigt „Bereich ändern“; ein zweiter Stift steht beim Feld „Bereich“. Fehler beim Speichern erscheinen direkt in der Mail.
+- Posteingang: „Antwort erbeten“ steht nicht mehr in der Kopfzeile, sondern als Hinweis in den Details.
+
 ## v1.0.82 · 26. November 2026
 
 - Pilot: Relative Datumsangaben werden zentral aufgelöst ([relative-dates.ts](hub/runtime/relative-dates.ts)): „nächsten Dienstag“, „nächste Woche Mittwoch“, „in zwei Wochen“, „nächstes Wochenende“, „Anfang/Mitte/Ende des Monats“, „nächsten Monat“, „Ende des Jahres“, „Neujahr“. Der Serien-Handler nutzt sie für „ab …“ und „bis …“, das Modell bekommt sie als aufgelöste Daten in der Vorzerlegung.
