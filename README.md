@@ -1,8 +1,8 @@
-# LifePilot 1.0.58
+# LifePilot 1.0.59
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
-[Aktueller Release](https://github.com/daniilobrant/lifepilot/releases/tag/v1.0.10) · [Installation](#installation) · [Screenshots](#lifepilot-im-einsatz) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](#roadmap-von-01-bis-10)
+[Installation](#installation) · [Screenshots](#lifepilot-im-einsatz) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Versionsübersicht](#versionsübersicht) · [Entwicklungsverlauf](docs/ENTWICKLUNG.md) · [Sicherheitsbericht](SECURITY_REPORT.md)
 
 ## LifePilot im Einsatz
 
@@ -78,7 +78,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 
 Vorausgesetzt sind macOS, Node.js 24 ab 24.13, npm, Git und die Xcode Command Line Tools. Dieser Stand wurde auf einem Mac mit Apple Silicon geprüft. Der Download enthält Quellcode, aus dem auch die nativen Helfer gebaut werden.
 
-    git clone --branch v1.0.10 https://github.com/daniilobrant/lifepilot.git
+    git clone https://github.com/daniilobrant/lifepilot.git
     cd lifepilot
     xcode-select -p
     node --version
@@ -164,9 +164,9 @@ Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das gekl
 
 [Alle Skills und ihre Verknüpfungen](docs/SKILLS.md)
 
-## Roadmap von 0.1 bis 1.0
+## Versionsübersicht
 
-Wir haben LifePilot mit einem lokalen Kern begonnen und ihn im Chat anhand konkreter Abläufe weiterentwickelt. Für die frühen Etappen geben die Versionsbereiche die Reihenfolge an. Der öffentliche Release ist datiert.
+LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe gemeinsam mit KI-Assistenten weiterentwickelt. Für die frühen Etappen geben die Versionsbereiche die Reihenfolge an, ab dem öffentlichen Release sind die Tage datiert. Wie die Zusammenarbeit ablief, beschreibt der [Entwicklungsverlauf](docs/ENTWICKLUNG.md).
 
 | Version | Was dazukam und wie wir es aufgebaut haben |
 | --- | --- |
@@ -180,8 +180,14 @@ Wir haben LifePilot mit einem lokalen Kern begonnen und ihn im Chat anhand konkr
 | **0.25.7–0.25.12** | Werkstudenten-Pläne und Vorlesungen führten zu Kalenderserien mit Feiertagen und zweiter Bestätigung bei Überschneidungen. Neue Datumsangaben im Chat erhielten Vorrang vor früheren Vorschlägen. Projekte bekamen Phasen und Checkpoints. Verknüpfte Fristen erscheinen im eigenen Aufgabenboard. |
 | **0.25.13–0.25.16** | Wir überarbeiteten die Übersichten anhand der App-Ansichten. Einkauf wurde nach Kategorien gegliedert, Vorratsaktionen neu ausgerichtet und das Reiseformular um Ortssuche und auswählbare Interessen ergänzt. |
 | **1.0 · 24. November 2026** | Die öffentliche Ausgabe bündelt die Module mit einer Anleitung, der Screenshot-Galerie und detaillierten Skills. Die Sicherheitsprüfung führte zur Google-Kontobindung für Kalenderschreibzugriffe, zur Signaturprüfung privater Releases und zur Umstellung der modellgestützten Bildanalyse auf Codex CLI. |
+| **1.0.1–1.0.10 · 24./25. November 2026** | Kleiderschrank mit Kategorien, Verkaufskarten und Urlaubsgarderobe, lokale Freigabe des privaten Chats, Rezepte mit Portionen und Mengenabgleich, kompaktere Reiseformulare. |
+| **1.0.11–1.0.35 · 25. November 2026** | Zahlungs- und Erstattungserkennung aus Mails (Händler, Apple, Fahrdienste), Bestellungstracker für Amazon und weitere Shops, paralleler Reiseguide mit Währungsrechner, Vorrat mit Einheiten, Outfit mit Farbpalette, Projekte nach Frist, aufgeräumte Bearbeitung von Terminen. |
+| **1.0.36–1.0.42 · 25./26. November 2026** | Agent mit Verzeichnis aller Bereiche, Zerlegung langer und diktierter Nachrichten, Entscheidungstabelle der Skills, Bestellungen und Bewerbungen im Chat, umschaltbarer Modellanbieter (Codex oder Claude Code), Testsatz mit 48 Beispielsätzen. |
+| **1.0.43–1.0.52 · 26. November 2026** | Sicherheitsprüfung des Gesamtprojekts, Kalender ohne Doppeleinträge, Rezeptauswahl und Zutatenabgleich, Bestellmails mit Warenkorb-Blöcken, Outfits passend zum Anlass, Terminvorschläge aus Mails. |
+| **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
+| **1.0.58–1.0.59 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. |
 
-[Alle Einzelschritte im Changelog](CHANGELOG.md)
+[Alle Einzelschritte im Changelog](CHANGELOG.md) · [Entwicklungsverlauf](docs/ENTWICKLUNG.md)
 
 ## Technik
 

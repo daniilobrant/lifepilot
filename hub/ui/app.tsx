@@ -1856,7 +1856,7 @@ function App() {
           {inboxBatch ? <button type="button" onClick={() => { openFromPilot('Posteingang') }}>Vorschläge öffnen</button> : null}
         </div> : null}
         {refreshFeedback}
-        {sessionExpired ? <div className="approval" role="status">Die Sitzung ist abgelaufen. Öffne LifePilot erneut mit dem NIGHTBOT-Starter oder prüfe die Verbindung auf Start.</div> : null}
+        {sessionExpired ? <div className="approval" role="status">Die Sitzung ist abgelaufen. Öffne LifePilot erneut mit dem Test-Starter oder prüfe die Verbindung auf Start.</div> : null}
         {earlier.length>0&&<details className="history-note"><summary>Vorherige Nachrichten in diesem Chat</summary>
           {earlier.map(run=><div key={run.id}><p>{run.input}</p>{run.result?.summary&&<p>{run.result.summary}</p>}</div>)}
         </details>}
