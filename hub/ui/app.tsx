@@ -1047,6 +1047,14 @@ function App() {
   const [lectureNotices,setLectureNotices]=useState<InboxProposal[]>([])
   const [lectureRefresh,setLectureRefresh]=useState(0)
   const [inboxFeed, setInboxFeed] = useState<InboxFeed>()
+  // Mails, die einmal aufgeklappt wurden, verlieren die grüne Markierung (lokal im Browser gemerkt).
+  const [seenMails, setSeenMails] = useState<Set<string>>(() => { try { return new Set<string>(JSON.parse(localStorage.getItem('lifepilot-seen-mails') ?? '[]')) } catch { return new Set<string>() } })
+  const markSeen = (id: string) => setSeenMails(current => {
+    if (current.has(id)) return current
+    const next = new Set(current).add(id)
+    try { localStorage.setItem('lifepilot-seen-mails', JSON.stringify([...next].slice(-400))) } catch { /* Ohne Speicher bleibt die Markierung bis zum Neuladen aus. */ }
+    return next
+  })
   const [mailToTrash, setMailToTrash] = useState<{id:string,account:string}>()
   const [trashingMail, setTrashingMail] = useState(false)
   const [trashFeedback, setTrashFeedback] = useState<{text:string,error?:boolean}>()
@@ -1598,8 +1606,8 @@ function App() {
       {inboxFeed?.loadedAt ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
       {!compact && inboxFeed?.incomplete ? <p role="status">{inboxFeed.rateLimited ? 'Gmail begrenzt gerade die Anfragen. LifePilot zeigt bereits geladene Mails und versucht es später erneut.' : 'Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.'}</p> : null}
       {messages?.length ? <ul className="inbox-feed-list">
-        {messages.map(item => <li key={item.id} className="inbox-mail" data-important={item.important ? 'true' : undefined}>
-          <details>
+        {messages.map(item => <li key={item.id} className="inbox-mail" data-important={item.important && !seenMails.has(item.id) ? 'true' : undefined}>
+          <details onToggle={event => { if (event.currentTarget.open) markSeen(item.id) }}>
             <summary>
               <span className="inbox-mail-main"><strong>{item.subject}</strong><small className="inbox-sender">{item.from}{item.forwardedBy ? <em> · weitergeleitet</em> : null}</small>
                 <span className="inbox-row-meta">

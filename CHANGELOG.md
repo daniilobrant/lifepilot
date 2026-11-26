@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.63 · 26. November 2026
+
+- Posteingang: Die grüne Markierung wichtiger Mails verschwindet, sobald die Mail einmal aufgeklappt wurde. Der Zustand bleibt im Browser gespeichert.
+
 ## v1.0.62 · 26. November 2026
 
 - Posteingang: Absender erscheint einmal als Name, bei weitergeleiteten Mails zusätzlich der ursprüngliche Absender und das weiterleitende Konto. Textauszug ohne Platzhalter, aufgeräumte Fußzeile mit Löschen.

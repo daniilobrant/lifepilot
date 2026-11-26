@@ -1,8 +1,8 @@
 {
   "id": "lifepilot",
   "name": "LifePilot",
-  "version": "1.0.62",
-  "hub": "1.0.62",
+  "version": "1.0.63",
+  "hub": "1.0.63",
   "standard": "2026-11-05",
   "schemaVersion": 24,
   "skill": "alltag",
