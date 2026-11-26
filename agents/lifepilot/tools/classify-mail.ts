@@ -1,6 +1,7 @@
 import {hfuMail,type HfuMail} from './university-mail.ts'
 import {amazonOrderSubject,amazonSender} from '../../../hub/runtime/purchase-mail.ts'
 import {readTicketEvent} from '../../../hub/runtime/event-mail.ts'
+import {readMeetingMail} from '../../../hub/runtime/meeting-mail.ts'
 export const mailCategoryNames = {
   newsletter: 'Newsletter', spam: 'Spamverdacht', orders: 'Bestellungen',
   volleyball: 'Volleyball', applications: 'Bewerbungen', jobs: 'Jobs', university: 'Uni', work: 'Arbeit',
@@ -53,7 +54,9 @@ export function classifyMail(mail: { id: string, subject: string, from: string, 
   const reply = actionable && !/\b(?:no[.-]?reply|do[.-]?not[.-]?reply)\b/iu.test(mail.from) && asks.test(text)
   const changed = actionable && category !== null && changes.test(subject + '\n' + text)
   const hiring = actionable && category === 'applications' && applicationUpdate.test(subject + '\n' + text)
+  const meeting = actionable && !transactional && Boolean(readMeetingMail(mail))
   const reasons = [
+    ...(meeting ? ['Termin mit Uhrzeit'] : []),
     ...(hiring ? ['Rückmeldung zu einer Bewerbung'] : []),
     ...(isRisky ? ['Auffällige Zahlungs- oder Passwortaufforderung'] : []),
     ...(ownDeadline ? ['Ausdrücklicher Fristenhinweis'] : []),
@@ -71,7 +74,7 @@ export function classifyMail(mail: { id: string, subject: string, from: string, 
     else if (ownDeadline || /bitte.{0,65}(?:zurücksenden|zurückschicken|abgeben)|rücksendeetikett/iu.test(transactionText)) shipment = 'return-open'
     else if (/retoure|rücksendung|rückgabe/iu.test(subject)) shipment = 'return-unknown'
   }
-  return { id: mail.id, subject, category, shipment, important: ownDeadline || reply || changed || hiring, reply, reasons }
+  return { id: mail.id, subject, category, shipment, important: ownDeadline || reply || changed || hiring || meeting, reply, reasons }
 }
 
 export function automaticLabelCategory(mail: Parameters<typeof classifyMail>[0]) {

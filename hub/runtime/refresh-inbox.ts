@@ -15,6 +15,7 @@ export type RefreshResult = {
   labelError: string | null, classified: MailClassification[],
 }
 import { financeFromMail, scanMailFinances } from './mail-finance.ts'
+import { triageMails, triagedImportant } from './mail-triage.ts'
 
 export const refreshPageLimit = 3
 export type AttentionMail = MailClassification & { from: string, at: string | null, label:InboxLabel }
@@ -37,12 +38,13 @@ function needsAttention(item:MailClassification,mail?:MailContent) {
 export async function readInboxFeed(google: GoogleConnector, synthetic: boolean, store?:Store) {
   const relevant: AttentionMail[] = []
   const seen = new Set<string>()
-  const collect = (mails: MailContent[]) => {
+  const collect = (mails: MailContent[], account?: string) => {
+    const modelImportant = store && account ? triagedImportant(store, mails, account) : new Set<string>()
     for (const mail of mails) {
       if (seen.has(mail.id)) continue
       seen.add(mail.id)
-      const classified = classifyMail(mail)
-      if (needsAttention(classified,mail)) relevant.push({ ...classified, from:classified.university?.sender??mail.from, at:mail.at,label:inboxLabel(mail,classified) })
+      const classified = modelImportant.has(mail.id) ? { ...classifyMail(mail), important: true, reasons: ['Vom Modell als wichtig eingestuft'] } : classifyMail(mail)
+      if (modelImportant.has(mail.id) || needsAttention(classified,mail)) relevant.push({ ...classified, from:classified.university?.sender??mail.from, at:mail.at,label:inboxLabel(mail,classified) })
     }
   }
   if (synthetic) {
@@ -55,7 +57,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
     for (let i=0; i<refreshPageLimit; i++) {
       const result = await google.recentInbox(key => key === account ? cursor : undefined)
       if (account && result.account !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere erneut.')
-      collect(result.mails)
+      collect(result.mails, result.account)
       if (store) {
         scanClothingOrders(store,result.mails,result.account)
         scanMailFinances(store,result.mails,result.account)
@@ -91,7 +93,11 @@ export async function refreshInbox(store: Store, google: GoogleConnector, synthe
     scanClothingOrders(store,batch.mails,batch.account)
     scanMailFinances(store,batch.mails,batch.account)
     result.added+=scanTicketEvents(store,batch.mails,batch.account)+scanHfuCancellations(store,batch.mails,batch.account)+scanProjectMails(store,batch.mails,batch.account)
-    const classified = batch.mails.map(mail=>({mail,item:classifyMail(mail)})).filter(({mail,item})=>needsAttention(item,mail)).map(({item})=>item)
+    // Unklare Mails prüft das Modell einmalig; wichtige erscheinen unter „Wichtige Nachrichten“.
+    try { result.added+=(await triageMails(store,batch.mails,batch.account)).proposals } catch { /* Die lokale Prüfung läuft ohne Modell weiter. */ }
+    const modelImportant = triagedImportant(store,batch.mails,batch.account)
+    const classified = batch.mails.map(mail=>({mail,item:modelImportant.has(mail.id)?{...classifyMail(mail),important:true,reasons:['Vom Modell als wichtig eingestuft']}:classifyMail(mail)}))
+      .filter(({mail,item})=>modelImportant.has(mail.id)||needsAttention(item,mail)).map(({item})=>item)
     const matching = new Set(classified.map(item => item.id))
     const relevant = batch.mails.filter(mail => matching.has(mail.id))
     result.applications += scanApplicationMails(store, relevant, batch.account, true)
