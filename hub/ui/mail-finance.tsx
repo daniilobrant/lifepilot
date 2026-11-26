@@ -88,6 +88,26 @@ export function MailFinance({api,refreshKey,onUpdate,compact,onOpen}:{
   </details>
 }
 
+
+/** Hält die geklickte Zeile an ihrer Bildschirmposition, während darüber Summen und Listen nachladen (Safari verschiebt sonst die Seite). */
+function holdPosition(element:HTMLElement|null){
+  if(!element)return
+  let scroller:HTMLElement|null=element.parentElement
+  while(scroller&&!(scroller.scrollHeight>scroller.clientHeight&&/auto|scroll/u.test(getComputedStyle(scroller).overflowY)))scroller=scroller.parentElement
+  const top=element.getBoundingClientRect().top
+  const end=performance.now()+1500
+  let stop=false
+  const cancel=()=>{stop=true}
+  for(const name of ['wheel','touchstart','keydown','mousedown'])window.addEventListener(name,cancel,{once:true,passive:true})
+  const step=()=>{
+    if(stop||performance.now()>end||!element.isConnected)return
+    const delta=element.getBoundingClientRect().top-top
+    if(Math.abs(delta)>.5){if(scroller)scroller.scrollTop+=delta;else window.scrollBy(0,delta)}
+    requestAnimationFrame(step)
+  }
+  requestAnimationFrame(step)
+}
+
 type PayPalRow=MailFinanceProposal & {state:'open'|'assigned'|'ignored'}
 const dayText=(date:string)=>date.split('-').reverse().join('.')
 /** Optionale Übersicht aller erkannten PayPal-Zahlungen. Nichts davon zählt, bis es zugeordnet wird. */
@@ -101,8 +121,9 @@ export function PayPalList({api,month,refreshKey,onChange}:{api:Api,month:string
       .catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'PayPal-Zahlungen konnten nicht geladen werden.')})
     return ()=>{active=false}
   },[api,month,refreshKey])
-  async function decide(row:PayPalRow,assign:boolean){
+  async function decide(row:PayPalRow,assign:boolean,item?:HTMLElement|null){
     if(busy)return
+    holdPosition(item??null)
     setBusy(row.id);setError('')
     try{
       await api('/inbox/paypal',{entry:row.id,assign,confirm:true})
@@ -122,8 +143,8 @@ export function PayPalList({api,month,refreshKey,onChange}:{api:Api,month:string
         <small>{[incoming(row)?'Eingang':'Ausgang',dayText(row.date),row.state==='assigned'?'zugeordnet':row.state==='ignored'?'nicht beachtet':''].filter(Boolean).join(' · ')}</small></div>
       <strong className={incoming(row)?'finance-in':'finance-out'}>{incoming(row)?'+':'−'}{money(row.cents)}</strong>
       <div className="finance-paypal-actions">
-        <button type="button" className={row.state==='assigned'?'finance-chosen':''} disabled={Boolean(busy)} aria-pressed={row.state==='assigned'} onClick={()=>void decide(row,true)}>Zuordnen</button>
-        <button type="button" className={row.state==='ignored'?'finance-chosen':''} disabled={Boolean(busy)} aria-pressed={row.state==='ignored'} onClick={()=>void decide(row,false)}>Nicht beachten</button>
+        <button type="button" className={row.state==='assigned'?'finance-chosen':''} disabled={Boolean(busy)} aria-pressed={row.state==='assigned'} onClick={event=>void decide(row,true,event.currentTarget.closest('li'))}>Zuordnen</button>
+        <button type="button" className={row.state==='ignored'?'finance-chosen':''} disabled={Boolean(busy)} aria-pressed={row.state==='ignored'} onClick={event=>void decide(row,false,event.currentTarget.closest('li'))}>Nicht beachten</button>
       </div>
     </li>)}</ul>
   </section>

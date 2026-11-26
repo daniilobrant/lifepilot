@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.86 · 26. November 2026
+
+- Finanzen & Abos: Beim Klick auf „Zuordnen“ oder „Nicht beachten“ bleibt die Seite an ihrer Stelle. Die Zeile hält ihre Bildschirmposition, auch wenn darüber Summen und Listen nachladen.
+
 ## v1.0.85 · 26. November 2026
 
 - Finanzen & Abos: Die Liste „Zahlungen aus Mails“ zeigt nur Zahlungen des gewählten Monats und wechselt mit der Monatsauswahl.
