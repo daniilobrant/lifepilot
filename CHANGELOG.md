@@ -2,6 +2,13 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.78 · 26. November 2026
+
+- Pilot: Nachrichten mit neuem Thema während einer offenen Rückfrage (z. B. Rezept nach einer Terminfrage) werden neu bearbeitet, statt die alte Frage zu wiederholen. Die Serien-Rückfrage nimmt Antworten wie „15 Uhr“ oder „Bis 16:30 Uhr“ an und fragt nur nach der fehlenden Angabe.
+- Pilot: Rückfragen enthalten anklickbare Kurzantworten (`choices`, höchstens vier, nur Text, lokal geprüft). Ein Klick sendet die Antwort wie eine getippte Nachricht; „Etwas anderes …“ fokussiert das Eingabefeld.
+- Pilot: Verwirft die lokale Prüfung einen Entwurf, erhält das Modell den Fehler einmal zurück (ein zusätzlicher Aufruf nur im Fehlerfall). Zu lange oder mehrzeilige Zusammenfassungen werden gekürzt statt verworfen.
+- Tests: 11 Dialogfälle und 5 Unit-Tests ergänzt. README beschreibt alle Verknüpfungen des Pilot-Chats.
+
 ## v1.0.77 · 26. November 2026
 
 - Dokumentation: Der Changelog ist wieder im Repository und wird weitergeführt. Er ist bewusst nicht im README verlinkt. Mit 1.0.76 war er kurz entfernt, der Entwicklungsverlauf bleibt unverändert.

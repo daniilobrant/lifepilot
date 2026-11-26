@@ -184,6 +184,7 @@ dd { margin: 4px 0 0; }
 .chat-skill { border-radius: 999px; padding: .2rem .55rem; background: var(--accent-soft); color: var(--mint); font-size: .79rem; }
 .chat-quick-replies { gap: .45rem; margin-top: .55rem; }
 .chat-quick-replies button { border-radius: 999px; font-size: .83rem; }
+.chat-quick-replies button.quiet { background: transparent; border-style: dashed; color: var(--muted, #5f6b63); }
 
 .outfit-space {
   --studio-paper: var(--bg);

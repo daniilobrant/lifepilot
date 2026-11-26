@@ -563,6 +563,264 @@
         ],
         "answerIncludes": "Vorlesung"
       }
+    },
+    {
+      "id": "dialog-termin-uhrzeit",
+      "turns": [
+        "Trag am Samstag einen Termin Kaffee mit Lena ein",
+        "um 15 Uhr",
+        "1 Stunde"
+      ],
+      "expect": [
+        {
+          "question": true,
+          "choices": 2
+        },
+        {
+          "anyOf": [
+            [
+              "frage"
+            ],
+            [
+              "termin"
+            ]
+          ]
+        },
+        {
+          "units": [
+            "termin"
+          ],
+          "noQuestion": true,
+          "dates": [
+            "2026-11-28T15:00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dialog-serie-kaffee",
+      "turns": [
+        "Trag jeden Dienstag den Termin „Kaffee trinken“ ein, bis zum 15.12.",
+        "15 Uhr",
+        "Bis 16:30 Uhr"
+      ],
+      "expect": [
+        {
+          "question": true,
+          "choices": 2
+        },
+        {
+          "question": true,
+          "choices": 2
+        },
+        {
+          "units": [
+            "calendar_series"
+          ],
+          "noQuestion": true
+        }
+      ]
+    },
+    {
+      "id": "dialog-themenwechsel-kochen",
+      "turns": [
+        "Trag jeden Dienstag den Termin „Kaffee trinken“ ein, bis zum 15.12.",
+        "Ja, ein Gericht mit Fleisch, mit meinen Zutaten, die ich gerade habe."
+      ],
+      "expect": {
+        "units": [
+          "grocery"
+        ],
+        "notUnits": [
+          "calendar_series"
+        ]
+      }
+    },
+    {
+      "id": "dialog-themenwechsel-outfit",
+      "turns": [
+        "Trag jeden Dienstag den Termin „Kaffee trinken“ ein, bis zum 15.12.",
+        "Was ziehe ich morgen zum Vorstellungsgespräch an?"
+      ],
+      "expect": {
+        "units": [
+          "outfit"
+        ],
+        "notUnits": [
+          "calendar_series"
+        ]
+      }
+    },
+    {
+      "id": "dialog-themenwechsel-kalender",
+      "turns": [
+        "Trag morgen einen Termin ein",
+        "Was steht diese Woche in meinem Kalender?"
+      ],
+      "expect": [
+        {
+          "question": true
+        },
+        {
+          "anyOf": [
+            [
+              "antwort"
+            ],
+            [
+              "termin"
+            ],
+            [
+              "freie-zeit"
+            ]
+          ],
+          "notUnits": [
+            "frage"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dialog-wahl-datum",
+      "turns": [
+        "Trag nächsten Samstag um 11 Uhr einen Brunch mit Lena ein",
+        "Der 5. Dezember",
+        "2 Stunden"
+      ],
+      "expect": [
+        {
+          "anyOf": [
+            [
+              "frage"
+            ],
+            [
+              "termin"
+            ]
+          ]
+        },
+        {
+          "anyOf": [
+            [
+              "frage"
+            ],
+            [
+              "termin"
+            ]
+          ],
+          "textIncludes": "5. Dezember"
+        },
+        {
+          "units": [
+            "termin"
+          ],
+          "noQuestion": true,
+          "dates": [
+            "2026-12-05T11:00"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "dialog-erinnerung-kontext",
+      "turns": [
+        "Ich habe am Mittwoch, 9. Dezember um 10 Uhr Zahnarzt",
+        "Erinner mich einen Tag vorher daran"
+      ],
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-12-08"
+        ]
+      }
+    },
+    {
+      "id": "dialog-korrektur-uhrzeit",
+      "turns": [
+        "Trag am Samstag um 14 Uhr ein Meeting mit Sven ein",
+        "Nein, lieber um 16 Uhr",
+        "Bis 17 Uhr"
+      ],
+      "expect": [
+        {
+          "anyOf": [
+            [
+              "termin"
+            ],
+            [
+              "frage"
+            ]
+          ]
+        },
+        {
+          "anyOf": [
+            [
+              "termin"
+            ],
+            [
+              "frage"
+            ]
+          ],
+          "textIncludes": "16"
+        },
+        {
+          "anyOf": [
+            [
+              "termin"
+            ],
+            [
+              "frage"
+            ]
+          ],
+          "textIncludes": "16"
+        }
+      ]
+    },
+    {
+      "id": "dialog-outfit-dafuer",
+      "turns": [
+        "Ich habe morgen ein Vorstellungsgespräch bei der Beispiel GmbH um 10 Uhr.",
+        "Was ziehe ich dafür an?"
+      ],
+      "expect": {
+        "units": [
+          "outfit"
+        ]
+      }
+    },
+    {
+      "id": "dialog-abo-nachfrage",
+      "turns": [
+        "Trag mein neues Abo ein",
+        "Disney Plus für 9,99 € im Monat"
+      ],
+      "expect": [
+        {
+          "question": true
+        },
+        {
+          "units": [
+            "finance"
+          ],
+          "noQuestion": true
+        }
+      ]
+    },
+    {
+      "id": "dialog-frage-bubbles-ort",
+      "turns": [
+        "Ich will mir ein Outfit für heute Abend zusammenstellen lassen"
+      ],
+      "expect": {
+        "anyOf": [
+          [
+            "outfit"
+          ],
+          [
+            "frage"
+          ]
+        ]
+      }
     }
   ]
 }

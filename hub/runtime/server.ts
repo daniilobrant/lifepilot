@@ -428,7 +428,7 @@ async function work() {
           category:explicitCategory(task.evidence) ?? (!part&&proposal.tasks.length===1?explicit:null) ?? suggestCategory(task.title,task.evidence) ??
             (/\bb2b\b/iu.test(task.title+' '+task.evidence) ? null : task.category ?? null)}))
         const unknown=tasks.find(task=>!task.category)
-        return unknown ? {...proposal,tasks:[],actions:[],advice:[],summary:null,
+        return unknown ? {...proposal,tasks:[],actions:[],advice:[],summary:null,choices:['Arbeit','Uni','Freizeit'],
           questions:[`Gehört „${unknown.title}“ zu Arbeit, Uni oder Freizeit?`,...proposal.questions].slice(0,8)}:
           {...proposal,tasks}
       }

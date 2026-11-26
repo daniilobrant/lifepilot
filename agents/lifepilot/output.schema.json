@@ -2451,9 +2451,33 @@
                 }
               }
             ]
+          },
+          "choices": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "maxItems": 4,
+            "items": {
+              "type": "string",
+              "maxLength": 60
+            },
+            "description": "Optionale Antwortvorschläge zur ersten Rückfrage (Kurzantworten, die der Nutzer anklicken kann)."
           }
         }
       }
+    },
+    "choices": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "maxItems": 4,
+      "items": {
+        "type": "string",
+        "maxLength": 60
+      },
+      "description": "Optionale Antwortvorschläge zur ersten Rückfrage (Kurzantworten, die der Nutzer anklicken kann)."
     }
   }
 }

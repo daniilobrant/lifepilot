@@ -12,6 +12,11 @@ const spoken:Record<string,number>={null:0,eins:1,ein:1,zwei:2,drei:3,vier:4,fü
 const clock='(?:[01]?\\d|2[0-3])(?:[:.][0-5]\\d)?|'+Object.keys(spoken).sort((a,b)=>b.length-a.length).join('|')
 const timeRange=new RegExp(String.raw`(?<![\w.:-])(?:\bvon\s+)?(${clock})\s*(?:uhr\s*)?(?:bis|[–—-])\s*(${clock})(?:\s*(uhr))?(?=\s|[,.!?;]|$)`,'giu')
 const singleTime=new RegExp(String.raw`\bum\s+(${clock})(?:\s*uhr)?(?=\s|[,.!?;]|$)`,'iu')
+function shiftClock(value:string,minutes:number){
+  const [hours,mins]=value.split(':').map(Number)
+  const total=Math.min(23*60+59,hours*60+mins+minutes)
+  return String(Math.floor(total/60)).padStart(2,'0')+':'+String(total%60).padStart(2,'0')
+}
 const time=(value:string|undefined)=>{
   if(!value)return null
   const [hours,minutes='00']=value.toLowerCase().split(/[:.]/u)
@@ -40,8 +45,8 @@ export function dateInText(text:string,anchor:string,before=false){
   return isDate(resolved)?boundary(resolved):null
 }
 
-const envelope=(plan?:SeriesPlan,question?:string,summary?:string):Result=>({skill:'calendar_series',skillData:plan??null,
-  tasks:[],actions:[],questions:question?[question]:[],...(summary&&{summary})})
+const envelope=(plan?:SeriesPlan,question?:string,summary?:string,choices?:string[]):Result=>({skill:'calendar_series',skillData:plan??null,
+  tasks:[],actions:[],questions:question?[question]:[],...(question&&choices?.length&&{choices}),...(summary&&{summary})})
 const empty:SeriesPlan={seriesIntent:'create',title:null,seriesKind:null,weekdays:[],startDate:null,endDate:null,
   startTime:null,endTime:null,category:null,excludeHolidays:false,region:null}
 const recurring=/\b(?:wiederkehrend\w*|immer|jede[nrs]?|wöchentlich|serie[n]?|serientermine?)\b/iu
@@ -59,6 +64,14 @@ function findTitle(input:string){
     'KI & Data Science Vorlesung':found.trim()
 }
 const titleKey=(title:string)=>title.toLowerCase().replace(/&/gu,' und ').replace(/[^\p{L}\p{N}]+/gu,' ').trim()
+
+const shortAnswer=/^(?:ja|nein|doch|ok(?:ay)?|genau|stimmt|passt)\b[\s\p{L}.,!]{0,24}$/iu
+const bareClock=new RegExp(String.raw`^\s*(?:um\s+)?(${clock})\s*(?:uhr)?\s*[.!]?\s*$`,'iu')
+const endOnly=new RegExp(String.raw`^\s*(?:bis|endet(?:\s+um)?|ende\s+um)\s+(${clock})\s*(?:uhr)?\s*[.!]?\s*$`,'iu')
+function looksLikeAnswer(text:string,details:ReturnType<typeof detailsFrom>){
+  return !!(details.startTime||details.endTime||details.begin||details.end||details.weekdays.length||details.mentionedStart||details.mentionedEnd||
+    endOnly.test(text)||shortAnswer.test(text)&&text.trim().split(/\s+/u).length<=4||/^\s*(?:20\d\d|\d{1,2})(?:[.:]\d{1,2})?\s*(?:uhr)?\s*[.!]?\s*$/iu.test(text))
+}
 
 function previousSeries(messages:ModelMessage[]){
   for(const entry of messages.toReversed()){
@@ -83,7 +96,7 @@ function detailsFrom(input:string,day:string){
   const until=stop??bare
   const begin=from?dateInText(from[1],day):coming.test(text)?day:null
   const end=until?dateInText(until[1],begin??day,before):null
-  return {begin,end,mentionedStart:!!from||coming.test(text),mentionedEnd:!!until||/\b(?:bis|vor)\s+\S/iu.test(text),
+  return {begin,end,mentionedStart:!!from||coming.test(text),mentionedEnd:!endOnly.test(input)&&(!!until||/\b(?:bis|vor)\s+\S/iu.test(text)),
     startTime:time(times?.[1]??single?.[1]),endTime:time(times?.[2]),
     // Weekday names come from a fixed table.
     weekdays:weekdayNames.flatMap((name,index)=>new RegExp('\\b'+name+'s?\\b','iu').test(text)?[index]:[])} // nosemgrep: javascript.lang.security.audit.detect-non-literal-regexp.detect-non-literal-regexp
@@ -110,6 +123,9 @@ export function seriesFromChat(payload:ModelPayload):Result|undefined{
   const directlyRelated=topic.test(current)||recurring.test(current)||/^(?:doch\s+)?(?:nein\b|an\s+allen\b|ab\b|bis\b|vor\b|am\b|nur\b|jeden\b|die\s+kommenden\b|die\s+nächsten\b|(?:20)?\d{1,2}[.:])/iu.test(current)
   const correction=!!prior&&directlyRelated&&(newest.mentionedStart||newest.mentionedEnd||newest.weekdays.length>0||!!newest.startTime)
   if(!seriesTopic&&!correction&&!recentQuestions.length)return
+  // Eine offene Serienrückfrage fängt nur Antworten ab, die wie eine Antwort aussehen (Uhrzeit, Datum, Wochentag, kurzes Ja/Nein).
+  // Alles andere ist ein neues Anliegen und geht an das Modell.
+  if(!seriesTopic&&!correction&&!looksLikeAnswer(current,newest))return
   if(!seriesTopic&&recentQuestions.some(item=>/ferien|pause|unterbrechung|aussetzen/iu.test(item)))return
   if(!seriesTopic&&!prior&& !messages.slice(0,-1).some(entry=>recurring.test(entry.input)&&topic.test(entry.input)))return
   const historical=same||!past&&recentQuestions.length?messages.slice(0,-1).reverse().filter(entry=>{
@@ -123,8 +139,12 @@ export function seriesFromChat(payload:ModelPayload):Result|undefined{
   const reminder=/\b(?:erinnerung\w*|erinnere|reminder)\b/iu.test(current)
   const appointment=/\b(?:vorlesung\w*|seminar\w*|termine?)\b/iu.test(current)
   const seriesKind=reminder?'reminder':appointment||work?'appointment':prior?.seriesKind??'appointment'
-  const startTime=newest.startTime??historical.find(item=>item.startTime)?.startTime??prior?.startTime??null
-  const endTime=newest.endTime??historical.find(item=>item.endTime)?.endTime??prior?.endTime??null
+  const knownStart=historical.find(item=>item.startTime)?.startTime??prior?.startTime??null
+  const bare=bareClock.exec(current)?.[1]
+  const startTime=newest.startTime??knownStart??(bare?time(bare):null)
+  const endAnswer=endOnly.exec(current)?.[1]??(bare&&knownStart&&!newest.startTime?bare:undefined)
+  const endTime=newest.endTime??(endAnswer&&(newest.startTime??historical.find(item=>item.startTime)?.startTime??prior?.startTime)?time(endAnswer):null)??
+    historical.find(item=>item.endTime)?.endTime??prior?.endTime??null
   const resolvedTitle=title??prior?.title??(work?/werkstudent/iu.test(current)?'Werkstudent · Arbeit':'Arbeit':null)
   if(!resolvedTitle)return
   const latestStart=historical.find(item=>item.mentionedStart)
@@ -141,7 +161,10 @@ export function seriesFromChat(payload:ModelPayload):Result|undefined{
   if(newest.mentionedEnd&&!endDate)return envelope(plan,'Welches gültige Enddatum soll ich für die Serie verwenden?')
   if(newest.mentionedStart&&!newest.begin||endDate&&((startDate&&startDate>endDate)||endDate<day))
     return envelope(plan,'Welcher Start- und Endtermin gilt für diese Serie?')
-  if(!startTime||seriesKind==='appointment'&&!endTime)return envelope(plan,'Von wann bis wann soll jeder Termin dauern? Bitte nenne die Uhrzeit.')
+  if(!startTime)return envelope(plan,seriesKind==='appointment'?'Von wann bis wann soll jeder Termin dauern? Bitte nenne die Uhrzeit.':'Um wie viel Uhr soll die Erinnerung kommen?',
+    undefined,seriesKind==='appointment'?['09:00 bis 10:00 Uhr','14:00 bis 15:30 Uhr','18:00 bis 19:00 Uhr']:['Um 08:00 Uhr','Um 12:00 Uhr','Um 18:00 Uhr'])
+  if(seriesKind==='appointment'&&!endTime)return envelope(plan,`Wann soll jeder Termin enden? Er beginnt um ${startTime} Uhr.`,undefined,
+    [60,90,120].map(minutes=>'Bis '+shiftClock(startTime,minutes)+' Uhr'))
   if(seriesKind==='appointment'&&!endDate)return envelope(plan,'Bis zu welchem Datum soll ich die Termine eintragen?')
   const corrected=!!prior&&((newest.mentionedEnd&&endDate!==prior.endDate)||(newest.mentionedStart&&startDate!==prior.startDate))
   return envelope(plan,undefined,corrected?'Ich verwende den Zeitraum aus deiner neueren Angabe.':'')

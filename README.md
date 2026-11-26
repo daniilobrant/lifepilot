@@ -1,4 +1,4 @@
-# LifePilot 1.0.77
+# LifePilot 1.0.78
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -172,6 +172,29 @@ Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das gekl
 
 [Alle Skills und ihre Verknüpfungen](docs/SKILLS.md)
 
+### Was Pilot im Chat verknüpft
+
+Pilot kennt ein kompaktes Verzeichnis deiner Daten und ordnet jede Nachricht dem passenden Bereich zu. Mehrere Anliegen in einer Nachricht werden getrennt vorgeschlagen und einzeln von dir bestätigt. Jeder Bereich ist mit den anderen verknüpft:
+
+| Du schreibst … | Pilot bereitet vor … | Verknüpft mit |
+| --- | --- | --- |
+| „Zahnarzt am 3.12. um 10 Uhr“ | Kalendertermin mit Dauer, Kollisionsprüfung | Aufgaben, Freie Zeit, Projekte |
+| „Jeden Dienstag 18 Uhr Volleyball“ | Terminserie mit Feiertagsausnahmen | Kalender, Freie Zeit |
+| „Morgen präsentieren“, „Abgabe am 15.“ | Aufgabe mit Frist, optional mit Termin oder Projekt verlinkt | Kalender, Projekte, Frist-Wächter |
+| „Wann habe ich diese Woche 2 Stunden?“ | Freie Zeitfenster aus Kalender und Fristen | Kalender, Aufgaben |
+| „Füg der Bachelorarbeit den Schritt Literatur hinzu“ | Projektschritt mit Phase, Frist und Zeitblöcken | Aufgaben, Kalender |
+| „12 € fürs Kino“, „Netflix kostet 13 €“ | Buchung oder Abo, Monatsübersicht, Abgleich doppelter Buchungen | Finanzen, PayPal, Posteingang |
+| „Setz Milch auf die Liste“, „Eier sind leer“ | Einkaufsliste und Vorrat | Rezepte, Belegscan |
+| „Was koche ich mit meinem Vorrat?“ | Rezeptideen mit Fleisch, vegetarisch oder Zutatenwunsch; fehlende Zutaten auf die Liste | Vorrat, Einkauf |
+| „Was ziehe ich zum Vorstellungsgespräch an?“ | Outfit aus dem Kleiderschrank mit Basisschicht, Farbpalette und Duft | Bewerbungen, Kalender, Urlaubsgarderobe |
+| „Plan 4 Tage Lissabon im März“ | Reisevorschau, Zeitraum, Packliste, Garderobe | Kalender, Outfit, Finanzen |
+| „Ich habe mich bei Bosch beworben“ | Bewerbungsstatus, Gespräch als Termin | Posteingang, Outfit, Aufgaben |
+| „Die Jeans schicke ich zurück“ | Entscheidung je Artikel (behalten, Retoure), Kleiderschrank | Bestellungen, Posteingang, Finanzen |
+| „Schau in meine Mails“ | Relevante Nachrichten mit Vorschlägen für Termine, Fristen, Bestellungen | Posteingang, Kalender, Aufgaben |
+| „Was steht als Nächstes an?“ | Antwort aus deinem Verzeichnis (Termine, Projektschritte, Abos) | alle Bereiche |
+
+**Rückfragen mit Kurzantworten.** Fehlt eine Angabe, stellt Pilot genau eine gezielte Frage und zeigt dazu anklickbare Antworten, etwa „Bis 16 Uhr“, „Bis 17 Uhr“ oder „Ja“ und „Nein“. „Etwas anderes …“ ist immer dabei und führt in das Eingabefeld. Ein Klick sendet die Antwort wie eine getippte Nachricht. Beginnt die Antwort ein neues Anliegen, bearbeitet Pilot es neu und übernimmt nichts aus der offenen Frage. Die Kurzantworten sind reiner Text, werden lokal geprüft und lösen nichts aus, was du nicht auch tippen könntest.
+
 ## Versionsübersicht
 
 LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe gemeinsam mit KI-Assistenten weiterentwickelt. Für die frühen Etappen geben die Versionsbereiche die Reihenfolge an, ab dem öffentlichen Release sind die Tage datiert. Wie die Zusammenarbeit ablief, beschreibt der [Entwicklungsverlauf](docs/ENTWICKLUNG.md).
@@ -193,7 +216,7 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.36–1.0.42 · 25./26. November 2026** | Agent mit Verzeichnis aller Bereiche, Zerlegung langer und diktierter Nachrichten, Entscheidungstabelle der Skills, Bestellungen und Bewerbungen im Chat, umschaltbarer Modellanbieter (Codex oder Claude Code), Testsatz mit 48 Beispielsätzen. |
 | **1.0.43–1.0.52 · 26. November 2026** | Sicherheitsprüfung des Gesamtprojekts, Kalender ohne Doppeleinträge, Rezeptauswahl und Zutatenabgleich, Bestellmails mit Warenkorb-Blöcken, Outfits passend zum Anlass, Terminvorschläge aus Mails. |
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
-| **1.0.58–1.0.77 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. |
+| **1.0.58–1.0.78 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. |
 
 [Entwicklungsverlauf](docs/ENTWICKLUNG.md)
 

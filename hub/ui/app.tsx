@@ -733,19 +733,23 @@ const chatSkills: Record<NonNullable<Result['skill']>, string> = {
   deadline_guardian: 'Deadline Guardian', applications: 'Bewerbungsmanager', outfit: 'Outfit-Assistent', travel: 'Urlaubsplaner', finance:'Finanzen & Abos', grocery:'Vorrat & Einkauf', orders:'Bestellungstracker',
 }
 
-function ChatQuickReply({questions,onAnswer,busy}:{questions:string[],onAnswer:(text:string)=>void,busy:boolean}){
+function ChatQuickReply({questions,choices,onAnswer,onOther,busy}:{questions:string[],choices?:string[],onAnswer:(text:string,send?:boolean)=>void,onOther?:()=>void,busy:boolean}){
   const [from,setFrom]=useState('')
   const [to,setTo]=useState('')
-  const reply=quickReplyFor(questions)
+  const modelChoices=choices?.length?choices:undefined
+  const reply=modelChoices?{kind:'choices' as const,choices:modelChoices}:quickReplyFor(questions)
   if(!reply)return null
-  return reply.kind==='date-range'?<div className="chat-period">
+  if(reply.kind==='date-range')return <div className="chat-period">
     <label>Von <DateInput aria-label="Von" value={from} max={to||undefined} onChange={event=>setFrom(event.target.value)} /></label>
     <label>Bis <DateInput aria-label="Bis" value={to} min={from||undefined} onChange={event=>setTo(event.target.value)} /></label>
-    <button type="button" disabled={busy||!from||!to||to<from} onClick={()=>onAnswer(formatDate(from)+' bis '+formatDate(to))}>
+    <button type="button" disabled={busy||!from||!to||to<from} onClick={()=>onAnswer(formatDate(from)+' bis '+formatDate(to),true)}>
       Zeitraum übernehmen
     </button>
-  </div>:<div className="actions chat-quick-replies">{reply.choices.map(answer=>
-    <button type="button" disabled={busy} onClick={()=>onAnswer(answer)} key={answer}>{answer}</button>)}</div>
+  </div>
+  const yesNo=reply.choices.length===2&&reply.choices[0]==='Ja'&&reply.choices[1]==='Nein'
+  return <div className="actions chat-quick-replies" role="group" aria-label="Antwortvorschläge">{reply.choices.map(answer=>
+    <button type="button" disabled={busy} onClick={()=>onAnswer(answer,true)} key={answer}>{answer}</button>)}
+    {!yesNo&&onOther?<button type="button" className="quiet" disabled={busy} onClick={onOther}>Etwas anderes …</button>:null}</div>
 }
 
 function CalendarConflictDialog({confirmation,busy,error,onConfirm,onCancel}:{
@@ -788,8 +792,8 @@ function FinanceProposal({run, change, index, mutate}:{run:Run,change:FinanceCha
   </section>
 }
 
-function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleWrite, auditDetails, onQuickReply, onRecipeRefine, compact = false, grouped = false }: {
-  auditDetails: boolean, compact?:boolean, grouped?:boolean, onQuickReply?: (text: string) => void, onRecipeRefine?:(ingredient:string)=>void,
+function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleWrite, auditDetails, onQuickReply, onOtherReply, onRecipeRefine, compact = false, grouped = false }: {
+  auditDetails: boolean, compact?:boolean, grouped?:boolean, onQuickReply?: (text: string, send?: boolean) => void, onOtherReply?: () => void, onRecipeRefine?:(ingredient:string)=>void,
   googleWrite: boolean,
   modelName: string,
   run: Run, onReply?: () => void, mutate: (path: string, payload: object) => Promise<unknown>, busy: boolean, actionError?: string
@@ -860,7 +864,7 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
       </div>)}
       {run.result.questions.length ? <div className="task">
         {run.result.questions.map((question, index) => <p key={index}>{question}</p>)}
-        {onQuickReply ? <ChatQuickReply key={run.id+':'+run.turn} questions={run.result.questions} onAnswer={onQuickReply} busy={busy} /> : null}
+        {onQuickReply ? <ChatQuickReply key={run.id+':'+run.turn} questions={run.result.questions} choices={run.result.choices} onAnswer={onQuickReply} onOther={onOtherReply} busy={busy} /> : null}
       </div> : null}
       {!actionable && !run.result.skillData && !run.result.questions.length && !run.result.summary && !run.result.correctedInput && !run.result.advice?.length ? <p>Aus dieser Notiz ergaben sich keine Aufgaben.</p> : null}
     </div> : null}
@@ -1644,11 +1648,11 @@ function App() {
     </>
   }
 
-  function useQuickReply(text: string) {
+  function useQuickReply(text: string, send = false) {
     setInput(text)
     requestAnimationFrame(() => {
       composer.current?.focus()
-      if (Object.values(categoryLabels).some(label => label === text) ||
+      if (send || Object.values(categoryLabels).some(label => label === text) ||
         ['Ja','Nein'].includes(text) && focus?.result?.questions.includes('Willst du ein bestimmtes Teil anziehen?')) {
         composer.current?.form?.requestSubmit()
       }
@@ -1886,7 +1890,7 @@ function App() {
         <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline} compact/>
         {projectReview?.step?<button type="button" onClick={()=>goProjectWork({title:projectReview.step!,date:projectReview.date??undefined})}>Freie Zeit finden</button>:null}
         {focus?.parent_run&&<button type="button" className="quiet" onClick={()=>show(focus.parent_run!)}>Alle Aufträge dieser Nachricht</button>}
-        {focus ? <RunDetail key={focus.id+':'+focus.turn} compact auditDetails={false} onQuickReply={activeReply && canChat ? useQuickReply : undefined} googleWrite={!!snapshot?.googleAppointmentWrite} modelName={snapshot?.modelName ?? 'Codex'} run={focus} busy={busy || !!offline} mutate={mutate}
+        {focus ? <RunDetail key={focus.id+':'+focus.turn} compact auditDetails={false} onQuickReply={activeReply && canChat ? useQuickReply : undefined} onOtherReply={activeReply && canChat ? () => composer.current?.focus() : undefined} googleWrite={!!snapshot?.googleAppointmentWrite} modelName={snapshot?.modelName ?? 'Codex'} run={focus} busy={busy || !!offline} mutate={mutate}
           onRecipeRefine={canChat&&mayReply&&focus.turn<24?ingredient=>{
             chooseReply(focus)
             setInput('Verwende als Zutat: '+ingredient+'.')

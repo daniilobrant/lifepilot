@@ -22,7 +22,7 @@ export type Proposal = {
 export type Advice = { target: string, reason: string }
 export type OrderDecisionPlan = { orderIntent:'decide', order:string, item:string|null, decision:'kept'|'return'|'returned'|'received' }
 export type ApplicationPlan = { applicationIntent:'create'|'update', application:string|null, company:string, role:string, status:'applied'|'reply'|'interview'|'offer'|'rejected'|'withdrawn', appliedOn:string|null, interviewDate:string|null, interviewTime:string|null, note:string|null }
-export type Result = { skill?: 'inbox_refresh' | 'appointment' | 'deadline_guardian' | 'smart_planning' | 'applications' | 'outfit' | 'travel' | 'finance' | 'grocery' | 'orders' | 'calendar_series' | 'projects' | null, skillData?: FreeQuery | OutfitChatPlan | FragranceChatPlan | TripChatPlan | FinanceChat | FinanceBatch | GroceryPlan | SeriesPlan | ProjectPlan | OrderDecisionPlan | ApplicationPlan | null, parts?: Result[], tasks: Task[], questions: string[], actions?: Proposal[], advice?: Advice[], summary?: string | null, correctedInput?: string | null }
+export type Result = { skill?: 'inbox_refresh' | 'appointment' | 'deadline_guardian' | 'smart_planning' | 'applications' | 'outfit' | 'travel' | 'finance' | 'grocery' | 'orders' | 'calendar_series' | 'projects' | null, skillData?: FreeQuery | OutfitChatPlan | FragranceChatPlan | TripChatPlan | FinanceChat | FinanceBatch | GroceryPlan | SeriesPlan | ProjectPlan | OrderDecisionPlan | ApplicationPlan | null, parts?: Result[], tasks: Task[], questions: string[], choices?: string[], actions?: Proposal[], advice?: Advice[], summary?: string | null, correctedInput?: string | null }
 export const schemaFile = new URL('../output.schema.json', import.meta.url)
 const ajv = new Ajv({ allErrors: false, allowUnionTypes: true })
 const currentSchema = JSON.parse(readFileSync(schemaFile, 'utf8'))
@@ -72,6 +72,22 @@ function validFinance(plan:FinanceChat) {
     plan.date!==null && !isDate(plan.date) || plan.cents!==null && (!Number.isSafeInteger(plan.cents) || plan.cents<1 || plan.cents>100_000_000) ||
     plan.financeIntent==='add' && (!plan.title || !plan.kind || !plan.cents) ||
     plan.financeIntent==='edit' && (!plan.target || [plan.title,plan.cents,plan.date,plan.category,plan.cycle].every(value=>value===null)))
+}
+
+/** Antwortvorschläge (Bubbles) gehören nur zu einer Rückfrage, sind kurz, einfacher Text und höchstens vier. */
+export function cleanChoices(value: unknown, questions: readonly string[]): string[] | undefined {
+  if (!Array.isArray(value) || !questions.length) return undefined
+  const seen = new Set<string>()
+  const kept: string[] = []
+  for (const entry of value) {
+    if (typeof entry !== 'string') continue
+    const text = entry.replace(/\s+/gu, ' ').trim().replace(/[.!]+$/u, '')
+    const key = text.toLocaleLowerCase('de-DE')
+    if (!text || text.length > 60 || /[<>`*_#\[\]{}|]|https?:|www\./iu.test(text) || /^(?:etwas anderes|anderes|nichts davon|keins? von beiden)$/iu.test(text) || seen.has(key)) continue
+    seen.add(key)
+    kept.push(text)
+  }
+  return kept.length ? kept.slice(0, 4) : undefined
 }
 
 export const projectPlanFormatError='Ungültiger Projektvorschlag.'
@@ -236,7 +252,7 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
   if (totalBlocks > 32) throw new Error('Der Vorschlag enthält zu viele Terminwiederholungen.')
   // Zu lange Texte werden am Satzende gekürzt statt den ganzen Vorschlag zu verwerfen.
   const clip = (text: string, max: number) => {
-    const clean = text.trim()
+    const clean = text.replace(/[\u0000-\u001f\u007f]+/gu, ' ').replace(/ {2,}/g, ' ').trim()
     if (clean.length <= max) return clean
     const cut = clean.slice(0, max - 1)
     const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '))
@@ -244,6 +260,8 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
   }
   if (typeof candidate.summary === 'string') candidate.summary = clip(candidate.summary, 420) || null
   candidate.questions = candidate.questions.map(question => typeof question === 'string' ? clip(question, 280) : question)
+  candidate.choices = cleanChoices(candidate.choices, candidate.questions)
+  if (!candidate.choices) delete candidate.choices
   if (candidate.questions.some(question => !bounded(question, 280)) ||
       (candidate.summary != null && !bounded(candidate.summary, 420))) throw new Error('Ungültiger Antworttext.')
   const ids = new Set(context.map(task => task.id))

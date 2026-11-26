@@ -80,7 +80,17 @@ Arbeitsweise im persönlichen Chat:
 4. Beantworte Fragen zu deinen Daten aus directory (z. B. nächste Termine, offene Projektschritte, laufende Abos). Beträge stehen nicht darin; verweise dafür auf Finanzen & Abos.
 5. Abschnitte, die sich aufeinander beziehen („dafür“, „dazu“, „das“), gehören zum vorherigen Anliegen: z. B. ein Outfit „dafür“ zum Vorstellungsgespräch, eine Abgabe zur genannten Vorlesung. Führe Anliegen ohne eigenen Inhalt („Baue das als Abgaben ein“) mit dem vorherigen zusammen.
 6. Halte summary unter 400 Zeichen (ein bis zwei Sätze) und jede Rückfrage unter 250 Zeichen.
-7. Frage nur nach, wenn nach diesen Schritten wirklich zwei Deutungen bleiben, und nenne beide Möglichkeiten.`
+7. Frage nur nach, wenn nach diesen Schritten wirklich zwei Deutungen bleiben, und nenne beide Möglichkeiten.
+8. Offene Rückfrage: Enthält messages einen earlierAssistantDraft mit questions, prüfe zuerst, ob latestUserMessage diese Frage beantwortet. Wenn ja, übernimm die Antwort in denselben Auftrag und stelle die Frage nicht noch einmal. Beginnt die Nachricht ein neues Anliegen (anderer Bereich, z. B. Rezept, Outfit, Reise, Einkauf), bearbeite dieses vollständig und neu; übernimm dann keine Titel, Uhrzeiten oder Daten aus dem alten Anliegen.
+9. Rückfragen sind gezielt: genau eine Frage mit genau einer Information („Um wie viel Uhr beginnt der Termin?“, danach „Wann endet er?“), nie zwei Fragen in einem Satz. Nenne die schon bekannten Angaben („Er beginnt um 15 Uhr. Wann endet er?“). Wiederhole nie dieselbe Frage; formuliere sie konkreter, wenn die Antwort unbrauchbar war. Fehlt nur die Endzeit oder Dauer eines Termins, frage nur danach.
+10. choices ist Pflicht bei jeder Rückfrage nach Uhrzeit, Endzeit/Dauer, Datum oder Wochentag, Ja/Nein, Kategorie, Variante oder einer Auswahl zwischen vorhandenen Dingen. Gib dann 2 bis 4 Kurzantworten an (höchstens fünf Wörter), die der Nutzer anklickt und die als Antwort allein verständlich und eindeutig sind. Beispiele: Uhrzeit → „Um 9 Uhr“, „Um 14 Uhr“, „Um 18 Uhr“; Endzeit eines Termins ab 15 Uhr → „Bis 16 Uhr“, „Bis 16:30 Uhr“, „Bis 17 Uhr“; Dauer → „30 Minuten“, „1 Stunde“, „2 Stunden“; Datum → die konkreten Tage („Samstag, 28. November“, „Samstag, 5. Dezember“); zwei Deutungen → beide Deutungen; Ja/Nein → genau „Ja“ und „Nein“. Keine Vorschläge nur bei freien Angaben wie Titel, Namen oder Beträgen: dort ist choices null. Schlage nie „Etwas anderes“ vor, die Oberfläche ergänzt es.`
+
+/** Feste Zusatzhinweise zu bekannten Prüffehlern, damit die Selbstkorrektur die richtige Form trifft. */
+function repairHint(error:string){
+  if(error===outfitPlanFormatError)return '\nFür skill outfit muss skillData die Outfit-Form haben: place (Ort oder Reiseziel), date (ISO-Datum oder null), occasion, anchorStep, anchor und daypart. Beispiel für eine Reise nach Teneriffa: place „Teneriffa“, date Reisebeginn, occasion „Reise nach Teneriffa“, anchorStep „decision“. Die Felder days, minutes, start und end gehören nicht dazu.'
+  if(/Duftliste/u.test(error))return '\nNenne in skillData.fragrances nur Düfte, die der Nutzer ausdrücklich genannt hat. Geht es um ein Outfit, verwende stattdessen die Outfit-Form.'
+  return ''
+}
 
 export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   if (payload.mode !== 'personal') {
@@ -95,6 +105,8 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   const contract = structuredClone(outputContract)
   contract.required.push('skill', 'skillData', 'parts')
   contract.properties.parts.items.properties.tasks.items.required.push('category','priority','link')
+  contract.required.push('choices')
+  contract.properties.parts.items.required.push('choices')
   contract.properties.tasks.items.required.push('category','priority','link')
   for (const data of [contract.properties.skillData,contract.properties.parts.items.properties.skillData]) {
     const grocery=data.anyOf.find((variant:{properties?:Record<string,unknown>})=>variant.properties?.onHand)
@@ -171,10 +183,23 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
       member.type==='null'||member.properties?.projectIntent)
     return runStructuredCodex(prompt+'\nErstelle genau einen gültigen Projektentwurf oder eine gezielte Rückfrage. Alle Projektaufgaben stehen in skillData.steps. Lasse tasks, actions und parts leer. Verwende gültige ISO-Daten.',contract,signal,validate)
   }
-  if (!singleOutfit || result.error!==outfitPlanFormatError || signal.aborted) return result
-  // The model can select a different structured union member even after choosing the correct skill.
-  focusOutfitContract()
-  return runStructuredCodex(prompt+'\nBeantworte den Outfit-Auftrag einzeln mit passenden Outfit-Feldern und ohne Zeitplanung.',contract,signal,validate)
+  if (singleOutfit && result.error===outfitPlanFormatError && !signal.aborted) {
+    // The model can select a different structured union member even after choosing the correct skill.
+    focusOutfitContract()
+    return runStructuredCodex(prompt+'\nBeantworte den Outfit-Auftrag einzeln mit passenden Outfit-Feldern und ohne Zeitplanung.',contract,signal,validate)
+  }
+  if (!singleOutfit && result.error===outfitPlanFormatError && !signal.aborted) {
+    // Bei Mehrfach-Aufträgen verwechselt das Modell die Outfit-Form mit der Freie-Zeit-Abfrage (date, days, minutes): diese Variante entfällt beim zweiten Versuch.
+    for (const data of [contract.properties.skillData,contract.properties.parts.items.properties.skillData])
+      data.anyOf=data.anyOf.filter((variant:{properties?:Record<string,unknown>})=>!variant.properties?.minutes)
+    return runStructuredCodex(prompt+'\nDein letzter Entwurf wurde abgelehnt: '+outfitPlanFormatError+repairHint(outfitPlanFormatError)+'\nErstelle alle Teile neu; der Outfit-Teil verwendet die Outfit-Form.',contract,signal,validate)
+  }
+  // Selbstkorrektur: Verwirft die lokale Prüfung einen Entwurf (z. B. Termin ohne Dauer), erhält das Modell die feste Fehlermeldung
+  // einmal zurück und soll stattdessen gezielt nachfragen. Technische Fehler (Zeitbudget, Anmeldung) werden nicht wiederholt.
+  if (result.error && !signal.aborted && !/nicht erreichbar|abgebrochen|Zeitbudget|Ausgabebudget|gesperrt|nicht installiert|zu groß|Anmeldung/iu.test(result.error)) {
+    return runStructuredCodex(prompt+'\nDein letzter Entwurf wurde von der lokalen Prüfung abgelehnt: '+result.error.slice(0,200)+repairHint(result.error)+'\nErstelle den Entwurf für denselben Auftrag und denselben Skill neu und behebe genau diesen Fehler. Fehlt dir dafür eine Angabe des Nutzers, stelle stattdessen genau eine gezielte Rückfrage (questions) mit passenden choices.',contract,signal,validate)
+  }
+  return result
 }
 
 export async function runStructuredCodex<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value:unknown)=>T, image?: { photo: Buffer, format: 'png' | 'jpeg' }, options: ModelOptions = {}) {
