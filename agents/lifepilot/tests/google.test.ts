@@ -218,6 +218,7 @@ test('Google write tests create one isolated calendar, recover the event and add
     {id:'Label_35',name:'Finanzen & Belege',type:'user'},
   ]
   let renames=0
+  let trashed=0
   const mock: typeof fetch = async (input, options) => {
     const url = new URL(String(input))
     if (url.hostname === 'oauth2.googleapis.com') return json({
@@ -228,6 +229,13 @@ test('Google write tests create one isolated calendar, recover the event and add
         ? 'different@example.com' : 'fixture@example.com',
     })
     const body = options?.body ? JSON.parse(String(options.body)) : undefined
+    if (url.pathname === '/gmail/v1/users/me/messages/msg1/trash') {
+      assert.equal(options?.method, 'POST')
+      assert.equal(options?.body, undefined)
+      assert.equal(new Headers(options?.headers).get('Authorization'), 'Bearer writer')
+      trashed++
+      return json({ id:'msg1', labelIds:['TRASH'] })
+    }
     if (url.pathname === '/calendar/v3/calendars') {
       creations++
       assert.equal(storedCalendar, 'pending')
@@ -291,6 +299,12 @@ test('Google write tests create one isolated calendar, recover the event and add
       assert.equal(authorization.searchParams.get('scope'), scope)
       await connector.complete(new URLSearchParams({ state: authorization.searchParams.get('state')!, code: 'fixture-code' }))
     }
+    const trashAccount = createHash('sha256').update('fixture@example.com').digest('hex')
+    await assert.rejects(() => connector.trashInboxMessage('other-account', 'msg1'), { status:409 })
+    await assert.rejects(() => connector.trashInboxMessage(trashAccount, 'invalid/id'), { status:400 })
+    assert.equal(trashed, 0)
+    await connector.trashInboxMessage(trashAccount, 'msg1')
+    assert.equal(trashed, 1)
     const start = '2026-11-25T10:00:00.000Z'
     const end = '2026-11-25T10:15:00.000Z'
     const save = (id: string) => { storedCalendar = id }

@@ -264,7 +264,7 @@ const shipmentLabels = { order: 'Bestellung', 'return-open': 'Retoure offen', 'r
   'return-closed': 'Retoure eingegangen oder erledigt', 'return-unknown': 'Retourenstatus unklar' }
 
 const inboxPollMs = 120_000
-type InboxFeed = { messages: AttentionMail[], loadedAt: string }
+type InboxFeed = { account?:string, messages: AttentionMail[], loadedAt: string }
 const mailDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' })
 
 function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectures, sourceId }: {
@@ -1047,6 +1047,9 @@ function App() {
   const [lectureNotices,setLectureNotices]=useState<InboxProposal[]>([])
   const [lectureRefresh,setLectureRefresh]=useState(0)
   const [inboxFeed, setInboxFeed] = useState<InboxFeed>()
+  const [mailToTrash, setMailToTrash] = useState<{id:string,account:string}>()
+  const [trashingMail, setTrashingMail] = useState(false)
+  const [trashFeedback, setTrashFeedback] = useState<{text:string,error?:boolean}>()
   const [inboxFeedError, setInboxFeedError] = useState('')
   const [loadingInboxFeed, setLoadingInboxFeed] = useState(false)
   const inboxFeedRequest = useRef(false)
@@ -1532,8 +1535,8 @@ function App() {
     setLoadingInboxFeed(true)
     setInboxFeedError('')
     try {
-      const feed = await api<{ messages: AttentionMail[] }>('/inbox/feed', {confirm:true}, 60_000)
-      if (revision === inboxFeedRevision.current) setInboxFeed({ messages: feed.messages, loadedAt: new Date().toISOString() })
+      const feed = await api<Omit<InboxFeed,'loadedAt'>>('/inbox/feed', {confirm:true}, 60_000)
+      if (revision === inboxFeedRevision.current) setInboxFeed({ ...feed, loadedAt: new Date().toISOString() })
     } catch (reason) {
       if (revision === inboxFeedRevision.current) setInboxFeedError(reason instanceof Error ? reason.message : 'Gmail ist gerade nicht erreichbar.')
     } finally {
@@ -1558,9 +1561,29 @@ function App() {
     }
   }, [watchInbox, page])
 
+  async function trashInboxMail(item: AttentionMail, account: string) {
+    if (!window.confirm(`„${item.subject}“ in den Gmail-Papierkorb verschieben?`)) return
+    setTrashingMail(true)
+    setTrashFeedback(undefined)
+    try {
+      await api('/inbox/trash', {message:item.id, account, confirm:true}, 20_000)
+      inboxFeedRevision.current++
+      inboxFeedRequest.current = false
+      setLoadingInboxFeed(false)
+      setInboxFeed(current => current?.account === account ?
+        {...current,messages:current.messages.filter(mail => mail.id !== item.id)} : current)
+      setMailToTrash(undefined)
+      setTrashFeedback({text:'E-Mail in den Gmail-Papierkorb verschoben.'})
+    } catch (reason) {
+      setTrashFeedback({text:reason instanceof Error ? reason.message : 'Die E-Mail konnte nicht verschoben werden.',error:true})
+    } finally { setTrashingMail(false) }
+  }
+
   function inboxFeedContents(compact: boolean) {
     const messages=compact ? inboxFeed?.messages.filter(item=>item.important).slice(0,3) : inboxFeed?.messages
+    const account = compact ? undefined : inboxFeed?.account
     return <>
+      {!compact && trashFeedback ? <p role={trashFeedback.error?'alert':'status'}>{trashFeedback.text}</p> : null}
       {loadingInboxFeed && !inboxFeed ? <Loading label="Gmail wird geladen …" /> : null}
       {inboxFeedError ? <p role="alert">Gmail konnte nicht aktualisiert werden. {inboxFeedError}
         {' '}<button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
@@ -1573,7 +1596,18 @@ function App() {
               {item.reply && <small>Antwort erbeten</small>}
               {item.shipment && <small>{shipmentLabels[item.shipment]}</small>}
             </span></span>
-          {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+          <div className="inbox-mail-actions">
+            {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+            {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?
+              <div className="actions">
+                <button type="button" className="quiet" disabled={trashingMail} onClick={() => setMailToTrash(undefined)}>Abbrechen</button>
+                <button type="button" className="inbox-trash-confirm" disabled={trashingMail} onClick={() => void trashInboxMail(item,account)}>In den Papierkorb</button>
+              </div> : <button type="button" className="quiet" disabled={trashingMail}
+                aria-label={`E-Mail löschen: ${item.subject}`} onClick={() => {
+                  setTrashFeedback(undefined)
+                  setMailToTrash({id:item.id,account})
+                }}>Löschen</button>)}
+          </div>
         </li>)}
       </ul> : inboxFeed ? <p className="empty">Keine relevanten Nachrichten gefunden.</p> : null}
     </>

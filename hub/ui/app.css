@@ -1844,3 +1844,8 @@ input[type=file]::file-selector-button {
 
 .recipe-remove { margin-left: auto; width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 8px; line-height: 1; font-size: 1.1rem; color: var(--muted); }
 .recipe-remove:hover { color: var(--ink); background: var(--card); }
+
+.inbox-mail-actions { display:grid; justify-items:end; gap:.3rem; flex:none; max-inline-size:50%; }
+.inbox-mail-actions .actions { justify-content:flex-end; flex-wrap:wrap; gap:.3rem; }
+.inbox-mail-actions button { padding:.28rem .55rem; font-size:.82rem; }
+.inbox-trash-confirm { color:var(--error); }

@@ -38,6 +38,7 @@ function needsAttention(item:MailClassification,mail?:MailContent) {
 export async function readInboxFeed(google: GoogleConnector, synthetic: boolean, store?:Store) {
   const relevant: AttentionMail[] = []
   const seen = new Set<string>()
+  let account: string | undefined
   const collect = (mails: MailContent[], account?: string) => {
     const modelImportant = store && account ? triagedImportant(store, mails, account) : new Set<string>()
     for (const mail of mails) {
@@ -53,11 +54,11 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
   }
   else {
     let cursor: GmailPage | undefined
-    let account: string | undefined
     for (let i=0; i<refreshPageLimit; i++) {
       const result = await google.recentInbox(key => key === account ? cursor : undefined)
       if (account && result.account !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere erneut.')
-      collect(result.mails, result.account)
+      account = result.account
+      collect(result.mails, account)
       if (store) {
         scanClothingOrders(store,result.mails,result.account)
         scanMailFinances(store,result.mails,result.account)
@@ -70,7 +71,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
       account = result.account
     }
   }
-  return { messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
+  return { account, messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
     (b.at ?? '').localeCompare(a.at ?? '')).slice(0,10) }
 }
 

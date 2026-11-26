@@ -1189,6 +1189,15 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     void runAutomaticMailSync()
     return reply(res,200,{enabled:true})
   }
+  if (path === '/api/inbox/trash' && method === 'POST') {
+    const { message, account, confirm } = await body(req, ['message','account','confirm'])
+    confirmLocalChange(confirm)
+    if (acceptance) throw new Problem(403, 'Der Gmail-Papierkorb ist im Testprofil gesperrt.')
+    const address = await confirmedMailAccount(google)
+    if (!address || mailAccountKey(address) !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere den Posteingang.')
+    await google.trashInboxMessage(mailAccountKey(address), message)
+    return reply(res, 200, { ok:true })
+  }
   if (path==='/api/inbox/feed' && method==='GET') return reply(res,200,await readInboxFeed(google,acceptance))
   if (path==='/api/inbox/feed' && method==='POST') {
     const {confirm}=await body(req,['confirm'])

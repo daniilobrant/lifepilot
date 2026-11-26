@@ -460,6 +460,21 @@ export class GoogleConnector {
     if (next && !matches(result,next)) throw new Problem(502, 'Google bestätigte die Änderung nicht eindeutig.')
   }
 
+  async trashInboxMessage(account: string, id: unknown) {
+    if (!validMessageId(id)) throw new Problem(400, 'Wähle eine gültige Gmail-Nachricht.')
+    const service = 'gmail-sort'
+    const epoch = this.epochs[service]
+    const token = await this.access(service)
+    this.ensureEpoch(service, epoch)
+    const headers = { Authorization: 'Bearer ' + token }
+    const profile = await this.json('https://gmail.googleapis.com/gmail/v1/users/me/profile?fields=emailAddress', { headers })
+    this.ensureEpoch(service, epoch)
+    const address = display(profile.emailAddress, 320).toLowerCase()
+    if (!address || createHash('sha256').update(address).digest('hex') !== account)
+      throw new Problem(409, 'Gmail-Lesen und Schreiben müssen mit demselben Konto verbunden sein.')
+    await this.json(gmailEndpoint + '/' + encodeURIComponent(id) + '/trash', { headers, method: 'POST' })
+  }
+
   async sortInboxPage(account: string, mails: MailContent[]) {
     const byCategory = new Map<InboxLabel,string[]>()
     for (const mail of mails) {
