@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.58 · 26. November 2026
+
+- Posteingang: Weitergeleitete Kurs-Mails (Stud.IP/HfWU) mit englischem Ablauf („today’s presentation, 12:00“) werden als Terminvorschlag erkannt, mit Kursname, Uhrzeit und Zoom-Hinweis.
+
 ## v1.0.52 · 26. November 2026
 
 - Start: Mailvorschläge unter „Wartet auf dein OK“ sind wie die Finanzvorschläge aufklappbar mit Zähler.
