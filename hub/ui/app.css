@@ -1841,3 +1841,6 @@ input[type=file]::file-selector-button {
 .order-approval-row > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .order-approval-row button { height: 32px; min-height: 32px; padding: 0 10px; font-size: .82rem; }
 .workspace-editor > .editor-actions { margin-top: 16px; }
+
+.recipe-remove { margin-left: auto; width: 28px; height: 28px; min-height: 28px; padding: 0; border-radius: 8px; line-height: 1; font-size: 1.1rem; color: var(--muted); }
+.recipe-remove:hover { color: var(--ink); background: var(--card); }

@@ -35,3 +35,11 @@ test('Clarifying questions offer two choices plus none, or yes and no',()=>{
   assert.deepEqual(quickReplyFor(['Meinst du mit „Raps“ Rapsöl oder etwas anderes?']),{kind:'choices',choices:['Rapsöl','Etwas anderes']})
   assert.deepEqual(quickReplyFor(['Soll ich Schinken auf die Einkaufsliste setzen?']),{kind:'choices',choices:['Ja','Nein']})
 })
+
+test('Equivalent ingredients in the pantry cover a recipe: pasta shapes, cooking oils, minced meat, passata',async()=>{
+  const {ingredientStock}=await import('../../../hub/runtime/recipe-portions.ts')
+  const stock=[['Nudeln','1,5 kg'],['Rapsöl','500 ml'],['Gemischtes Hack','500 g'],['Passata','400 g']].map(([name,quantity],index)=>
+    ({id:String(index),name,quantity,note:'',category:'pantry',location:'pantry',status:'stocked',expiry:null})) as never
+  const need=[['Spaghetti','100 g'],['Olivenöl','1 EL'],['Hackfleisch','125 g'],['Passierte Tomaten','150 g'],['Parmesan','15 g']].map(([name,quantity])=>({name,quantity}))
+  assert.deepEqual(ingredientStock(need,stock),['enough','enough','enough','enough','missing'])
+})
