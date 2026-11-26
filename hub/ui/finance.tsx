@@ -1,4 +1,4 @@
-import { SubscriptionReviewWindow } from './subscription-review.tsx'
+import { SubscriptionReviewPanel, startSubscriptionReview, useSubscriptionJob } from './subscription-review.tsx'
 import {DateInput,monthAtOffset as shiftMonth} from './presentation.tsx'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { budgetCategories, budgetCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceDraft, type FinanceEntry, type FinanceKind, type FinanceOverview } from '../runtime/finance-types.ts'
@@ -151,7 +151,7 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
   const [error,setError]=useState('')
   const [editor,setEditor]=useState<Editor>()
   const [filter,setFilter]=useState('')
-  const [review,setReview]=useState(false)
+  const reviewJob=useSubscriptionJob()
   const [removing,setRemoving]=useState('')
   const url='/finance?'+new URLSearchParams({month})
   useEffect(()=>{
@@ -167,7 +167,7 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
   const isCurrent=view?.totals.month===month
   const reload=()=>setLocalRevision(value=>value+1)
   function selectMonth(value:string) {
-    setMonth(value);setEditor(undefined);setReview(false);setFilter('');setRemoving('');setError('')
+    setMonth(value);setEditor(undefined);setFilter('');setRemoving('');setError('')
   }
   function section(kind:FinanceKind, title:string, button:string, children?:ReactNode,variable=false,extra?:ReactNode) {
     const entries=view?.entries.filter(item=>item.kind===kind && (kind!=='income'||Boolean(item.date)===variable) && (kind!=='expense'||!filter||item.category===filter))??[]
@@ -228,9 +228,8 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
             {[...new Set(view.entries.filter(item=>item.kind==='expense').map(item=>item.category))].map(category=><option key={category}>{category}</option>)}</select></label>:null)}
       </div>
       <div className="finance-columns finance-summary-columns"><BudgetChart view={view}/>
-        {section('subscription','Abos & Mitgliedschaften','+ Abo',reviewTools,false,
-          <button className="inline-action" type="button" aria-haspopup="dialog" onClick={()=>setReview(true)}>Abos &amp; Alternativen prüfen</button>)}
-        {review?<SubscriptionReviewWindow api={api} month={month} close={()=>setReview(false)}/>:null}
+        {section('subscription','Abos & Mitgliedschaften','+ Abo',<>{reviewTools}<SubscriptionReviewPanel/></>,false,
+          <button className="inline-action" type="button" disabled={reviewJob.status==='running'} onClick={()=>startSubscriptionReview(api,month)}>{reviewJob.status==='running'?'Suche läuft …':reviewJob.status==='done'?'Neu prüfen':'Abos & Alternativen prüfen'}</button>)}
       </div>
       <section className="card settings finance-history"><h2>Sechsmonatsvergleich</h2><HistoryChart history={view.history}/></section>
     </>}
