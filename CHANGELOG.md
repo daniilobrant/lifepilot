@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.44 · 26. November 2026
+
+- Kalender: Eine Aufgabe mit Erinnerung zur Uhrzeit am Fristtag erscheint nur noch einmal (mit Uhrzeit) statt doppelt.
+
 ## v1.0.43 · 26. November 2026
 
 - Sicherheit: Wechselkursabruf folgt keinen Weiterleitungen mehr.
