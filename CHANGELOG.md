@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.48 · 26. November 2026
+
+- Bestellungstracker: Bestellmails mit Warenkorb-Blöcken (adidas) liefern Bestellnummer, Artikel mit Größe, Farbe, Preis und Bild sowie die voraussichtliche Lieferung; Trikots zählen als Oberteile. Ohne lesbare Angaben bleibt der Platzhalter.
+
 ## v1.0.47 · 26. November 2026
 
 - Bestellungstracker: Bestätigungen ohne lesbare Bestellnummer und Artikel im Mailtext (adidas) erscheinen trotzdem unter „Bestellt“.
