@@ -163,6 +163,27 @@ function amountAfter(lines:string[],label:RegExp) {
   return euroCents(lines[index+1]??'')
 }
 
+/** Warenkorb-Blöcke mit Bild „Cart Image“ (z. B. adidas): Name, Preis, „Größe: L / Menge: 1“, „Farbe: …“. Doppelte Blöcke (Desktop und Mobil) zählen einmal. */
+function cartItems(html:string,brand:string):ClothingProduct[] {
+  const pieces=html.split(/(<img\b[^>]*\balt\s*=\s*["']Cart Image["'][^>]*>)/iu)
+  const found=new Map<string,ClothingProduct>()
+  for (let i=1;i<pieces.length;i+=2) {
+    const src=/\bsrc\s*=\s*["']([^"']+)["']/iu.exec(pieces[i])?.[1]??''
+    const block=htmlMailText(pieces[i+1].slice(0,2500)).split(/\r?\n/u).map(line=>line.trim()).filter(Boolean)
+    const name=block[0]
+    if (!name || /^(?:€|größe|farbe|menge)/iu.test(name)) continue
+    const price=euroCents((block.find(line=>/^€\s*[\d.,]+$/u.test(line))??'').replace(/^€\s*/u,'')+' €')
+    const detail=block.find(line=>/^größe\s*:/iu.test(line))??''
+    const size=/^größe\s*:\s*([^/]+?)(?:\s*\/|$)/iu.exec(detail)?.[1]??''
+    const quantity=Number(/menge\s*:\s*(\d{1,2})/iu.exec(detail)?.[1]??1)
+    const color=/^farbe\s*:\s*(.+)$/iu.exec(block.find(line=>/^farbe\s*:/iu.test(line))??'')?.[1]??''
+    const product=garment(name,{image:src,color,size,brand,...(price?{cents:price}:{})},quantity,true)
+    const key=[name,size,color].join('|').toLowerCase()
+    if (product && !found.has(key)) found.set(key,product)
+  }
+  return [...found.values()].slice(0,30)
+}
+
 function retailerItems(lines:string[],html:string,merchant:string) {
   const items:ClothingProduct[]=[]
   const images=merchant==='ASOS' ? [...html.matchAll(/<img\b[^>]*>/giu)].map(([tag])=>attributes(tag)):[]
@@ -278,20 +299,28 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   }
   const numbers=new Set([...(mail.subject+'\n'+text).matchAll(referencePattern)].map(match=>reference(match[1])).filter(Boolean))
   if (!code && numbers.size===1) code=[...numbers][0]
+  if (!code) { const at=lines.findIndex(line=>/^bestellnummer\s*:?$/iu.test(line)); if (at>=0) code=reference(lines[at+1]) }
   const identifiers=new Set([...(mail.subject+'\n'+text).matchAll(trackingPattern)]
     .map(match=>reference(match[1])).filter(value=>value.length>=10))
   if (!tracking && identifiers.size===1) tracking=[...identifiers][0]
+  // Bestätigungen mancher Shops (z. B. adidas) nennen Nummer und Artikel nur als Bild: Die Bestellung wird trotzdem unter „Bestellt“ geführt.
+  let fallback=false
+  if (kind==='order' && !code && !merchant && mail.at && Number.isFinite(Date.parse(mail.at)) &&
+      /^\s*(?:danke|vielen dank|bestellbestätigung|deine bestellbestätigung)/iu.test(mail.subject)) {code='MAIL-'+Date.parse(mail.at);fallback=true}
   if (!kind || !code && !(kind==='delivery' && tracking)) return
   const deadline=explicitDeadline(text)
   if (kind==='return' && !deadline && !receivedReturn.test(mail.subject)) return
   const htmlItems=structured.length?structured:linkedRows(html)
   const plain=plainItems(mail.text || text)
   const retailer=amazon ? amazonItems(mail.text||text,html) : merchant ? retailerItems(lines,html,merchant) : []
-  const items=retailer.length ? retailer : structured.length ? structured : htmlItems.length ? htmlItems.map(item=>{
+  const placeholder:ClothingProduct[]=fallback?[{sku:'',quantity:1,image:'',draft:{name:'Bestellung bei '+shopName(shopDomain(sender))+' (Artikel stehen in der Mail)',category:'accessory',isClothing:false,
+    garmentType:'',color:'',size:'',brand:'',model:'',material:'',fit:'',season:'',tags:'',source:''}}]:[]
+  const cart=!retailer.length&&!structured.length ? cartItems(html,shopName(shopDomain(sender))) : []
+  const items=retailer.length ? retailer : cart.length ? cart : structured.length ? structured : htmlItems.length ? htmlItems.map(item=>{
     const fromText=plain.find(row=>row.draft.name.toLowerCase()===item.draft.name.toLowerCase())
     return {...item,quantity:fromText?.quantity??item.quantity,
       draft:{...item.draft,color:item.draft.color||fromText?.draft.color||'',size:item.draft.size||fromText?.draft.size||''}}
-  }) : plain
+  }) : plain.length ? plain : placeholder
   if (kind==='order' && !items.length) return
   const totalCents=kind==='order' ? amountAfter(lines,/^(?:gesamtbetrag|gesamt:)$/iu) ??
     euroCents(/^(?:Gesamtbetrag|Gesamtsumme|Gesamt)\s*:\s*(.+)$/imu.exec(lines.join('\n'))?.[1]??'') : undefined
@@ -305,9 +334,20 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const months=['januar','februar','märz','april','mai','juni','juli','august','september','oktober','november','dezember']
   const deliveryMonth=estimate ? months.indexOf(estimate[2].toLowerCase())+1 : 0
   const estimated=deliveryMonth && estimate ? date(estimate[3]+'-'+String(deliveryMonth).padStart(2,'0')+'-'+estimate[1].padStart(2,'0')) : undefined
+  const short=['jan','feb','mär','apr','mai','jun','jul','aug','sep','okt','nov','dez']
+  const shortEstimate=!estimated && kind==='order' ? (()=>{
+    const at=lines.findIndex(line=>/^voraussichtliche lieferung\s*:?$/iu.test(line))
+    const hit=at>=0 ? /(\d{1,2})\.?\s+([\p{L}]{3})/u.exec(lines[at+1]??'') : null
+    const month=hit ? short.indexOf(hit[2].toLowerCase())+1 : 0
+    if (!hit || !month || !mail.at) return undefined
+    const base=dateInBerlin(new Date(mail.at))
+    let candidate=base.slice(0,4)+'-'+String(month).padStart(2,'0')+'-'+hit[1].padStart(2,'0')
+    if (candidate<base) candidate=String(Number(base.slice(0,4))+1)+candidate.slice(4)
+    return date(candidate)
+  })() : undefined
   const dated=uniqlo && kind==='order'?fieldDate(/^bestellung erhalten:/iu):undefined
   const shipped=uniqlo && kind==='order'?fieldDate(/^bestellung versandt:/iu):undefined
   const domain=shopDomain(sender)
   return {reference:code,sender:(asos?'asos.com':uniqlo?'uniqlo.com':amazon?'amazon.de':domain),merchant:merchant||(/\.[a-z]{2,}$/iu.test(vendor)?shopName(shopDomain(vendor)):vendor),kind,tracking,partial:/teillieferung|teil deiner bestellung|part of your order|split shipment|separat(?:e|en) paket/iu.test(text),
-    items,...(estimated && {estimated}),...(totalCents && {totalCents}),...(refundCents && {refundCents}),...(shipped && {shipped}),day:dated ?? (mail.at && Number.isFinite(Date.parse(mail.at)) ? dateInBerlin(new Date(mail.at)) : dateInBerlin()),deadline}
+    items,...((estimated??shortEstimate) && {estimated:(estimated??shortEstimate)!}),...(totalCents && {totalCents}),...(refundCents && {refundCents}),...(shipped && {shipped}),day:dated ?? (mail.at && Number.isFinite(Date.parse(mail.at)) ? dateInBerlin(new Date(mail.at)) : dateInBerlin()),deadline}
 }

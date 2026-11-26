@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { dateInBerlin } from './values.ts'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
-import { bodyProportions, emptyStyle, isLongOrHeavyBaseTop, itemOccasion, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
+import { bodyProportions, emptyStyle, fitsOccasion, isLongOrHeavyBaseTop, itemOccasion, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
   type OutfitSlot, type OutfitWeather, type StyleProfile, type WardrobeCategory, type WardrobeDraft, type WardrobeItem } from './outfit-types.ts'
 
 const idPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu
@@ -277,7 +277,7 @@ export class OutfitStudio {
     const occasion=statedOccasion || (chosen.length ? 'Rund um ' + chosen[0].name : 'Freie Inspiration')
     const occasionKind=/büro|business|arbeit|meeting|präsentation/iu.test(statedOccasion)?'Büro':
       /dinner|restaurant|date|abend|theater|oper/iu.test(statedOccasion)?'Dinner':/sport|training|fitness|wander/iu.test(statedOccasion)?'Sport':
-      /feier|party|club|geburtstag|ausgehen|bar\b/iu.test(statedOccasion)?'Ausgehen':/uni|vorlesung|hochschule/iu.test(statedOccasion)?'Uni':undefined
+      /feier|party|club|geburtstag|ausgehen|bar\b/iu.test(statedOccasion)?'Ausgehen':/uni|vorlesung|hochschule/iu.test(statedOccasion)?'Uni':/alltag|freizeit|casual|spazier|café|cafe|einkauf/iu.test(statedOccasion)?'Alltag':/vorstellungsgespräch|interview|hochzeit|beerdigung|konferenz|gala/iu.test(statedOccasion)?'Büro':undefined
     const formal=/büro|business|eleganz|feier|date|abend/iu.test(occasion+' '+query.style)
     const comparable=(value:string)=>value.toLocaleLowerCase('de-DE').split(/[^\p{L}\p{N}]+/u).filter(part=>part.length>=3)
     const personal=personalProfile(store).fields
@@ -292,13 +292,23 @@ export class OutfitStudio {
     const cut = Object.hasOwn(cutPatterns,profile.preferredCut) ? cutPatterns[profile.preferredCut] : undefined
     const proportionTip = Object.hasOwn(proportionTips,profile.proportions) ? proportionTips[profile.proportions] : undefined
     let variation = query.variant
+    // Farben, die der Nutzer im Text nennt („in Blau“, „schwarzer Look“), werden bevorzugt.
+    const colorWords=comparable(occasionText).filter(word=>/^(?:schwarz|wei[sß]|grau|blau|navy|rot|bordeaux|gr[uü]n|oliv|beige|braun|camel|gelb|rosa|pink|lila|orange)/u.test(word)).map(word=>word.replace(/e[rsnm]?$/u,''))
+    // Vorausschau: Ein Oberteil wird danach bewertet, ob zu ihm überhaupt passende Hosen, Jacken und Schuhe vorhanden sind.
+    const lookahead = (item: WardrobeItem, category: WardrobeCategory) => category==='accessory' ? 0 : (['top','bottom','outer','shoes'] as WardrobeCategory[])
+      .filter(other=>other!==category&&!chosen.some(picked=>picked.category===other)).reduce((sum,other)=>{
+        const candidates=wardrobe.filter(entry=>entry.category===other)
+        if(!candidates.length)return sum
+        return sum+Math.max(-12,Math.min(6,Math.max(...candidates.map(entry=>paletteScore(entry,[item,...chosen],query.style)))))
+      },0)
     const rankItems = (items: WardrobeItem[], category: WardrobeCategory) => items.map(item => {
       const itemText=[item.name,item.brand,item.model,item.tags,item.fit,item.material].join(' ').toLowerCase()
       let score=sizeScore(item,profile)
       if(/sport|training|fitness/iu.test(occasion)&&/sport|training|sneaker|funktion|jersey/iu.test(itemText))score+=6
       if(itemText.includes(query.style.toLowerCase()) || guessedStyleTags(itemText).includes(query.style))score+=4
       if(formal&&/eleganz|wolle|boots|hemd|leder|smart/u.test(itemText))score+=2
-      score+=paletteScore(item,chosen,query.style)
+      score+=paletteScore(item,chosen,query.style)+lookahead(item,category)
+      if(colorWords.length&&colorWords.some(word=>item.color.toLowerCase().includes(word)))score+=6
       if(occasionKind&&itemOccasion(item).includes(occasionKind))score+=3
       if(item.material && chosen.some(other=>/wolle|wool/iu.test(other.material)) && /leder|leather/iu.test(item.material))score+=2
       if (cut && cut.test(item.fit || item.tags+' '+item.name)) score+=5
@@ -320,11 +330,13 @@ export class OutfitStudio {
     }).sort((a,b)=>b.score-a.score)
 
     function pick(items:WardrobeItem[],category:WardrobeCategory) {
-      const ranked=rankItems(items,category)
+      // Nur Teile, die zum genannten Anlass passen; gibt es keines, bleibt die ganze Auswahl.
+      const fitting=occasionKind?items.filter(item=>fitsOccasion(occasionKind,itemOccasion(item))):items
+      const ranked=rankItems(fitting.length?fitting:items,category)
       if (!ranked.length) return
       // Varianten kommen nur aus Teilen, die fast so gut passen wie das beste. Unruhige Farbpaare fallen so heraus.
-      const close=ranked.filter(entry=>entry.score>=ranked[0].score-5)
-      const choices=Math.min(close.length,3)
+      const close=ranked.filter(entry=>entry.score>=ranked[0].score-10)
+      const choices=Math.min(close.length,4)
       const item=close[variation % choices].item
       chosen.push(item)
       variation=Math.floor(variation / choices)

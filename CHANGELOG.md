@@ -2,6 +2,47 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.58 · 26. November 2026
+
+- Posteingang: Weitergeleitete Kurs-Mails (Stud.IP/HfWU) mit englischem Ablauf („today’s presentation, 12:00“) werden als Terminvorschlag erkannt, mit Kursname, Uhrzeit und Zoom-Hinweis.
+
+## v1.0.52 · 26. November 2026
+
+- Start: Mailvorschläge unter „Wartet auf dein OK“ sind wie die Finanzvorschläge aufklappbar mit Zähler.
+
+## v1.0.51 · 26. November 2026
+
+- Posteingang: Persönliche Terminmails („heute Meeting um 15 Uhr auf Teams“) erscheinen als Terminvorschlag unter „Wartet auf dein OK“ und als wichtige Nachricht.
+- Unklare Mails prüft das Modell einmalig (höchstens 5 pro Abruf): Termin, Frist, wichtig oder irrelevant.
+
+## v1.0.50 · 26. November 2026
+
+- Styling-Studio: Looks bestehen nur aus Teilen, die zum genannten Anlass passen (Büro, Dinner, Ausgehen, Sport, Uni, Alltag); gibt es für eine Teilekategorie keine passenden, bleibt die ganze Auswahl.
+
+## v1.0.49 · 26. November 2026
+
+- Styling-Studio: Oberteile werden mit Blick auf passende Hosen, Jacken und Schuhe gewählt (Farbvorausschau), unruhige Paare wie Blau und Weinrot fallen heraus; mehr Abwechslung bei „Neu“; im Text genannte Farben und Anlässe (Vorstellungsgespräch, Hochzeit …) fließen in die Auswahl ein.
+
+## v1.0.48 · 26. November 2026
+
+- Bestellungstracker: Bestellmails mit Warenkorb-Blöcken (adidas) liefern Bestellnummer, Artikel mit Größe, Farbe, Preis und Bild sowie die voraussichtliche Lieferung; Trikots zählen als Oberteile. Ohne lesbare Angaben bleibt der Platzhalter.
+
+## v1.0.47 · 26. November 2026
+
+- Bestellungstracker: Bestätigungen ohne lesbare Bestellnummer und Artikel im Mailtext (adidas) erscheinen trotzdem unter „Bestellt“.
+
+## v1.0.46 · 26. November 2026
+
+- Rezeptideen: zehn weitere Rezepte, die Auswahl wechselt bei jeder Anfrage; gleichwertige Zutaten (Hähnchen/Hähnchenfleisch, Hackfleisch, Öle, Nudeln) werden nicht erneut auf die Einkaufsliste gesetzt.
+
+## v1.0.45 · 26. November 2026
+
+- Rezepte: Entfernen-Knopf direkt an jedem gespeicherten Rezept. Der Vorratsabgleich erkennt gleichwertige Zutaten (Nudelsorten, Speiseöle, Hackfleisch, passierte Tomaten/Passata).
+
+## v1.0.44 · 26. November 2026
+
+- Kalender: Eine Aufgabe mit Erinnerung zur Uhrzeit am Fristtag erscheint nur noch einmal (mit Uhrzeit) statt doppelt.
+
 ## v1.0.43 · 26. November 2026
 
 - Sicherheit: Wechselkursabruf folgt keinen Weiterleitungen mehr.

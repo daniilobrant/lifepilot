@@ -35,3 +35,22 @@ test('Clarifying questions offer two choices plus none, or yes and no',()=>{
   assert.deepEqual(quickReplyFor(['Meinst du mit „Raps“ Rapsöl oder etwas anderes?']),{kind:'choices',choices:['Rapsöl','Etwas anderes']})
   assert.deepEqual(quickReplyFor(['Soll ich Schinken auf die Einkaufsliste setzen?']),{kind:'choices',choices:['Ja','Nein']})
 })
+
+test('Equivalent ingredients in the pantry cover a recipe: pasta shapes, cooking oils, minced meat, passata',async()=>{
+  const {ingredientStock}=await import('../../../hub/runtime/recipe-portions.ts')
+  const stock=[['Nudeln','1,5 kg'],['Rapsöl','500 ml'],['Gemischtes Hack','500 g'],['Passata','400 g']].map(([name,quantity],index)=>
+    ({id:String(index),name,quantity,note:'',category:'pantry',location:'pantry',status:'stocked',expiry:null})) as never
+  const need=[['Spaghetti','100 g'],['Olivenöl','1 EL'],['Hackfleisch','125 g'],['Passierte Tomaten','150 g'],['Parmesan','15 g']].map(([name,quantity])=>({name,quantity}))
+  assert.deepEqual(ingredientStock(need,stock),['enough','enough','enough','enough','missing'])
+})
+
+test('Recipe ideas vary between requests and meat requests offer several meat dishes',async()=>{
+  const {Store}=await import('../../../hub/runtime/store.ts')
+  const {groceryIdeas}=await import('../../../hub/runtime/grocery.ts')
+  const store=new Store(':memory:')
+  try{
+    const lists=[0,3,7].map(rotation=>groceryIdeas(store,undefined,undefined,1,{excluded:[],mode:'meat'},[],rotation).map(idea=>idea.title).join('|'))
+    assert.ok(new Set(lists).size>=2)
+    for(const list of lists)assert.equal(list.split('|').length,4)
+  }finally{store.db.close()}
+})

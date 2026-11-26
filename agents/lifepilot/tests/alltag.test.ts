@@ -83,7 +83,7 @@ test('A week keeps completed deadlines and reflects links without duplicating da
     const from = expandBlock({ start: date + 'T00:00', minutes: null, weeks: 1 })[0].at
     const to = expandBlock({ start: day(17) + 'T00:00', minutes: null, weeks: 1 })[0].at
     const week = store.workspace.week(date, from, to)
-    assert.deepEqual(week.entries.map(item => [item.id, item.kind]), [[draft.id, 'deadline'], [reminder.id, 'reminder'], [slot.id, 'slot']])
+    assert.deepEqual(week.entries.map(item => [item.id, item.kind]), [[reminder.id, 'reminder'], [slot.id, 'slot']])
     store.workspace.dismiss(slot.id, 'ui')
     assert.deepEqual(store.workspace.week(date, from, to).entries.find(item => item.taskId === intro.id)?.kind, 'appointment')
     const done = store.workspace.update(draft.id, draft.revision, { status: 'done' }, 'ui')

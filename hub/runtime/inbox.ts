@@ -10,6 +10,7 @@ import type { FreeWindow } from './availability.ts'
 import { dateInBerlin, isDate, shiftDay } from './values.ts'
 import { berlinInstant } from '../../agents/lifepilot/tools/validate.ts'
 import { eventIdentity, readTicketEvent, type TicketEvent } from './event-mail.ts'
+import { readMeetingMail } from './meeting-mail.ts'
 
 const topics = [
   ['returns', /retoure|rücksend|rückgabefrist|zurücksenden|return by/iu, 'Rücksendung prüfen'],
@@ -68,7 +69,7 @@ export function scanTicketEvents(store:Store,mails:MailContent[],account:string,
     (id,source_key,subject,category,evidence,due_date,created_at) VALUES (?,?,?,'appointments',?,?,?)`)
   let added=0
   for(const mail of mails){
-    const event=readTicketEvent(mail)
+    const event=readTicketEvent(mail)??readMeetingMail(mail,today)
     if(!event||event.date<today)continue
     const source=createHash('sha256').update(JSON.stringify(['ticket-event',account,event.date,event.time,eventIdentity(event.title)])).digest('hex')
     added+=Number(insert.run(randomUUID(),source,event.title,JSON.stringify(event),event.date,new Date().toISOString()).changes)
