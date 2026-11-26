@@ -87,3 +87,44 @@ export function MailFinance({api,refreshKey,onUpdate,compact,onOpen}:{
     </> : null}
   </details>
 }
+
+type PayPalRow=MailFinanceProposal & {state:'open'|'assigned'|'ignored'}
+const dayText=(date:string)=>date.split('-').reverse().join('.')
+/** Optionale Übersicht aller erkannten PayPal-Zahlungen. Nichts davon zählt, bis es zugeordnet wird. */
+export function PayPalList({api,refreshKey,onChange}:{api:Api,refreshKey:string,onChange:()=>void}){
+  const [rows,setRows]=useState<PayPalRow[]>([])
+  const [error,setError]=useState('')
+  const [busy,setBusy]=useState('')
+  useEffect(()=>{
+    let active=true
+    void api<PayPalRow[]>('/inbox/paypal').then(value=>{if(active){setRows(value);setError('')}})
+      .catch(reason=>{if(active)setError(reason instanceof Error?reason.message:'PayPal-Zahlungen konnten nicht geladen werden.')})
+    return ()=>{active=false}
+  },[api,refreshKey])
+  async function decide(row:PayPalRow,assign:boolean){
+    if(busy)return
+    setBusy(row.id);setError('')
+    try{
+      await api('/inbox/paypal',{entry:row.id,assign,confirm:true})
+      setRows(current=>current.map(item=>item.id===row.id?{...item,state:assign?'assigned':'ignored'}:item))
+      onChange()
+    }catch(reason){setError(reason instanceof Error?reason.message:'Die Entscheidung konnte nicht gespeichert werden.')}
+    finally{setBusy('')}
+  }
+  if(!rows.length&&!error)return null
+  const incoming=(row:PayPalRow)=>row.direction==='incoming'||row.refund
+  return <section className="card settings finance-paypal" aria-label="Zahlungen aus Mails">
+    <div className="editor-title"><h2>Zahlungen aus Mails</h2><span className="count-badge">{rows.filter(row=>row.state==='open').length} offen</span></div>
+    <p className="finance-paypal-note">Erkannte Zahlungen aus PayPal, Karte und Bestellungen. „Zuordnen“ übernimmt sie in die variablen Einnahmen oder Ausgaben, „Nicht beachten“ lässt sie nur hier stehen und aus dem Budget heraus. Beides lässt sich jederzeit ändern.</p>
+    {error?<p role="alert">{error}</p>:null}
+    <ul className="finance-list">{rows.map(row=><li key={row.id} className="finance-paypal-row">
+      <div className="finance-paypal-info"><strong>{displayIdentity(row.title,true)}</strong>
+        <small>{[incoming(row)?'Eingang':'Ausgang',dayText(row.date),row.state==='assigned'?'zugeordnet':row.state==='ignored'?'nicht beachtet':''].filter(Boolean).join(' · ')}</small></div>
+      <strong className={incoming(row)?'finance-in':'finance-out'}>{incoming(row)?'+':'−'}{money(row.cents)}</strong>
+      <div className="finance-paypal-actions">
+        <button type="button" className={row.state==='assigned'?'primary':''} disabled={Boolean(busy)} aria-pressed={row.state==='assigned'} onClick={()=>void decide(row,true)}>Zuordnen</button>
+        <button type="button" disabled={Boolean(busy)} aria-pressed={row.state==='ignored'} onClick={()=>void decide(row,false)}>Nicht beachten</button>
+      </div>
+    </li>)}</ul>
+  </section>
+}

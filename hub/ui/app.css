@@ -1972,3 +1972,26 @@ input[type=file]::file-selector-button {
 .inbox-mail > details > summary > .inbox-mail-side > time { color:var(--muted); font-size:.84rem; white-space:nowrap; }
 .inbox-relabel-error { width:100%; margin:0; color:#a02323; font-size:.8rem; }
 .inbox-mail dd .inbox-edit { margin-left:6px; vertical-align:middle; }
+
+/* Finanzen: einheitliche Karten, Köpfe und Schaltflächen; PayPal-Liste */
+.finance-metrics { align-items: stretch; }
+.finance-metrics > .card { display: flex; flex-direction: column; gap: 6px; margin: 0; }
+.finance-metrics h2 { margin: 0; font-size: .95rem; }
+.finance-metrics small { margin: 0; }
+.finance-metrics progress { margin-top: auto; }
+.finance-section .editor-title, .finance-paypal .editor-title { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 2.4rem; margin-bottom: 6px; }
+.finance-head-actions button, .finance-paypal-actions button, button.inline-action { min-height: 2.2rem; padding: 0 .85rem; border-radius: 999px; font-size: .85rem; line-height: 1; white-space: nowrap; }
+.finance-detail-columns > .card, .finance-summary-columns > .card { margin: 0; height: 100%; }
+.finance-history { padding-bottom: 1rem; }
+.finance-history-chart { max-width: 100%; margin-top: .5rem; }
+.finance-history-chart text { font-size: 12px; }
+.finance-month-label { fill: currentColor; opacity: .8; }
+.finance-gridline line { stroke-dasharray: 3 5; opacity: .22; }
+.finance-paypal-note { margin: 0 0 .5rem; font-size: .83rem; opacity: .8; }
+.finance-paypal-row { display: grid; grid-template-columns: minmax(0,1fr) auto auto; align-items: center; gap: .75rem; padding: .55rem 0; }
+.finance-paypal-info { min-width: 0; display: grid; }
+.finance-paypal-info strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.finance-paypal-actions { display: flex; gap: .4rem; }
+.finance-in { color: var(--accent, #42775b); }
+.finance-out { color: var(--warm, #bc7051); }
+@media (max-width: 720px) { .finance-paypal-row { grid-template-columns: minmax(0,1fr) auto; } .finance-paypal-actions { grid-column: 1 / -1; } .finance-paypal-actions button { flex: 1; } }

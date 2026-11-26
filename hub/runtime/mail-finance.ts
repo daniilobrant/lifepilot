@@ -289,9 +289,12 @@ export function scanMailFinances(store:Store,mails:MailContent[],account:string,
   })
 }
 
-export function pendingMailFinances(store:Store,account:string):MailFinanceProposal[] {
+// Alle erkannten Zahlungen (PayPal, Karte, Bestellungen, Tickets, Erstattungen) laufen über die optionale Zahlungsliste; nur Abos bleiben Vorschläge.
+const pureTransfer=(column:string)=>`(json_extract(${column},'$.subscription') IS NULL AND json_extract(${column},'$.direction') IS NOT NULL)`
+
+export function pendingMailFinances(store:Store,account:string,withPayments=true):MailFinanceProposal[] {
   return (store.db.prepare(`SELECT candidate.id,candidate.draft FROM gmail_finance_suggestions candidate
-    WHERE candidate.account=? AND candidate.state='pending' AND NOT EXISTS (
+    WHERE candidate.account=? AND candidate.state='pending' AND (? OR NOT ${pureTransfer('candidate.draft')}) AND NOT EXISTS (
       SELECT 1 FROM gmail_finance_suggestions subscription
       WHERE subscription.account=candidate.account AND subscription.state IN ('pending','accepted')
         AND json_extract(subscription.draft,'$.subscription.key')=json_extract(candidate.draft,'$.recurrenceKey')
@@ -301,7 +304,7 @@ export function pendingMailFinances(store:Store,account:string):MailFinancePropo
            AND (entry.until_month IS NULL OR substr(json_extract(candidate.draft,'$.date'),1,7)<entry.until_month)
         ))
     ) ORDER BY json_extract(candidate.draft,'$.date') DESC,candidate.rowid DESC LIMIT 100`)
-    .all(account) as ProposalRow[]).map(row=>({...JSON.parse(row.draft) as MailFinanceDraft,id:row.id}))
+    .all(account,withPayments?1:0) as ProposalRow[]).map(row=>({...JSON.parse(row.draft) as MailFinanceDraft,id:row.id}))
 }
 
 export function decideMailFinance(store:Store,account:string,id:string,approved:boolean,reviewed:unknown) {
@@ -357,5 +360,29 @@ export function decideMailFinance(store:Store,account:string,id:string,approved:
     }
     store.db.prepare('UPDATE gmail_finance_suggestions SET state=?,entry_id=? WHERE id=?').run(approved?'accepted':'denied',entryId,id)
     return {entryId}
+  })
+}
+
+export type PayPalEntry = MailFinanceProposal & {state:'open'|'assigned'|'ignored'}
+const paypalState={pending:'open',accepted:'assigned',denied:'ignored'} as const
+/** Alle erkannten Zahlungen aus Mails, neueste zuerst. Einnahme oder Ausgabe ergibt sich aus der Richtung. */
+export function paypalOverview(store:Store,account:string):PayPalEntry[] {
+  return (store.db.prepare(`SELECT id,draft,state FROM gmail_finance_suggestions WHERE account=? AND ${pureTransfer('draft')}
+    ORDER BY json_extract(draft,'$.date') DESC,rowid DESC LIMIT 80`).all(account) as ProposalRow[])
+    .map(row=>({...JSON.parse(row.draft) as MailFinanceDraft,id:row.id,state:paypalState[row.state as keyof typeof paypalState]??'open'}))
+}
+/** „Zuordnen“ übernimmt die Zahlung in die variablen Einnahmen oder Ausgaben, „Nicht beachten“ lässt sie nur in der Liste. Beides ist umkehrbar. */
+export function decidePayPal(store:Store,account:string,id:string,assign:boolean) {
+  return store.transaction(()=>{
+    const row=store.db.prepare('SELECT * FROM gmail_finance_suggestions WHERE id=? AND account=?').get(id,account) as ProposalRow|undefined
+    const parsed=row&&JSON.parse(row.draft) as MailFinanceDraft
+    if(!row||!parsed?.direction||parsed.subscription) throw new Problem(404,'Die Zahlung ist nicht verfügbar.')
+    if(row.state==='denied'&&assign) store.db.prepare("UPDATE gmail_finance_suggestions SET state='pending' WHERE id=?").run(id)
+    if(row.state==='accepted'&&!assign){
+      if(row.entry_id) store.db.prepare('DELETE FROM finance_entries WHERE id=?').run(row.entry_id)
+      store.db.prepare("UPDATE gmail_finance_suggestions SET state='denied',entry_id=NULL WHERE id=?").run(id)
+      return {entryId:null}
+    }
+    return decideMailFinance(store,account,id,assign,undefined)
   })
 }

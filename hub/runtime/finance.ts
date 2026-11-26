@@ -107,8 +107,10 @@ export function financeOverview(store:Store,month:string,today=dateInBerlin()):F
   const calc=(key:string,entries:FinanceEntry[])=>{
     const sum=(kind:FinanceDraft['kind'])=>entries.filter(entry=>entry.kind===kind).reduce((total,entry)=>total+monthlyCents(entry),0)
     const income=sum('income'), fixed=sum('fixed'), subscriptions=sum('subscription'), variable=sum('expense')
+    const base=entries.filter(entry=>entry.kind==='income'&&!entry.date).reduce((total,entry)=>total+monthlyCents(entry),0)
     const spending=fixed+subscriptions+variable
-    return {month:key,hasEntries:entries.length>0,income,fixed,subscriptions,variable,spending,balance:income-spending}
+    return {month:key,hasEntries:entries.length>0,income,fixed,subscriptions,variable,spending,balance:income-spending,
+      base,variableIncome:income-base,room:base-fixed-subscriptions}
   }
   const entries=rows(store,month), settings=financeSettings(store), totals=calc(month,entries)
   const history=Array.from({length:5},(_,i)=>shiftFinanceMonth(month,i-5)).map(key=>calc(key,rows(store,key))).concat(totals)

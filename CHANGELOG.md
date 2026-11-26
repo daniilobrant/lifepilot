@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.84 · 26. November 2026
+
+- Finanzen & Abos: Die Übersicht folgt jetzt der Reihenfolge Festes Einkommen (Gehalt), danach Fixkosten und Abos als Spielraum, danach zugeordnete variable Einnahmen und Ausgaben als Monatssaldo.
+- Finanzen & Abos: Neue Liste „Zahlungen aus Mails“ mit allen erkannten Zahlungen (PayPal, Karte, Bestellungen, Erstattungen), Einnahme oder Ausgabe automatisch erkannt. Pro Eintrag zwei Aktionen: „Zuordnen“ übernimmt ihn in die variablen Einnahmen oder Ausgaben, „Nicht beachten“ lässt ihn nur in der Liste stehen. Beides ist umkehrbar. Nur Abos bleiben als Finanzvorschläge bestehen.
+- Sechsmonatsvergleich ruhiger: mehr Abstand zu den Achsenbeschriftungen, dünnere Linien, keine Punkte in Monaten ohne Buchungen. Karten, Überschriften und Schaltflächen haben einheitliche Höhe und Rundung.
+
 ## v1.0.83 · 26. November 2026
 
 - Posteingang: Der Stift zum Ändern der Kategorie steht ganz rechts unter dem Datum, ohne weitere Beschriftung. Er klappt die Mail auf und zeigt „Bereich ändern“; ein zweiter Stift steht beim Feld „Bereich“. Fehler beim Speichern erscheinen direkt in der Mail.

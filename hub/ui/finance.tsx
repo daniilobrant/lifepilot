@@ -3,6 +3,7 @@ import {DateInput,monthAtOffset as shiftMonth} from './presentation.tsx'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { budgetCategories, budgetCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceDraft, type FinanceEntry, type FinanceKind, type FinanceOverview } from '../runtime/finance-types.ts'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
+import { PayPalList } from './mail-finance.tsx'
 
 type Api=<T>(path:string,payload?:object)=>Promise<T>
 type Editor={draft:FinanceDraft, entry?:FinanceEntry}
@@ -120,26 +121,27 @@ function HistoryChart({history}:{history:FinanceOverview['history']}) {
   const rawMax=Math.max(10000,...history.flatMap(item=>[item.income,item.spending]))
   const unit=Math.pow(10,Math.floor(Math.log10(rawMax)))
   const max=Math.ceil(rawMax/unit*2)*unit/2
-  const x=(index:number)=>65+86*index
-  const y=(value:number)=>176-value/max*148
+  const left=64, right=24, top=16, bottom=188, width=560
+  const step=(width-left-right)/(history.length-1)
+  const x=(index:number)=>left+step*index
+  const y=(value:number)=>bottom-value/max*(bottom-top)
   const series=[['income','Einnahmen','#42775b'],['spending','Ausgaben','#bc7051']] as const
   return <>
     <div className="finance-trend-legend">{series.map(([key,label,color])=><span key={key}>
       <i style={{background:color}} aria-hidden/>{label}</span>)}</div>
-    <svg className="finance-history-chart" viewBox="0 0 525 210" role="img" aria-label="Einnahmen und Ausgaben der letzten sechs Monate">
-      {[0,.25,.5,.75,1].map(fraction=><g key={fraction} className="finance-gridline">
-        <line x1="65" x2="495" y1={y(max*fraction)} y2={y(max*fraction)}/>
-        <text x="54" y={y(max*fraction)+4} textAnchor="end">{format.format(max*fraction/100)} €</text>
+    <svg className="finance-history-chart" viewBox={'0 0 '+width+' 226'} role="img" aria-label="Einnahmen und Ausgaben der letzten sechs Monate">
+      {[0,.5,1].map(fraction=><g key={fraction} className="finance-gridline">
+        <line x1={left} x2={width-right} y1={y(max*fraction)} y2={y(max*fraction)}/>
+        <text x={left-12} y={y(max*fraction)+4} textAnchor="end">{format.format(max*fraction/100)} €</text>
       </g>)}
-      <rect x={x(history.length-1)-27} y="14" width="54" height="166" rx="8" className="finance-trend-current"/>
       {series.map(([key,label,color])=><g key={key}>
         {history.slice(1).map((item,i)=>item.hasEntries && history[i].hasEntries ? <line key={item.month}
-          x1={x(i)} y1={y(history[i][key])} x2={x(i+1)} y2={y(item[key])} stroke={color} strokeWidth="3"/> : null)}
-        {history.map((item,i)=>item.hasEntries ? <circle cx={x(i)} cy={y(item[key])} r={i===history.length-1?5:3.5} key={item.month} fill={color}>
+          x1={x(i)} y1={y(history[i][key])} x2={x(i+1)} y2={y(item[key])} stroke={color} strokeWidth="2.5" strokeLinecap="round"/> : null)}
+        {history.map((item,i)=>item.hasEntries ? <circle cx={x(i)} cy={y(item[key])} r={i===history.length-1?4.5:3.5} key={item.month} fill={color}>
           <title>{monthName(item.month)} · {label} {money(item[key])}</title>
         </circle> : null)}
       </g>)}
-      {history.map((item,i)=><text key={item.month} x={x(i)} y="202" textAnchor="middle" fill="currentColor">{monthName(item.month,true)}</text>)}
+      {history.map((item,i)=><text key={item.month} className="finance-month-label" x={x(i)} y="218" textAnchor="middle">{monthName(item.month,true)}</text>)}
     </svg>
   </>
 }
@@ -204,11 +206,13 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
     {error?<p role="alert">{error}</p>:null}
     {!isCurrent||!view?<p role="status">Monatsübersicht wird geladen …</p>:<>
       <div className="finance-metrics">
-        <section className="card settings"><h2>Einnahmen</h2><strong>{money(view.totals.income)}</strong></section>
-        <section className="card settings"><h2>Ausgaben</h2><strong>{money(view.totals.spending)}</strong>
-          <small>Fix {money(view.totals.fixed)} · Abos {money(view.totals.subscriptions)} · Variabel {money(view.totals.variable)}</small></section>
+        <section className="card settings"><h2>Festes Einkommen</h2><strong>{money(view.totals.base)}</strong>
+          <small>Gehalt und andere feste Einnahmen</small></section>
+        <section className="card settings"><h2>Nach Fixkosten &amp; Abos</h2><strong>{money(view.totals.room)}</strong>
+          <small>Fix {money(view.totals.fixed)} · Abos {money(view.totals.subscriptions)}</small></section>
         <section className={'card settings finance-balance '+(view.totals.balance<0||view.totals.income&&view.totals.balance/view.totals.income<.1?'negative':
-          view.totals.income&&view.totals.balance/view.totals.income<=.25?'warning':'')}><h2>Restbudget</h2><strong>{money(view.totals.balance)}</strong>
+          view.totals.income&&view.totals.balance/view.totals.income<=.25?'warning':'')}><h2>Monatssaldo</h2><strong>{money(view.totals.balance)}</strong>
+          <small>Variable Einnahmen {money(view.totals.variableIncome)} · Ausgaben {money(view.totals.variable)}</small>
           {view.settings.target!==null && <small>Ziel {money(view.settings.target)} · {view.totals.balance>=view.settings.target?'erreicht':
             money(view.settings.target-view.totals.balance)+' darunter'}</small>}
           {view.totals.income?<progress value={Math.min(view.totals.spending,view.totals.income)} max={view.totals.income} aria-label="Verbrauchtes Monatsbudget"/>:null}</section>
@@ -222,15 +226,18 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
       <div className="finance-columns finance-detail-columns">
         {section('income','Fixe Einnahmen','+ Einnahme')}
         {section('fixed','Fixkosten','+ Fixkosten')}
-        {section('income','Variable Einnahmen','+ Einnahme',undefined,true)}
-        {section('expense','Variable Ausgaben','+ Ausgabe',view.totals.variable>0?<label className="finance-expense-filter">Kategorie
-          <select value={filter} onChange={event=>setFilter(event.target.value)}><option value="">Alle Ausgaben</option>
-            {[...new Set(view.entries.filter(item=>item.kind==='expense').map(item=>item.category))].map(category=><option key={category}>{category}</option>)}</select></label>:null)}
       </div>
       <div className="finance-columns finance-summary-columns"><BudgetChart view={view}/>
         {section('subscription','Abos & Mitgliedschaften','+ Abo',<>{reviewTools}<SubscriptionReviewPanel/></>,false,
           <button className="inline-action" type="button" disabled={reviewJob.status==='running'} onClick={()=>startSubscriptionReview(api,month)}>{reviewJob.status==='running'?'Suche läuft …':reviewJob.status==='done'?'Neu prüfen':'Abos & Alternativen prüfen'}</button>)}
       </div>
+      <div className="finance-columns finance-detail-columns">
+        {section('income','Variable Einnahmen','+ Einnahme',undefined,true)}
+        {section('expense','Variable Ausgaben','+ Ausgabe',view.totals.variable>0?<label className="finance-expense-filter">Kategorie
+          <select value={filter} onChange={event=>setFilter(event.target.value)}><option value="">Alle Ausgaben</option>
+            {[...new Set(view.entries.filter(item=>item.kind==='expense').map(item=>item.category))].map(category=><option key={category}>{category}</option>)}</select></label>:null)}
+      </div>
+      <PayPalList api={api} refreshKey={refreshKey+':'+localRevision} onChange={reload}/>
       <section className="card settings finance-history"><h2>Sechsmonatsvergleich</h2><HistoryChart history={view.history}/></section>
     </>}
   </div>

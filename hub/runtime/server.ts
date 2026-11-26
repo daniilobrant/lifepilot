@@ -22,7 +22,7 @@ import { transcribeDictation, maxDictationBytes } from '../connectors/local-dict
 import { validRecipeServings } from './recipe-portions.ts'
 import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe, updateRecipePortions } from './grocery.ts'
 import { scanGroceries } from './grocery-scan.ts'
-import { decideMailFinance, pendingMailFinances } from './mail-finance.ts'
+import { decideMailFinance, decidePayPal, paypalOverview, pendingMailFinances } from './mail-finance.ts'
 import { confirmedMailAccount, enableMailCategorization, mailAccountKey, syncCategorizedMail } from './mail-sync.ts'
 import { deleteFinance, financeMonth, financeOverview, saveFinance, saveFinanceSettings } from './finance.ts'
 import { personalProfile, savePersonalProfile } from './personal-profile.ts'
@@ -1160,7 +1160,19 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path==='/api/inbox/finance' && method==='GET') {
     const account=acceptance ? 'fixture' : await confirmedMailAccount(google)
-    return reply(res,200,account ? pendingMailFinances(store,acceptance ? account : mailAccountKey(account)) : [])
+    return reply(res,200,account ? pendingMailFinances(store,acceptance ? account : mailAccountKey(account),false) : [])
+  }
+  if (path==='/api/inbox/paypal' && method==='GET') {
+    const account=acceptance ? 'fixture' : await confirmedMailAccount(google)
+    return reply(res,200,account ? paypalOverview(store,acceptance ? account : mailAccountKey(account)) : [])
+  }
+  if (path==='/api/inbox/paypal' && method==='POST') {
+    const {entry,assign,confirm}=await body(req,['entry','assign','confirm'])
+    confirmLocalChange(confirm)
+    if(typeof assign!=='boolean') throw new Problem(400,'Wähle Zuordnen oder Nicht beachten.')
+    const account=acceptance ? 'fixture' : await confirmedMailAccount(google)
+    if(!account) throw new Problem(409,'Gmail ist nicht verbunden.')
+    return reply(res,200,decidePayPal(store,acceptance ? account : mailAccountKey(account),id(entry),assign))
   }
   if (path==='/api/inbox/finance/bulk' && method==='POST') {
     const {proposals,confirm}=await body(req,['proposals','confirm'],180_000)
@@ -1174,7 +1186,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     const address=acceptance?'fixture':await confirmedMailAccount(google)
     if(!address)throw new Problem(409,'Gmail ist nicht verbunden.')
     const account=acceptance?address:mailAccountKey(address)
-    const current=new Map(pendingMailFinances(store,account).map(({id,...draft})=>[id,draft]))
+    const current=new Map(pendingMailFinances(store,account,false).map(({id,...draft})=>[id,draft]))
     const accepted:string[]=[]
     const failed:{id:string,reason:string}[]=[]
     for(const [id,expected] of selected){

@@ -61,3 +61,19 @@ test('An incomplete finance proposal stays a question and cannot create a draft'
   assert.deepEqual(result.questions,[question])
   assert.equal(result.skillData,null)
 })
+
+test('Festes Einkommen bildet die Grundlage, variable Posten erst nach Zuordnung',()=>{
+  const store=new Store(':memory:')
+  try {
+    saveFinance(store,{kind:'income',title:'Gehalt',cents:300000},'2026-10')
+    saveFinance(store,{kind:'fixed',title:'Miete',cents:100000},'2026-10')
+    saveFinance(store,{kind:'subscription',title:'Streaming',cents:1000},'2026-10')
+    saveFinance(store,{kind:'income',title:'Rückzahlung Anna',date:'2026-11-05',cents:2500},'2026-11')
+    saveFinance(store,{kind:'expense',title:'Kino',date:'2026-11-06',cents:1500},'2026-11')
+    const {totals}=financeOverview(store,'2026-11')
+    assert.equal(totals.base,300000)
+    assert.equal(totals.room,199000)
+    assert.equal(totals.variableIncome,2500)
+    assert.equal(totals.balance,199000+2500-1500)
+  } finally {store.db.close()}
+})

@@ -26,7 +26,10 @@ export type FinanceDraft = {
 }
 export type FinanceEntry = FinanceDraft & {id:string, month:string, until:string|null, revision:number}
 export type FinanceSettings = {location:string, buffer:number|null, target:number|null, variablePlan:number|null, revision:number}
-export type FinanceTotals = {hasEntries?:boolean, month:string, income:number, fixed:number, subscriptions:number, variable:number, spending:number, balance:number}
+export type FinanceTotals = {hasEntries?:boolean, month:string, income:number, fixed:number, subscriptions:number, variable:number, spending:number, balance:number,
+  /** Feste Einnahmen (Gehalt) als verlässliche Grundlage. */ base:number,
+  /** Zugeordnete variable Einnahmen. */ variableIncome:number,
+  /** Grundeinkommen minus Fixkosten und Abos. */ room:number}
 export type FinanceOverview = {
   entries:FinanceEntry[], settings:FinanceSettings, totals:FinanceTotals, history:FinanceTotals[],
   perDay:number|null, investable:number|null, plannedVariable:number|null,
