@@ -4,7 +4,7 @@ import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir, userInfo } from 'node:os'
 import { join } from 'node:path'
-import { data, MODEL_MS } from '../runtime/settings.ts'
+import { data, MODEL_MS, WEB_MS, type ModelOptions } from '../runtime/settings.ts'
 import { MAX_MODEL_PAYLOAD_BYTES } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
 
@@ -60,7 +60,7 @@ export function jsonFromText(text: string): unknown {
 
 const MAX_OUTPUT = 512_000
 
-export async function runStructuredClaude<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value: unknown) => T, image?: { photo: Buffer, format: 'png' | 'jpeg' }) {
+export async function runStructuredClaude<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value: unknown) => T, image?: { photo: Buffer, format: 'png' | 'jpeg' }, options: ModelOptions = {}) {
   const started = performance.now()
   const metrics: ModelMetrics = { wallMs: 0, model: null, usage: null, cost: null }
   if (signal.aborted) return { result: null, error: 'Vorgang abgebrochen.', metrics }
@@ -76,10 +76,12 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
     const instruction = prompt + '\n\nAntworte ausschließlich mit einem JSON-Objekt, das genau diesem JSON-Schema entspricht, ohne Erklärung davor oder danach:\n' + schema
     const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose']
     if (known.has('--json-schema')) args.push('--json-schema', schema)
-    if (known.has('--tools')) args.push('--tools', '')
+    // Nur die Websuche-Ausnahme (Abo-Prüfung) bekommt Suche und Seitenabruf, sonst bleibt alles gesperrt.
+    if (known.has('--tools')) args.push('--tools', options.web ? 'WebSearch,WebFetch' : '')
     else if (known.has('--disallowedTools')) args.push('--disallowedTools', 'Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,NotebookEdit,Task,TodoWrite')
     if (known.has('--strict-mcp-config')) args.push('--strict-mcp-config')
-    if (known.has('--max-turns')) args.push('--max-turns', '2')
+    if (known.has('--max-turns')) args.push('--max-turns', options.web ? '12' : '2')
+    if (options.web && known.has('--allowedTools')) args.push('--allowedTools', 'WebSearch', 'WebFetch')
     if (known.has('--no-session-persistence')) args.push('--no-session-persistence')
     const content: object[] = [{ type: 'text', text: instruction }]
     if (image) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/' + image.format, data: image.photo.toString('base64') } })
@@ -94,7 +96,7 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
       if (command.pid) { try { process.kill(-command.pid, 'SIGKILL') } catch { /* schon beendet */ } }
     }
     const abort = () => stop('Vorgang abgebrochen.')
-    const timer = setTimeout(() => stop('Das Zeitbudget für Claude wurde überschritten.'), MODEL_MS)
+    const timer = setTimeout(() => stop('Das Zeitbudget für Claude wurde überschritten.'), options.web ? WEB_MS : MODEL_MS)
     signal.addEventListener('abort', abort, { once: true })
     let bytes = 0, pending = '', final: Record<string, unknown> | undefined, text = ''
     let code: number | null
@@ -113,7 +115,7 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
               for (const block of event.message?.content ?? []) {
                 if (block.type === 'text' && typeof block.text === 'string') text += block.text
                 // StructuredOutput ist der interne Weg der CLI für --json-schema; jedes andere Werkzeug ist gesperrt.
-                if (block.type === 'tool_use' && block.name !== 'StructuredOutput') stop('Claude wollte ein Werkzeug verwenden, das für LifePilot gesperrt ist.')
+                if (block.type === 'tool_use' && block.name !== 'StructuredOutput' && !(options.web && (block.name === 'WebSearch' || block.name === 'WebFetch'))) stop('Claude wollte ein Werkzeug verwenden, das für LifePilot gesperrt ist.')
               }
               if (typeof event.message?.model === 'string' && /^[\w.-]{1,80}$/u.test(event.message.model)) metrics.model = event.message.model
             }

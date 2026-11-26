@@ -1,3 +1,4 @@
+import { SubscriptionReviewWindow } from './subscription-review.tsx'
 import {DateInput,monthAtOffset as shiftMonth} from './presentation.tsx'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { budgetCategories, budgetCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceDraft, type FinanceEntry, type FinanceKind, type FinanceOverview } from '../runtime/finance-types.ts'
@@ -143,27 +144,6 @@ function HistoryChart({history}:{history:FinanceOverview['history']}) {
   </>
 }
 
-function SubscriptionReview({item,location}:{item:FinanceEntry,location:string}) {
-  const [price,setPrice]=useState('')
-  const [draft,setDraft]=useState(false)
-  const year=item.cycle==='yearly'?item.cents:item.cents*12
-  const cutoff=item.renewal && item.noticeDays!==null?shiftDay(item.renewal,-item.noticeDays):null
-  let alternative:null|number=null
-  try {alternative=asCents(price)} catch { /* Wait for a complete price. */ }
-  const link=item.local?'https://www.google.com/maps/search/?api=1&query='+encodeURIComponent((/gym|fitness|studio/iu.test(item.title+' '+item.category)?'Fitnessstudio':'Anbieter')+' '+location):
-    'https://www.google.com/search?q='+encodeURIComponent(item.title+' offizieller Tarif Student Jahresabo')
-  return <details className="finance-review">
-    <summary>Jahreskosten und Alternativen</summary>
-    <p>{money(year)} pro Jahr{cutoff?' · Frist laut deinen Angaben: '+cutoff.split('-').reverse().join('.'):''}</p>
-    {!item.local||location?<p><a href={link} target="_blank" rel="noreferrer">Tarife und Alternativen suchen ↗</a></p>:
-      <p>Trage eine Stadt oder PLZ in der Budgetplanung ein.</p>}
-    <label>Gesamtkosten der Alternative im ersten Jahr (€)<input inputMode="decimal" value={price} onChange={event=>setPrice(event.target.value)} /></label>
-    {alternative!==null?<p>{alternative<=year?'Mögliche Ersparnis: '+money(year-alternative):'Alternative kostet '+money(alternative-year)+' mehr.'}</p>:null}
-    <button className="quiet" type="button" onClick={()=>setDraft(value=>!value)}>Kündigungsentwurf {draft?'schließen':'öffnen'}</button>
-    {draft?<label>Entwurf<textarea defaultValue={'Guten Tag,\n\nhiermit kündige ich meinen Vertrag „'+item.title+'“ zum nächstmöglichen Termin. Bitte bestätigen Sie mir das Vertragsende schriftlich.\n\nFreundliche Grüße\n[Name und Vertragsnummer]'} rows={6}/></label>:null}
-  </details>
-}
-
 export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refreshKey:string,reviewTools?:ReactNode,focus?:{id?:string,month?:string}}) {
   const [month,setMonth]=useState(()=>focus?.month??dateInBerlin().slice(0,7))
   const [view,setView]=useState<FinanceOverview>()
@@ -208,7 +188,6 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
           }}>Entfernen bestätigen</button><button type="button" onClick={()=>setRemoving('')}>Abbrechen</button></div>:
             <button type="button" className="quiet" onClick={()=>setRemoving(item.id)} aria-label={item.title+' entfernen'}>×</button>}
         </div>
-        {item.kind==='subscription'&&review?<SubscriptionReview item={item} location={view!.settings.location}/>:null}
       </li>)}</ul>}
     </section>
   }
@@ -250,7 +229,8 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
       </div>
       <div className="finance-columns finance-summary-columns"><BudgetChart view={view}/>
         {section('subscription','Abos & Mitgliedschaften','+ Abo',reviewTools,false,
-          <button className="inline-action" type="button" aria-expanded={review} onClick={()=>setReview(value=>!value)}>{reviewTools?'Tarife vergleichen':'Abos & Alternativen prüfen'}</button>)}
+          <button className="inline-action" type="button" aria-haspopup="dialog" onClick={()=>setReview(true)}>Abos &amp; Alternativen prüfen</button>)}
+        {review?<SubscriptionReviewWindow api={api} month={month} close={()=>setReview(false)}/>:null}
       </div>
       <section className="card settings finance-history"><h2>Sechsmonatsvergleich</h2><HistoryChart history={view.history}/></section>
     </>}

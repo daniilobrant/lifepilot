@@ -6,7 +6,7 @@ import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { outfitPlanFormatError, projectPlanFormatError, schemaFile, verifyOutput } from '../../agents/lifepilot/tools/validate.ts'
-import { cloudModel, MODEL_MS } from '../runtime/settings.ts'
+import { cloudModel, MODEL_MS, WEB_MS, type ModelOptions } from '../runtime/settings.ts'
 import { MAX_CHAT_INPUT, MAX_CHAT_APPROVAL_BYTES, MAX_MODEL_PAYLOAD_BYTES, splitLongInput, modelDialogue, dialogueOrderInstruction, type ModelPayload } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
 import { modelProvider, runStructuredClaude } from './claude.ts'
@@ -177,12 +177,12 @@ export async function runCodex(payload: ModelPayload, signal: AbortSignal) {
   return runStructuredCodex(prompt+'\nBeantworte den Outfit-Auftrag einzeln mit passenden Outfit-Feldern und ohne Zeitplanung.',contract,signal,validate)
 }
 
-export async function runStructuredCodex<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value:unknown)=>T, image?: { photo: Buffer, format: 'png' | 'jpeg' }) {
+export async function runStructuredCodex<T>(prompt: string, contract: object, signal: AbortSignal, validate: (value:unknown)=>T, image?: { photo: Buffer, format: 'png' | 'jpeg' }, options: ModelOptions = {}) {
   const started = performance.now()
   const metrics: ModelMetrics = { wallMs: 0, model: null, usage: null, cost: null }
   if (signal.aborted) return { result: null, error: 'Vorgang abgebrochen.', metrics }
   if (!cloudModel) return { result: null, error: 'Der externe Modelladapter ist in diesem Profil gesperrt.', metrics }
-  if (modelProvider() === 'claude') return runStructuredClaude(prompt, contract, signal, validate, image)
+  if (modelProvider() === 'claude') return runStructuredClaude(prompt, contract, signal, validate, image, options)
   const directory = await mkdtemp(join(tmpdir(), 'lifepilot-model-'))
   const resultPath = join(directory, 'result.json')
   let abortReason = ''
@@ -200,7 +200,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
     const args = [
       '--disable', 'shell_tool', '--disable', 'unified_exec',
       '--disable', 'hooks', '--disable', 'apps', '--disable', 'multi_agent_v2', '--disable', 'skill_mcp_dependency_install',
-      '-c', 'web_search="disabled"', '-c', 'model_provider="openai"', '-c', 'project_doc_max_bytes=0',
+      '-c', options.web ? 'web_search="live"' : 'web_search="disabled"', '-c', 'model_provider="openai"', '-c', 'project_doc_max_bytes=0',
       '-a', 'never', 'exec', '--ignore-user-config', '--ignore-rules', '--sandbox', 'read-only',
       '--skip-git-repo-check', '--ephemeral', '--json', '--color', 'never', '--cd', directory,
       '--output-schema', contractPath, '--output-last-message', resultPath,
@@ -223,7 +223,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
       }
     }
     const abort = () => stop('Vorgang abgebrochen.')
-    const timer = setTimeout(() => stop('Das Zeitbudget für Codex wurde überschritten.'), MODEL_MS)
+    const timer = setTimeout(() => stop('Das Zeitbudget für Codex wurde überschritten.'), options.web ? WEB_MS : MODEL_MS)
     signal.addEventListener('abort', abort, { once: true })
     let events = 0
     let pending = ''
@@ -252,7 +252,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
               }
             }
             if (typeof event.model === 'string' && /^[\w.-]{1,80}$/.test(event.model)) metrics.model = event.model
-            if (event.item && !['agent_message', 'reasoning', 'plan', 'error'].includes(event.item.type)) {
+            if (event.item && ![...['agent_message', 'reasoning', 'plan', 'error'], ...(options.web ? ['web_search'] : [])].includes(event.item.type)) {
               stop('Codex hat einen für diesen Skill gesperrten Tool-Schritt gemeldet.')
             }
           } catch { /* Codex sends diagnostics outside JSON in some builds */ }

@@ -1887,3 +1887,27 @@ input[type=file]::file-selector-button {
 .inbox-mail-footer .inbox-trash-confirm { border-color: #b4483c; color: #b4483c; }
 .inbox-mail-detail > .inbox-mail-footer { justify-self: stretch; }
 .finance-head-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+.sub-review { width: min(760px, calc(100% - 24px)); }
+.sub-review h2, .sub-review h3 { margin: 0; }
+.sub-review-summary { display: grid; gap: 6px; padding: 12px 14px; margin: 10px 0 14px; border-radius: 12px; background: var(--accent-soft); }
+.sub-review-summary p { margin: 0; }
+.sub-review-summary small, .sub-review-cutoff, .sub-review-price { color: var(--muted); margin: 0; }
+.sub-review-item { display: grid; gap: 8px; padding: 14px 0; border-top: 1px solid var(--line); }
+.sub-review-item > header { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.sub-review-item p { margin: 0; }
+.sub-review-headline { font-weight: 650; }
+.sub-review-badge { padding: 3px 12px; border-radius: 999px; font-size: .8rem; font-weight: 650; white-space: nowrap; background: var(--chip); }
+.sub-review-badge[data-verdict="keep"] { background: var(--accent-soft); color: var(--mint); }
+.sub-review-badge[data-verdict="switch"] { background: #f1e4cc; color: var(--warm); }
+.sub-review-badge[data-verdict="cancel"] { background: #f2d9d5; color: var(--error); }
+.sub-review-alternatives { display: grid; gap: 10px; margin: 4px 0 0; padding: 0; list-style: none; }
+.sub-review-alternatives > li { display: grid; gap: 6px; padding: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--bg); }
+.sub-review-alt-head { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; }
+.sub-review-saving { margin-left: auto; font-size: .85rem; color: var(--warm); }
+.sub-review-saving[data-better] { color: var(--mint); font-weight: 650; }
+.sub-review-columns { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 8px 16px; }
+.sub-review-columns ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 3px; font-size: .88rem; }
+.sub-review-columns li { padding-left: 18px; position: relative; }
+.sub-review-columns .pros li::before { content: "+"; position: absolute; left: 4px; color: var(--mint); font-weight: 700; }
+.sub-review-columns .cons li::before { content: "–"; position: absolute; left: 4px; color: var(--error); font-weight: 700; }
+.sub-review-alternatives a { justify-self: start; font-weight: 600; color: var(--mint); }

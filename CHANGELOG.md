@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.67 · 26. November 2026
+
+- Finanzen: „Abos & Alternativen prüfen“ startet einen Suchauftrag mit Websuche (einzige Ausnahme der gesperrten Websuche, in SICHERHEIT.md dokumentiert). Ein Übersichtsfenster zeigt je Abo die Empfehlung (kündigen, wechseln, behalten), Alternativen mit Preis, Vor- und Nachteilen, Jahresersparnis und Link. Fitnessstudios werden im Wohnort aus dem Profil gesucht. Die Zahlen rechnet LifePilot selbst, es wird nichts gekündigt oder gebucht.
+
 ## v1.0.66 · 26. November 2026
 
 - Reisen: In der Reisevorschau zeigen Checkliste und Packliste jetzt dieselben Kästchen wie bei gespeicherten Reisen (in der Vorschau deaktiviert, abhakbar nach dem Speichern). Das Layout ist damit in beiden Ansichten gleich.

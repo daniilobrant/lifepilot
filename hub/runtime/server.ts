@@ -27,6 +27,7 @@ import { confirmedMailAccount, enableMailCategorization, mailAccountKey, syncCat
 import { deleteFinance, financeMonth, financeOverview, saveFinance, saveFinanceSettings } from './finance.ts'
 import { personalProfile, savePersonalProfile } from './personal-profile.ts'
 import { createTripGuide } from './trip-guide.ts'
+import { reviewSubscriptions } from './subscription-review.ts'
 import { previewTripChange, decideTripChange } from './trip-chat-change.ts'
 import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTrip, changeTrip, tripDateChange, readTripPreview, removeSavedTrip } from './trips.ts'
 import { travelWindows } from './trip-windows.ts'
@@ -77,6 +78,7 @@ const manifest = JSON.parse(readFileSync(join(root, 'agents/lifepilot/manifest.j
 const google = new GoogleConnector(data, origin)
 const outfits = new OutfitStudio()
 const tripCalendarJobs = new Set<string>()
+let subscriptionReviewRunning = false
 const preparedPhotos = new Map<string,{ photo:Buffer, expires:number, origin:'own'|'web', fragranceSource?:string }>()
 function preparedPhoto(key: string) {
   const match = preparedPhotos.get(key)
@@ -603,6 +605,18 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if(input.remove!==undefined && (input.remove!==true || !existing)) throw new Problem(400,'Wähle einen Eintrag zum Entfernen.')
     return reply(res,200,store.transaction(()=>input.remove && existing
       ? deleteFinance(store,existing.id,existing.revision,month):saveFinance(store,input.draft,month,existing)))
+  }
+  if (path === '/api/finance/subscription-review' && method === 'POST') {
+    const input=await body(req,['month','confirm'])
+    confirmLocalChange(input.confirm)
+    if (!cloudModel) throw new Problem(423,'Die Abo-Prüfung mit Websuche ist in diesem Profil gesperrt.')
+    if (subscriptionReviewRunning) throw new Problem(409,'Die Abo-Prüfung läuft bereits.')
+    const view=financeOverview(store,financeMonth(input.month))
+    const entries=view.entries.filter(entry=>entry.kind==='subscription'&&!entry.refund).slice(0,12)
+    subscriptionReviewRunning=true
+    const place=[view.settings.location,personalProfile(store).fields.location].find(value=>outfitLocation(value))?.trim() ?? ''
+    try { return reply(res,200,await reviewSubscriptions(entries,place,AbortSignal.timeout(175_000))) }
+    finally { subscriptionReviewRunning=false }
   }
   if (path === '/api/finance/settings' && method === 'POST') {
     const input=await body(req,['settings','revision','confirm'])
