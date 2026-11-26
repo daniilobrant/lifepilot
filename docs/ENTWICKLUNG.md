@@ -1,6 +1,6 @@
 # Entwicklungsverlauf von LifePilot
 
-Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.0.75 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die einzelnen Änderungen je Version stehen im [Changelog](../CHANGELOG.md), die kompakte Zeitleiste in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
+Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.0.76 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die kompakte Zeitleiste steht in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
 
 Quellen sind zwei Arbeitsprotokolle: ein Chat mit ChatGPT und Codex (Version 0.1 bis 1.0.57) und eine Sitzung mit Claude Code (Version 1.0.11 bis 1.0.59). Die frühen Versionen 0.x sind im Protokoll nicht datiert und nach Reihenfolge und Versionsbereich eingeordnet.
 
@@ -26,7 +26,7 @@ Aus diesem Kern entwickelte sich ein Assistent mit Kalender, Aufgaben, Postfach,
 | Antigravity und Gemini | Analyse von Fehlern und Oberfläche, Erstellung von Markdown-Anleitungen (Finanz-Skill, Projektseite, Kleiderschrank-Lebenszyklus, Sicherheitscheckliste), zeitweise direkte Arbeit am Code |
 | Claude Code | Weiterbau ab Version 1.0.11: Mail- und Zahlungserkennung, Bestellungen, Reiseguide, Vorrat, Outfit, Verbesserung des Agenten, Claude-Anbindung, Sicherheitsaudit, Bereinigung des Repositories |
 
-Codex und Claude Code arbeiteten abwechselnd und zeitweise gleichzeitig im selben Repository. Gemeinsame Bezugspunkte waren Changelog, Skill-Dateien und Tests. Bei gleichzeitiger Arbeit wurden Versionsnummern und Branches abgestimmt, ungespeicherte Änderungen der jeweils anderen Sitzung blieben unberührt.
+Codex und Claude Code arbeiteten abwechselnd und zeitweise gleichzeitig im selben Repository. Gemeinsame Bezugspunkte waren Skill-Dateien und Tests. Bei gleichzeitiger Arbeit wurden Versionsnummern und Branches abgestimmt, ungespeicherte Änderungen der jeweils anderen Sitzung blieben unberührt.
 
 ## 3. Arbeitsweise
 
@@ -223,7 +223,6 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 | Dokument | Zweck |
 |---|---|
 | [README](../README.md) | Überblick, Installation, Galerie, Anbindung der KI, Versionsübersicht |
-| [Changelog](../CHANGELOG.md) | Änderungen je Version |
 | [Sicherheit und Datenschutz](SICHERHEIT.md) | Grenzen, Freigaben, Datenweitergabe an externe Dienste |
 | [Sicherheitsbericht](../SECURITY_REPORT.md) | Ergebnis des Audits |
 | [Skills](SKILLS.md) und `agents/lifepilot/skills/*/SKILL.md` | Anweisungen, Entscheidungskriterien und Beispiele für den Agenten |
@@ -245,9 +244,9 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 - **Echte Beispiele schlagen Annahmen.** Erkennungsregeln entstanden aus echten Mails und Bestellungen des Entwicklers, jeweils mit einem Test, der nur erfundene Daten enthält.
 - **Das Modell ist ein Vorschlagsgeber.** Schema, Validierung und Freigabe liegen im Hub. So bleibt der Agent kontrollierbar und der Anbieter austauschbar.
 - **Mehrere KIs mit klaren Rollen** ergänzen sich: Planung und Analyse in Antigravity und Gemini, Umsetzung in Codex und Claude Code, Prüfung durch Tests und statische Analyse.
-- **Dokumentation entsteht mit der Entwicklung.** Changelog, Skill-Dateien, README und dieses Dokument wurden laufend gepflegt, nicht erst am Ende.
+- **Dokumentation entsteht mit der Entwicklung.** Skill-Dateien, README und dieses Dokument wurden laufend gepflegt, nicht erst am Ende.
 
-## 8. Kennzahlen (Stand 1.0.75)
+## 8. Kennzahlen (Stand 1.0.76)
 
 | Merkmal | Wert |
 |---|---|
