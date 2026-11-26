@@ -1601,7 +1601,7 @@ function App() {
         {messages.map(item => <li key={item.id} className="inbox-mail" data-important={item.important ? 'true' : undefined}>
           <details>
             <summary>
-              <span className="inbox-mail-main"><strong>{item.subject}</strong><small>{item.from}</small>
+              <span className="inbox-mail-main"><strong>{item.subject}</strong><small className="inbox-sender">{item.from}{item.forwardedBy ? <em> · weitergeleitet</em> : null}</small>
                 <span className="inbox-row-meta">
                   <small className="inbox-category" data-category={item.label}>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category])}</small>
                   {item.reply && <small>Antwort erbeten</small>}
@@ -1613,10 +1613,12 @@ function App() {
               {item.reasons.length ? <p className="inbox-why"><b>Warum hier:</b> {item.reasons.join(' · ')}</p> : null}
               {item.preview ? <p className="inbox-preview">{item.preview}</p> : <p className="inbox-preview muted">Kein Textauszug verfügbar.</p>}
               <dl>
-                <div><dt>Von</dt><dd>{item.from}</dd></div>
+                <div><dt>{item.forwardedBy ? 'Ursprünglich von' : 'Von'}</dt><dd>{item.from}</dd></div>
+                {item.forwardedBy ? <div><dt>Weitergeleitet über</dt><dd>{item.forwardedBy}</dd></div> : null}
                 {item.at ? <div><dt>Eingang</dt><dd>{mailDate.format(new Date(item.at))}</dd></div> : null}
                 <div><dt>Bereich</dt><dd>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category]) || 'Allgemein'}</dd></div>
               </dl>
+              <div className="inbox-mail-footer">
               {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?
                 <div className="actions">
                   <button type="button" className="quiet" disabled={trashingMail} onClick={() => setMailToTrash(undefined)}>Abbrechen</button>
@@ -1626,6 +1628,7 @@ function App() {
                     setTrashFeedback(undefined)
                     setMailToTrash({id:item.id,account})
                   }}>Löschen</button>)}
+              </div>
             </div>
           </details>
         </li>)}

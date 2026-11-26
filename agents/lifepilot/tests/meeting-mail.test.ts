@@ -50,3 +50,14 @@ test('The expanded inbox mail shows a short preview without quotes, headers and 
   assert.equal(preview,'Hallo, wir starten um 12:00 Uhr. Link: Bis gleich')
   assert.ok(mailPreview('Wort '.repeat(200)).length<=320)
 })
+
+test('Sender information shows the name once and, for forwarded mails, the original sender',async()=>{
+  const {parseSender,senderLabel,forwardedOriginal,mailPreview}=await import('../../../hub/runtime/refresh-inbox.ts')
+  assert.equal(senderLabel('"student@stud.hochschule.example" <student@stud.hochschule.example>'),'student@stud.hochschule.example')
+  assert.equal(senderLabel('Tom Beispiel <tom@example.org>'),'Tom Beispiel')
+  assert.deepEqual(parseSender('"Tom" <tom@example.org>'),{name:'Tom',address:'tom@example.org'})
+  const forwarded={subject:'WG: Kurs',text:'________________________________\nVon: "Prof. Dr. Beispiel"\nGesendet: Donnerstag\nAn: Person\nBetreff: Kurs\n\n[Mail_header]\n\nHallo zusammen.'}
+  assert.equal(forwardedOriginal(forwarded),'Prof. Dr. Beispiel')
+  assert.equal(forwardedOriginal({subject:'Kurs',text:'Von: jemand\nText'}),undefined)
+  assert.equal(mailPreview(forwarded.text),'Hallo zusammen.')
+})

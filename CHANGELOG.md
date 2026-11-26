@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.62 · 26. November 2026
+
+- Posteingang: Absender erscheint einmal als Name, bei weitergeleiteten Mails zusätzlich der ursprüngliche Absender und das weiterleitende Konto. Textauszug ohne Platzhalter, aufgeräumte Fußzeile mit Löschen.
+
 ## v1.0.61 · 26. November 2026
 
 - Posteingang: Mails unter „Wichtig für dich“ lassen sich aufklappen und zeigen Grund, Textauszug, Absender, Eingang und Bereich. Löschen steht im aufgeklappten Bereich.

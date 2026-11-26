@@ -1875,3 +1875,14 @@ input[type=file]::file-selector-button {
 .inbox-feed-list li.inbox-mail { display: block; padding: 0; border: 1px solid var(--line); }
 .inbox-feed-list li.inbox-mail[data-important="true"] { border-left: 3px solid var(--mint, #2f6b4f); }
 .inbox-feed-list li.inbox-mail small { margin-top: 0; }
+
+/* Aufgeklappte Mail: Absenderzeile, Raster und Fußzeile */
+.inbox-sender em { font-style: normal; font-size: .76rem; padding: 1px 7px; margin-left: 4px; border-radius: 999px; background: var(--chip); color: var(--ink); }
+.inbox-mail-detail { gap: 12px; }
+.inbox-mail-detail dl { grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: color-mix(in srgb, var(--card) 94%, var(--ink) 3%); }
+.inbox-mail-detail dd { min-width: 0; }
+.inbox-mail-footer { display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 10px; border-top: 1px solid var(--line); }
+.inbox-mail-footer button { height: 34px; min-height: 34px; padding: 0 14px; font-size: .86rem; border: 1px solid var(--line); border-radius: 8px; background: var(--card); color: var(--ink); }
+.inbox-mail-footer .actions { margin: 0; }
+.inbox-mail-footer .inbox-trash-confirm { border-color: #b4483c; color: #b4483c; }
+.inbox-mail-detail > .inbox-mail-footer { justify-self: stretch; }

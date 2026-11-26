@@ -15,7 +15,7 @@ export const database = join(data, 'memory.sqlite3')
 export const secretPath = join(data, 'adapter-token')
 export const probeSecretPath = join(data, 'probe-token')
 export const fixtures = JSON.parse(readFileSync(new URL('../templates/acceptance.json', import.meta.url), 'utf8')) as { ui: string, cli: string, memory: string }
-export const version = '1.0.61'
+export const version = '1.0.62'
 export const chatMode: ChatMode = acceptance ? 'synthetic' :
   hasPrivateChatRelease(root, join(data, 'private-chat-release.json'), version) ? 'private' : 'disabled'
 export const cloudModel = chatMode === 'private'
