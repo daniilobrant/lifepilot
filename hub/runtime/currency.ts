@@ -23,7 +23,7 @@ export async function exchangeRate(rawFrom: unknown, rawTo: unknown, refresh = f
   ]
   for (const [address, read] of sources) {
     try {
-      const response = await fetch(address, { signal: AbortSignal.timeout(6000), headers: { Accept: 'application/json' } })
+      const response = await fetch(address, { signal: AbortSignal.timeout(6000), redirect: 'error', headers: { Accept: 'application/json' } })
       if (!response.ok) continue
       const { rate, date } = read(await response.json() as Record<string, unknown>)
       if (!rate || !Number.isFinite(rate) || rate <= 0) continue
