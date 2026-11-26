@@ -2,9 +2,35 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.59 · 26. November 2026
+
+- Sicherheitsaudit: Prüfung mit npm audit, Semgrep und Mustersuche nach privaten Daten und Geheimnissen, [Bericht](SECURITY_REPORT.md). Lokaler Befehl `npm run security:check`.
+- Testdaten ohne echte Namen, Matrikelnummern oder Kontobezeichnungen.
+- Entwicklungsverlauf als eigenes Dokument, Versionsübersicht in der README aktualisiert.
+
 ## v1.0.58 · 26. November 2026
 
 - Posteingang: Weitergeleitete Kurs-Mails (Stud.IP/HfWU) mit englischem Ablauf („today’s presentation, 12:00“) werden als Terminvorschlag erkannt, mit Kursname, Uhrzeit und Zoom-Hinweis.
+
+## v1.0.57 · 26. November 2026
+
+- Posteingang: weniger parallele Mailabrufe, bereits geladene Nachrichtendaten werden wiederverwendet, Teilergebnisse bleiben bei Ausfall erhalten.
+
+## v1.0.56 · 26. November 2026
+
+- Posteingang: „Wichtig für dich“ zeigt die wichtigen Mails der letzten sieben Tage.
+
+## v1.0.55 · 26. November 2026
+
+- Pilot beantwortet Fragen zum Wetter am Standort.
+
+## v1.0.54 · 26. November 2026
+
+- Posteingang: Mails lassen sich nach doppelter Bestätigung in den Gmail-Papierkorb verschieben.
+
+## v1.0.53 · 26. November 2026
+
+- Posteingang: Der Knopf „Mails aktualisieren“ führt über das gewählte Modell eine tiefere Prüfung aus und liest dabei auch Bestellungen und deren Status.
 
 ## v1.0.52 · 26. November 2026
 
