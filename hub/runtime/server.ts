@@ -1243,13 +1243,13 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path === '/api/inbox' && method === 'GET') return reply(res, 200, await inboxWithLectureTargets(store,acceptance?undefined:google))
   if (path === '/api/inbox/refresh' && method === 'POST') {
-    const { confirm, restart } = await body(req, ['confirm','restart'])
+    const { confirm, restart, deep } = await body(req, ['confirm','restart','deep'])
     confirmLocalChange(confirm)
     if (restart !== undefined && typeof restart !== 'boolean') throw new Problem(400, 'Ungültiger Synchronisierungsmodus.')
     if (scanningInbox) throw new Problem(409, 'Ein Mail-Durchlauf läuft bereits.')
     scanningInbox = true
     try {
-      const result = await refreshInbox(store, google, acceptance, restart === true)
+      const result = await refreshInbox(store, google, acceptance, restart === true, deep === true)
       return reply(res, 200, { ...result, ...await planRefreshedInbox(store, google, acceptance) })
     } finally { scanningInbox = false }
   }

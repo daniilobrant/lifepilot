@@ -12,7 +12,7 @@ import { dateInBerlin } from './values.ts'
 
 export type RefreshResult = {
   checked: number, added: number, applications: number, labeled: number, limited: boolean, labelsAvailable: boolean,
-  labelError: string | null, classified: MailClassification[],
+  modelChecked: number, modelIncomplete: boolean, labelError: string | null, classified: MailClassification[],
 }
 import { financeFromMail, scanMailFinances } from './mail-finance.ts'
 import { triageMails, triagedImportant } from './mail-triage.ts'
@@ -74,9 +74,9 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
     (b.at ?? '').localeCompare(a.at ?? '')).slice(0,10) }
 }
 
-export async function refreshInbox(store: Store, google: GoogleConnector, synthetic: boolean, restart = false): Promise<RefreshResult> {
+export async function refreshInbox(store: Store, google: GoogleConnector, synthetic: boolean, restart = false, deep = false): Promise<RefreshResult> {
   const result: RefreshResult = {
-    checked: 0, added: 0, applications: 0, labeled: 0, limited: false, labelsAvailable: false, labelError: null, classified: [],
+    checked: 0, added: 0, applications: 0, labeled: 0, limited: false, labelsAvailable: false, labelError: null, classified: [], modelChecked:0, modelIncomplete:false,
   }
   if (synthetic) {
     scanClothingOrders(store,clothingDemoMail,'fixture')
@@ -88,13 +88,19 @@ export async function refreshInbox(store: Store, google: GoogleConnector, synthe
   }
   const status = google.status()
   result.labelsAvailable = status.some(item => item.service === 'gmail-sort' && item.connected)
+  const modelBudget = AbortSignal.timeout(65_000)
   for (let page = 0; page < refreshPageLimit; page++) {
     const batch = await google.recentInbox(account => readGmailPage(store, account), restart && page === 0)
     scanClothingOrders(store,batch.mails,batch.account)
     scanMailFinances(store,batch.mails,batch.account)
     result.added+=scanTicketEvents(store,batch.mails,batch.account)+scanHfuCancellations(store,batch.mails,batch.account)+scanProjectMails(store,batch.mails,batch.account)
     // Unklare Mails prüft das Modell einmalig; wichtige erscheinen unter „Wichtige Nachrichten“.
-    try { result.added+=(await triageMails(store,batch.mails,batch.account)).proposals } catch { /* Die lokale Prüfung läuft ohne Modell weiter. */ }
+    try {
+      const review = await triageMails(store,batch.mails,batch.account,modelBudget,undefined,deep?1800:700)
+      result.added += review.proposals
+      result.modelChecked += review.checked
+      result.modelIncomplete ||= review.failed
+    } catch { result.modelIncomplete = true }
     const modelImportant = triagedImportant(store,batch.mails,batch.account)
     const classified = batch.mails.map(mail=>({mail,item:modelImportant.has(mail.id)?{...classifyMail(mail),important:true,reasons:['Vom Modell als wichtig eingestuft']}:classifyMail(mail)}))
       .filter(({mail,item})=>modelImportant.has(mail.id)||needsAttention(item,mail)).map(({item})=>item)

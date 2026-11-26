@@ -1488,18 +1488,20 @@ function App() {
     autoRead(focus)
   }, [snapshot?.chatMode, snapshot?.acceptance, snapshot?.directTestChat, focus, selected, skillBusy])
   const skillResult = skillOutput?.run === focus?.id && skillOutput?.turn === focus?.turn ? skillOutput : undefined
-  async function runInboxRefresh(restart = true) {
+  async function runInboxRefresh(restart = true, deep = false) {
     if (refreshingInbox || !snapshot || offline) return
     setRefreshingInbox(true); setRefreshError('')
     try {
-      setInboxBatch(await api<InboxRefresh>('/inbox/refresh', { confirm: true, restart }, 100000))
+      setInboxBatch(await api<InboxRefresh>('/inbox/refresh', { confirm: true, restart, deep }, 150000))
       await refresh()
+      if (deep) await loadInboxFeed()
     } catch (cause) {
       setRefreshError(cause instanceof Error ? cause.message : 'Aktualisieren fehlgeschlagen.')
     } finally { setRefreshingInbox(false) }
   }
   const refreshSummary = inboxBatch
     ? `${inboxBatch.checked} Mails geprüft · ${inboxBatch.added} neue Vorschläge · ${inboxBatch.plans.length} Zeitvorschläge` +
+      (inboxBatch.modelChecked ? ` · ${inboxBatch.modelChecked} vertieft geprüft` : '') +
       (inboxBatch.applications ? ` · ${inboxBatch.applications} Bewerbungsfunde` : '') +
       (inboxBatch.labelsAvailable ? ` · ${inboxBatch.labeled} Gmail-Labels bestätigt` : '') +
       (inboxBatch.limited ? ' · Weitere Mails oder Wiederholung möglich' : '')
@@ -1510,6 +1512,7 @@ function App() {
     {inboxBatch && !snapshot?.acceptance && !inboxBatch.labelsAvailable ?
       <p>Gmail-Sortieren braucht die vorhandene Label-Freigabe. <button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
     {refreshError || inboxBatch?.labelError ? <p role="alert">{refreshError || inboxBatch?.labelError}</p> : null}
+    {inboxBatch?.modelIncomplete ? <p role="status">Die Modellprüfung war unvollständig. Die regelbasierte Prüfung ist im Ergebnis enthalten.</p> : null}
     {inboxBatch?.calendar === 'unconnected' ? <p>Google-Kalender verbinden, um freie Zeitfenster zu prüfen.</p> : null}
     {inboxBatch?.calendar === 'unavailable' || inboxBatch?.calendar === 'incomplete' ?
       <p>Google-Kalender konnte nicht vollständig geprüft werden.</p> : null}
@@ -1653,11 +1656,9 @@ function App() {
             <section className="card settings" aria-label="Relevante Nachrichten">
               <div className="editor-title inbox-header"><h2>Wichtig für dich</h2>
                 <div className="actions">
-                  <button disabled={loadingInboxFeed || !!offline} onClick={() => void loadInboxFeed()}>
-                    {loadingInboxFeed ? 'Wird aktualisiert …' : 'Aktualisieren'}
-                  </button>
-                  <button className="primary" disabled={refreshingInbox || !!offline} onClick={() => void runInboxRefresh()}>
-                    {refreshingInbox ? 'Wird sortiert …' : 'Mails sortieren'}
+                  <button className="primary" disabled={refreshingInbox || !!offline} onClick={() => void runInboxRefresh(true, true)}>
+                    {refreshingInbox ? 'Wird geprüft …' : snapshot.chatMode==='private' ?
+                      `Mails aktualisieren · ${snapshot.modelProvider==='claude'?'Claude':'Codex'}` : 'Mails aktualisieren'}
                   </button>
                 </div>
               </div>
@@ -1665,7 +1666,7 @@ function App() {
               {inboxFeedContents(false)}
               {refreshFeedback}
               {inboxBatch?.applications ? <button className="quiet" onClick={() => navigate('Bewerbungen')}>Bewerbungen ansehen →</button> : null}
-              {inboxBatch?.limited ? <button className="quiet" disabled={refreshingInbox} onClick={() => void runInboxRefresh(false)}>Weitere Mails sortieren</button> : null}
+              {inboxBatch?.limited ? <button className="quiet" disabled={refreshingInbox} onClick={() => void runInboxRefresh(false, true)}>Weitere Mails prüfen</button> : null}
             </section>
             <LiveInbox sourceId={boardSource?.source_type==='email'?boardSource.source_id:undefined} onLectures={setLectureNotices} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt} />
           </> : null}
