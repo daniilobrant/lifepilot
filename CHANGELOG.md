@@ -5,7 +5,7 @@ Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände
 ## v1.0.59 · 26. November 2026
 
 - Sicherheitsaudit: Prüfung mit npm audit, Semgrep und Mustersuche nach privaten Daten und Geheimnissen, [Bericht](SECURITY_REPORT.md). Lokaler Befehl `npm run security:check`.
-- Testdaten ohne echte Namen, Matrikelnummern oder Kontobezeichnungen.
+- Testdaten ohne echte Namen, Matrikelnummern oder Kontobezeichnungen. Git-Verlauf bereinigt: nur noch GitHub-Noreply-Adressen als Autor, Gitleaks ohne Funde.
 - Entwicklungsverlauf als eigenes Dokument, Versionsübersicht in der README aktualisiert.
 
 ## v1.0.58 · 26. November 2026
