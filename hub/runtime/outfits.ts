@@ -6,7 +6,7 @@ import { randomUUID } from 'node:crypto'
 import { dateInBerlin } from './values.ts'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
-import { bodyProportions, emptyStyle, isLongOrHeavyBaseTop, itemOccasion, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
+import { bodyProportions, emptyStyle, fitsOccasion, isLongOrHeavyBaseTop, itemOccasion, outerWeight, outfitDayparts, outfitSlot, outfitSlotOrder, outfitSlots, outfitStyles, preferredCuts, wardrobeCategories, type Outfit, type OutfitQuery, type OutfitOverview,
   type OutfitSlot, type OutfitWeather, type StyleProfile, type WardrobeCategory, type WardrobeDraft, type WardrobeItem } from './outfit-types.ts'
 
 const idPattern = /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/iu
@@ -277,7 +277,7 @@ export class OutfitStudio {
     const occasion=statedOccasion || (chosen.length ? 'Rund um ' + chosen[0].name : 'Freie Inspiration')
     const occasionKind=/büro|business|arbeit|meeting|präsentation/iu.test(statedOccasion)?'Büro':
       /dinner|restaurant|date|abend|theater|oper/iu.test(statedOccasion)?'Dinner':/sport|training|fitness|wander/iu.test(statedOccasion)?'Sport':
-      /feier|party|club|geburtstag|ausgehen|bar\b/iu.test(statedOccasion)?'Ausgehen':/uni|vorlesung|hochschule/iu.test(statedOccasion)?'Uni':/vorstellungsgespräch|interview|hochzeit|beerdigung|konferenz|gala/iu.test(statedOccasion)?'Büro':undefined
+      /feier|party|club|geburtstag|ausgehen|bar\b/iu.test(statedOccasion)?'Ausgehen':/uni|vorlesung|hochschule/iu.test(statedOccasion)?'Uni':/alltag|freizeit|casual|spazier|café|cafe|einkauf/iu.test(statedOccasion)?'Alltag':/vorstellungsgespräch|interview|hochzeit|beerdigung|konferenz|gala/iu.test(statedOccasion)?'Büro':undefined
     const formal=/büro|business|eleganz|feier|date|abend/iu.test(occasion+' '+query.style)
     const comparable=(value:string)=>value.toLocaleLowerCase('de-DE').split(/[^\p{L}\p{N}]+/u).filter(part=>part.length>=3)
     const personal=personalProfile(store).fields
@@ -330,7 +330,9 @@ export class OutfitStudio {
     }).sort((a,b)=>b.score-a.score)
 
     function pick(items:WardrobeItem[],category:WardrobeCategory) {
-      const ranked=rankItems(items,category)
+      // Nur Teile, die zum genannten Anlass passen; gibt es keines, bleibt die ganze Auswahl.
+      const fitting=occasionKind?items.filter(item=>fitsOccasion(occasionKind,itemOccasion(item))):items
+      const ranked=rankItems(fitting.length?fitting:items,category)
       if (!ranked.length) return
       // Varianten kommen nur aus Teilen, die fast so gut passen wie das beste. Unruhige Farbpaare fallen so heraus.
       const close=ranked.filter(entry=>entry.score>=ranked[0].score-10)
