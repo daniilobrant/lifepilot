@@ -35,3 +35,11 @@ test('Only unclear personal mails are sent to the model for review',()=>{
     assert.deepEqual(picked.map(item=>item.id),['u'])
   }finally{store.db.close()}
 })
+
+test('A forwarded course mail with an English agenda becomes one presentation appointment for that day',()=>{
+  const forwarded=mail({id:'f',from:'st80003111@stud.hfwu.de',at:'2026-11-26T10:25:02Z',
+    subject:'WG: [HfWU neo - Hochschule] [101-113: B2B-Sales Management (4 SWS) (immer im WiSe)]',
+    text:'Von: "Prof. Dr. Beispiel"\nGesendet: Donnerstag, 26. November 2026 11:25:01\nAn: Obrant, Daniil\nBetreff: [HfWU neo] [101-113: B2B-Sales Management (4 SWS) (immer im WiSe)]\n\nAttached are the topics and the agenda for today\'s interim presentation.\nWe’ll start at 12:00 p.m. with Group 2.\nGroup 2: 12:00\nGroup 3: 12:20\nThe link: https://eu02web.zoom-x.de/j/9859702453\nSee you online at 12:00.'})
+  const event=readMeetingMail(forwarded)!
+  assert.deepEqual([event.title,event.date,event.time],['B2B-Sales Management · Präsentation · Zoom','2026-11-26','12:00'])
+})
