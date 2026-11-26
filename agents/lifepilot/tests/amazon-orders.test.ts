@@ -76,7 +76,7 @@ test('Underwear and socks are recognised before shorts and never count as wardro
 })
 
 test('An order confirmation without number and items (adidas) is still tracked as ordered',()=>{
-  const parsed=parseClothingMail({subject:'Danke für deine Bestellung, Daniil',from:'adidas <adidas@de-info.adidas.com>',
+  const parsed=parseClothingMail({subject:'Danke für deine Bestellung, Person',from:'adidas <adidas@de-info.adidas.com>',
     text:'Du erhältst alle Daten zur Sendungsverfolgung, sobald deine Bestellung unterwegs ist. Danke für deinen Einkauf bei adidas',at:'2026-11-26T00:09:18Z'},'')!
   assert.equal(parsed.kind,'order')
   assert.equal(parsed.merchant,'Adidas')
@@ -88,7 +88,7 @@ test('An order mail with cart blocks (number, items, size, colour, price, image,
   const block=(size:string)=>'<img alt="Cart Image" src="https://assets.adidas.com/images/w_500/abc_9366/Beispiel_Heim.jpg"><table><tr><td>Beispiel Heimtrikot</td></tr><tr><td>€25,50</td></tr><tr><td>Größe: '+size+' / Menge: 1</td></tr><tr><td>Farbe: White</td></tr></table>'
   const html='<html><body><table><tr><td>Bestellt am</td><td>Donnerstag, 26 November</td><td>Bestellnummer</td></tr><tr><td>ADE9CH79180</td></tr></table>'+
     '<p>Voraussichtliche Lieferung:</p><p>Do, 3 Dez</p>'+block('L')+block('M')+block('L')+block('M')+'</body></html>'
-  const parsed=parseClothingMail({subject:'Danke für deine Bestellung, Daniil',from:'adidas <adidas@de-info.adidas.com>',text:'Du erhältst alle Daten zur Sendungsverfolgung',at:'2026-11-26T00:09:18Z'},html)!
+  const parsed=parseClothingMail({subject:'Danke für deine Bestellung, Person',from:'adidas <adidas@de-info.adidas.com>',text:'Du erhältst alle Daten zur Sendungsverfolgung',at:'2026-11-26T00:09:18Z'},html)!
   assert.equal(parsed.reference,'ADE9CH79180')
   assert.equal(parsed.items.length,2)
   assert.deepEqual(parsed.items.map(item=>[item.draft.size,item.draft.color,item.draft.cents,item.draft.isClothing]),[['L','White',2550,true],['M','White',2550,true]])

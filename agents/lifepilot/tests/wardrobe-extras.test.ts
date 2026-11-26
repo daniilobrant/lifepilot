@@ -158,7 +158,7 @@ test('Grocery suggestions fix capitalization and familiar typos while the migrat
 test('EU travel preparation uses the German home assumption and accepts a profile override',()=>{
   const store=new Store(':memory:')
   try {
-    let profile=savePersonalProfile(store,{location:'Esslingen am Neckar'},0)
+    let profile=savePersonalProfile(store,{location:'Stuttgart'},0)
     const preview=previewTrip({...draft,destination:'Teneriffa'},undefined,undefined,store)
     const saved=saveTrip(store,preview.id)
     assert.match(saved.checklist.find(item=>item.topic==='entry')?.detail??'',/Wohnort abgeleitet.*Personalausweis/)

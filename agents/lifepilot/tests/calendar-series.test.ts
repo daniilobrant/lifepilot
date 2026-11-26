@@ -24,7 +24,7 @@ test('German Pilot phrasing resolves the contract end and marks the actual Baden
   assert.equal(plan.endTime,'16:00')
   const store=new Store(':memory:','synthetic')
   try{
-    savePersonalProfile(store,{location:'Esslingen am Neckar'},0)
+    savePersonalProfile(store,{location:'Stuttgart'},0)
     const series=prepareSeries(store,plan,'2026-11-23',new Date('2026-11-23T06:00:00Z'))
     assert.equal(series.definition.region,'BW')
     assert.deepEqual(series.skipped.map(item=>item.date),['2026-12-25','2027-01-01','2027-03-26','2027-03-29'])
@@ -38,7 +38,7 @@ test('normal Pilot approval creates a series and another approval removes it, wh
   const store=new Store(':memory:','private')
   try{
     const today=dateInBerlin(), until=shiftDay(today,35)
-    savePersonalProfile(store,{location:'Esslingen am Neckar'},0)
+    savePersonalProfile(store,{location:'Stuttgart'},0)
     function chat(input:string){
       const run=store.create(input,'lifepilot',randomUUID(),'ui')
       const next=store.next()

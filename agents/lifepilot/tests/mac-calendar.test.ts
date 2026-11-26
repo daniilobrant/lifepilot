@@ -8,7 +8,7 @@ import { berlinInstant } from '../tools/validate.ts'
 
 test('Calendar preview binds the event and writes just once after confirmation', async () => {
   const store = new Store(':memory:')
-  const target = { id: 'target', name: 'Kalender-Test', account: 'NIGHTBOT-Testkonto' }
+  const target = { id: 'target', name: 'Kalender-Test', account: 'Testkonto' }
   const writes: object[] = []
   const calendar = new MacCalendar(async request => {
     if ('operation' in request && request.operation === 'list') return { ok: true, calendars: [target] }

@@ -7,7 +7,7 @@ import {classifyMail} from '../tools/classify-mail.ts'
 import {triageCandidates} from '../../../hub/runtime/mail-triage.ts'
 import type {MailContent} from '../../../hub/connectors/google.ts'
 
-const mail=(patch:Partial<MailContent>):MailContent=>({id:'m1',subject:'Meeting',text:'Hallo Daniil, heute Meeting um 15 Uhr auf Teams. VG Tom',
+const mail=(patch:Partial<MailContent>):MailContent=>({id:'m1',subject:'Meeting',text:'Hallo Person, heute Meeting um 15 Uhr auf Teams. VG Tom',
   from:'Tom <tom@example.org>',at:'2026-11-26T07:31:28Z',dates:[],truncated:false,...patch})
 
 test('A personal mail with meeting word, day and time becomes an appointment proposal and an important message',()=>{
@@ -37,9 +37,9 @@ test('Only unclear personal mails are sent to the model for review',()=>{
 })
 
 test('A forwarded course mail with an English agenda becomes one presentation appointment for that day',()=>{
-  const forwarded=mail({id:'f',from:'st80003111@stud.hfwu.de',at:'2026-11-26T10:25:02Z',
+  const forwarded=mail({id:'f',from:'student@hochschule.example',at:'2026-11-26T10:25:02Z',
     subject:'WG: [HfWU neo - Hochschule] [101-113: B2B-Sales Management (4 SWS) (immer im WiSe)]',
-    text:'Von: "Prof. Dr. Beispiel"\nGesendet: Donnerstag, 26. November 2026 11:25:01\nAn: Obrant, Daniil\nBetreff: [HfWU neo] [101-113: B2B-Sales Management (4 SWS) (immer im WiSe)]\n\nAttached are the topics and the agenda for today\'s interim presentation.\nWe’ll start at 12:00 p.m. with Group 2.\nGroup 2: 12:00\nGroup 3: 12:20\nThe link: https://eu02web.zoom-x.de/j/9859702453\nSee you online at 12:00.'})
+    text:'Von: "Prof. Dr. Beispiel"\nGesendet: Donnerstag, 26. November 2026 11:25:01\nAn: Beispiel, Person\nBetreff: [HfWU neo] [101-113: B2B-Sales Management (4 SWS) (immer im WiSe)]\n\nAttached are the topics and the agenda for today\'s interim presentation.\nWe’ll start at 12:00 p.m. with Group 2.\nGroup 2: 12:00\nGroup 3: 12:20\nThe link: https://eu02web.zoom-x.de/j/9859702453\nSee you online at 12:00.'})
   const event=readMeetingMail(forwarded)!
   assert.deepEqual([event.title,event.date,event.time],['B2B-Sales Management · Präsentation · Zoom','2026-11-26','12:00'])
 })
