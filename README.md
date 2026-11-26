@@ -1,4 +1,4 @@
-# LifePilot 1.0.74
+# LifePilot 1.0.75
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -13,7 +13,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 <table>
 <tr>
 <td width="50%" valign="top"><strong>Startseite</strong><br>Wochenbriefing mit Aufgaben, Fristen, nächsten Terminen und wichtigen Mails.<br><a href="docs/screenshots/01-start.png"><img src="docs/screenshots/01-start.png" alt="Wochenbriefing mit anstehenden Aufgaben und Terminen"></a></td>
-<td width="50%" valign="top"><strong>Pilot-Chat</strong><br>Pilot nimmt Aufträge im Chat entgegen. Du kannst einen Entwurf prüfen und eine vorgeschlagene Änderung separat bestätigen.<br><a href="docs/screenshots/15-pilot.png"><img src="docs/screenshots/15-pilot.png" width="240" alt="Pilot-Chat mit einem fiktiven Projektauftrag und seinem Freigabestatus"></a></td>
+<td width="50%" valign="top"><strong>Pilot-Chat</strong><br>Pilot nimmt Aufträge im Chat entgegen. Aus einer einzigen Nachricht entstehen ein Kalendertermin und eine Aufgabe mit Erinnerung; du bestätigst jeden Vorschlag einzeln.<br><a href="docs/screenshots/15-pilot.png"><img src="docs/screenshots/15-pilot.png" alt="Pilot-Chat mit einem Brunchtermin und einer Erinnerung, daneben der Kalender mit den übernommenen Einträgen"></a></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><strong>Kalender</strong><br>Termine und Serien in der Wochen- oder Monatsansicht planen und freie Zeitfenster finden.<br><a href="docs/screenshots/02-kalender.png"><img src="docs/screenshots/02-kalender.png" alt="Monatskalender und Suche nach freien Zeitfenstern"></a></td>
@@ -21,7 +21,11 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 </tr>
 <tr>
 <td width="50%" valign="top"><strong>Projekte</strong><br>Phasen, Checkpoints, verknüpfte Fristen und Fortschritt auf einer Projektkarte sehen.<br><a href="docs/screenshots/04-projekte.png"><img src="docs/screenshots/04-projekte.png" alt="Projektkarte mit Phasen und Fortschrittsanzeige"></a></td>
-<td width="50%" valign="top"><strong>Urlaubsplaner</strong><br>Reisezeitraum und Ziel auswählen, Interessen und Ausschlüsse festlegen und eine Vorschau vorbereiten.<br><a href="docs/screenshots/08-reise.png"><img src="docs/screenshots/08-reise.png" alt="Reiseformular mit Kalenderfeldern, Interessen und Ausschlüssen"></a></td>
+<td width="50%" valign="top"><strong>Urlaubsplaner</strong><br>Reiseplan mit Anreise, Unterkunft, Währung und Tagesplan, Tipps und Buchungen für jeden Reisetag.<br><a href="docs/screenshots/08-reise.png"><img src="docs/screenshots/08-reise.png" alt="Reiseplan für Lissabon mit Anreise, Unterkunft und Tagesplan"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><strong>Reisevorbereitung</strong><br>Checkliste und Packliste einer Reise lassen sich abhaken und nach Bedarf anpassen.<br><a href="docs/screenshots/08b-reise-vorbereitung.png"><img src="docs/screenshots/08b-reise-vorbereitung.png" alt="Checkliste und Packliste einer Reise nach Lissabon"></a></td>
+<td width="50%"></td>
 </tr>
 </table>
 
@@ -29,12 +33,16 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 
 <table>
 <tr>
-<td width="50%" valign="top"><strong>Posteingang</strong><br>Wichtige Nachrichten priorisieren und daraus Vorschläge für passende Folgeaktionen ableiten.<br><a href="docs/screenshots/05-posteingang.png"><img src="docs/screenshots/05-posteingang.png" alt="Posteingang mit ausgewählten fiktiven Nachrichten"></a></td>
-<td width="50%" valign="top"><strong>Bestellungstracker</strong><br>Lieferstatus verfolgen und je Artikel entscheiden, was behalten oder retourniert wird.<br><a href="docs/screenshots/06-bestellungen.png"><img src="docs/screenshots/06-bestellungen.png" alt="Musterbestellung mit Lieferstatus und Artikelentscheidungen"></a></td>
+<td width="50%" valign="top"><strong>Posteingang</strong><br>Wichtige Nachrichten priorisieren und begründen, warum sie wichtig sind.<br><a href="docs/screenshots/05-posteingang.png"><img src="docs/screenshots/05-posteingang.png" alt="Posteingang mit ausgewählten fiktiven Nachrichten"></a></td>
+<td width="50%" valign="top"><strong>Mailvorschläge</strong><br>Aus Mails abgeleitete Fristen und Aufgaben lassen sich einzeln oder gesammelt bestätigen.<br><a href="docs/screenshots/05b-mailvorschlaege.png"><img src="docs/screenshots/05b-mailvorschlaege.png" alt="Mailvorschlag für eine Aufgabe mit Bestätigen und Ablehnen"></a></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><strong>Finanzen &amp; Abos</strong><br>Einnahmen, Ausgaben und Abo-Vorschläge im Monatsverlauf prüfen.<br><a href="docs/screenshots/07-finanzen.png"><img src="docs/screenshots/07-finanzen.png" alt="Finanzübersicht mit fiktiven Einnahmen und Ausgaben"></a></td>
-<td width="50%" valign="top"><strong>Bewerbungen</strong><br>Bewerbungen nach Status organisieren und nächste Schritte und Gespräche planen.<br><a href="docs/screenshots/11-bewerbungen.png"><img src="docs/screenshots/11-bewerbungen.png" alt="Bewerbungsboard mit fiktivem Arbeitgeber"></a></td>
+<td width="50%" valign="top"><strong>Bestellungstracker</strong><br>Lieferstatus verfolgen und je Artikel entscheiden, was behalten oder retourniert wird.<br><a href="docs/screenshots/06-bestellungen.png"><img src="docs/screenshots/06-bestellungen.png" alt="Musterbestellung mit Lieferstatus und Artikelentscheidungen"></a></td>
+<td width="50%" valign="top"><strong>Finanzen &amp; Abos</strong><br>Einnahmen, Ausgaben, Fixkosten und Abos im Monatsverlauf prüfen.<br><a href="docs/screenshots/07-finanzen.png"><img src="docs/screenshots/07-finanzen.png" alt="Finanzübersicht mit fiktiven Einnahmen und Ausgaben"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><strong>Abo-Prüfung</strong><br>Pilot sucht im Web nach günstigeren Tarifen und sagt je Abo, ob es sich lohnt zu wechseln. Gekündigt oder gebucht wird nichts.<br><a href="docs/screenshots/07b-abo-pruefung.png"><img src="docs/screenshots/07b-abo-pruefung.png" alt="Abo-Prüfung mit Empfehlung Behalten oder Wechseln und einer Tarifalternative"></a></td>
+<td width="50%" valign="top"><strong>Bewerbungen</strong><br>Bewerbungen nach Status organisieren, Gespräche planen und Vorschläge aus Mails mit „Passt“ bestätigen.<br><a href="docs/screenshots/11-bewerbungen.png"><img src="docs/screenshots/11-bewerbungen.png" alt="Bewerbungsboard mit Bewerbungsvorschlag aus einer Mail"></a></td>
 </tr>
 </table>
 
@@ -42,23 +50,23 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 
 <table>
 <tr>
-<td width="50%" valign="top"><strong>Kleiderschrank</strong><br>Kleidung mit Produktbildern, Kategorien, Farben und Passformen verwalten.<br><a href="docs/screenshots/09-kleiderschrank.png"><img src="docs/screenshots/09-kleiderschrank.png" alt="Vier fiktive Kleidungsstücke mit Produktbildern"></a></td>
+<td width="50%" valign="top"><strong>Kleiderschrank</strong><br>Kleidung mit Produktbildern, Kategorien, Farben und Passformen verwalten.<br><a href="docs/screenshots/09-kleiderschrank.png"><img src="docs/screenshots/09-kleiderschrank.png" alt="Fiktive Kleidungsstücke mit Produktbildern"></a></td>
 <td width="50%" valign="top"><strong>Parfüm &amp; Düfte</strong><br>Düfte mit Flakonbild, Duftnoten, Größe und passenden Anlässen sammeln.<br><a href="docs/screenshots/14-duefte.png"><img src="docs/screenshots/14-duefte.png" alt="Vier fiktive Düfte mit Flakonbildern und Duftnoten"></a></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><strong>Styling-Studio</strong><br>Ein Outfit nach Anlass, Tageszeit und vorhandenen Kleidungsstücken zusammenstellen.<br><a href="docs/screenshots/16-styling.png"><img src="docs/screenshots/16-styling.png" alt="Styling-Studio mit Anlass, Tageszeit und Outfit-Funktion"></a></td>
+<td width="50%" valign="top"><strong>Styling-Studio</strong><br>Ein Outfit nach Anlass, Tageszeit, Wetter und vorhandenen Kleidungsstücken zusammenstellen, passend mit Duft.<br><a href="docs/screenshots/16-styling.png"><img src="docs/screenshots/16-styling.png" alt="Styling-Studio mit Outfitvorschlag für ein Vorstellungsgespräch"></a></td>
 <td width="50%" valign="top"><strong>Einkaufsliste</strong><br>Lebensmittel auf einer nach Warengruppen gegliederten Liste abhaken.<br><a href="docs/screenshots/10-einkauf.png"><img src="docs/screenshots/10-einkauf.png" alt="Einkaufsliste mit Kategoriegruppen"></a></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><strong>Meine Looks</strong><br>Kombinationen und eigene Outfit-Fotos als Looks zusammenhalten.<br><a href="docs/screenshots/17-looks.png"><img src="docs/screenshots/17-looks.png" alt="Lookbook mit gespeicherter Outfit-Kombination"></a></td>
+<td width="50%" valign="top"><strong>Meine Looks</strong><br>Kombinationen und eigene Outfit-Fotos als Looks zusammenhalten.<br><a href="docs/screenshots/17-looks.png"><img src="docs/screenshots/17-looks.png" alt="Lookbook mit gespeicherten Outfit-Kombinationen"></a></td>
 <td width="50%" valign="top"><strong>Urlaubsgarderobe</strong><br>Kleidungsstücke aus dem Schrank für eine konkrete Reise auswählen und als Packauswahl speichern.<br><a href="docs/screenshots/20-urlaubsgarderobe.png"><img src="docs/screenshots/20-urlaubsgarderobe.png" alt="Urlaubsgarderobe mit bebilderter Packauswahl für eine Musterreise"></a></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><strong>Verkaufen</strong><br>Für ein Kleidungsstück einen Verkaufsentwurf mit Zustand, Preisrahmen und Inseratstext erstellen.<br><a href="docs/screenshots/21-verkaufen.png"><img src="docs/screenshots/21-verkaufen.png" alt="Verkaufsbereich mit einem fiktiven Paar Chelsea-Boots"></a></td>
+<td width="50%" valign="top"><strong>Verkaufen</strong><br>Für ein Kleidungsstück einen Verkaufsentwurf mit Zustand, Preisrahmen und Inseratstext erstellen.<br><a href="docs/screenshots/21-verkaufen.png"><img src="docs/screenshots/21-verkaufen.png" alt="Verkaufsbereich mit einer fiktiven Baseballcap"></a></td>
 <td width="50%" valign="top"><strong>Mein Vorrat</strong><br>Vorräte nach Kategorien durchsuchen und den Bestand pflegen.<br><a href="docs/screenshots/18-vorrat.png"><img src="docs/screenshots/18-vorrat.png" alt="Kategorisierte Vorratsverwaltung"></a></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><strong>Meine Rezepte</strong><br>Aus vorhandenen Zutaten kochen oder bei Pilot nach Rezeptideen fragen.<br><a href="docs/screenshots/19-rezepte.png"><img src="docs/screenshots/19-rezepte.png" alt="Rezeptbereich mit Vorrats- und Pilot-Aktionen"></a></td>
+<td width="50%" valign="top"><strong>Meine Rezepte</strong><br>Aus vorhandenen Zutaten kochen oder bei Pilot nach Rezeptideen fragen; fehlende Zutaten wandern auf die Einkaufsliste.<br><a href="docs/screenshots/19-rezepte.png"><img src="docs/screenshots/19-rezepte.png" alt="Rezeptideen aus dem Vorrat mit fehlenden Zutaten"></a></td>
 <td width="50%"></td>
 </tr>
 </table>
@@ -185,7 +193,7 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.36–1.0.42 · 25./26. November 2026** | Agent mit Verzeichnis aller Bereiche, Zerlegung langer und diktierter Nachrichten, Entscheidungstabelle der Skills, Bestellungen und Bewerbungen im Chat, umschaltbarer Modellanbieter (Codex oder Claude Code), Testsatz mit 48 Beispielsätzen. |
 | **1.0.43–1.0.52 · 26. November 2026** | Sicherheitsprüfung des Gesamtprojekts, Kalender ohne Doppeleinträge, Rezeptauswahl und Zutatenabgleich, Bestellmails mit Warenkorb-Blöcken, Outfits passend zum Anlass, Terminvorschläge aus Mails. |
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
-| **1.0.58–1.0.74 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. |
+| **1.0.58–1.0.75 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. |
 
 [Alle Einzelschritte im Changelog](CHANGELOG.md) · [Entwicklungsverlauf](docs/ENTWICKLUNG.md)
 

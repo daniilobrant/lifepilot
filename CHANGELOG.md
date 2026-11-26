@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.75 · 26. November 2026
+
+- Dokumentation: Die Screenshot-Galerie in README und docs/SCREENSHOTS.md wurde vollständig neu aufgenommen, mit durchgehend fiktiven Daten. Neu sind der Pilot-Chat mit einer Mehrfachanfrage, die Abo-Prüfung mit Tarifalternative, Mailvorschläge, Bewerbungsvorschlag, Reiseplan mit Checkliste und Packliste sowie ein Styling-Ergebnis. Keine Änderung am Programmcode.
+
 ## v1.0.74 · 26. November 2026
 
 - Bewerbungen: In Mails erkannte Bewerbungen erscheinen als aufklappbarer Bereich „Bewerbungen“ mit Zähler unter „Wartet auf dein OK“ auf der Startseite und als „Bewerbungsvorschläge aus Mails“ im Bereich Bewerbungen. Eindeutige Vorschläge lassen sich mit „Passt“ bestätigen, sonst mit „Prüfen“ einzeln anpassen oder mit „Ablehnen“ verwerfen.
