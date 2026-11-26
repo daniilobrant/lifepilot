@@ -224,7 +224,7 @@ function WindowFinder({ api, plan, entries, onChoose }: { api:Api, plan?:TripCha
 
 function LocalItem({ item, mutate }: { item:TripItem,mutate?:Patch }) {
   return <label className="travel-item" data-done={item.done}>
-    {mutate ? <input type="checkbox" checked={item.done} onChange={event=>void mutate({kind:'toggle',item:item.id,done:event.target.checked})} />:null}
+    <input type="checkbox" checked={item.done} disabled={!mutate} onChange={event=>void mutate?.({kind:'toggle',item:item.id,done:event.target.checked})} />
     <span><strong>{item.text}</strong>{item.detail ? <small>{item.detail}</small>:null}</span>
   </label>
 }
@@ -310,7 +310,7 @@ function PackRow({entry,mutate,busy,wardrobe,temperature}:{entry:TripPlan['packi
   const pieces=wardrobeTips(entry,wardrobe,temperature)
   return <div className="travel-pack-row" data-done={entry.done||undefined}>
     <label className="travel-item">
-      {mutate ? <input type="checkbox" checked={entry.done} onChange={event=>void mutate({kind:'toggle',item:entry.id,done:event.target.checked}).catch(()=>{})}/> : null}
+      <input type="checkbox" checked={entry.done} disabled={!mutate} onChange={event=>void mutate?.({kind:'toggle',item:entry.id,done:event.target.checked}).catch(()=>{})}/>
       <span><strong>{entry.text}</strong>{detail ? <small>{detail}</small> : null}</span>
     </label>
     {countable(entry) ? mutate ? <Stepper value={entry.quantity} label={entry.text} disabled={busy}

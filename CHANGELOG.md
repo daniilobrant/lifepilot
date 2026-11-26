@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.66 · 26. November 2026
+
+- Reisen: In der Reisevorschau zeigen Checkliste und Packliste jetzt dieselben Kästchen wie bei gespeicherten Reisen (in der Vorschau deaktiviert, abhakbar nach dem Speichern). Das Layout ist damit in beiden Ansichten gleich.
+
 ## v1.0.65 · 26. November 2026
 
 - Finanzen: Der Button „Abos & Alternativen prüfen“ steht jetzt direkt neben „+ Abo“ in der Kopfzeile des Abo-Bereichs und passt zu dessen Gestaltung. Die automatische Prüfung folgt später.
