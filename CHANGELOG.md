@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.46 · 26. November 2026
+
+- Rezeptideen: zehn weitere Rezepte, die Auswahl wechselt bei jeder Anfrage; gleichwertige Zutaten (Hähnchen/Hähnchenfleisch, Hackfleisch, Öle, Nudeln) werden nicht erneut auf die Einkaufsliste gesetzt.
+
 ## v1.0.45 · 26. November 2026
 
 - Rezepte: Entfernen-Knopf direkt an jedem gespeicherten Rezept. Der Vorratsabgleich erkennt gleichwertige Zutaten (Nudelsorten, Speiseöle, Hackfleisch, passierte Tomaten/Passata).
