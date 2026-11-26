@@ -191,7 +191,7 @@ function queueOrderPhotos(order?:string){
 }
 let attentionFeed:ReturnType<typeof readInboxFeed>|undefined
 async function runAutomaticMailSync() {
-  if(acceptance || scanningInbox || stopping) return
+  if(acceptance || scanningInbox || attentionFeed || stopping) return
   scanningInbox=true
   try {
     const synced = await syncCategorizedMail(store,google)

@@ -264,7 +264,7 @@ const shipmentLabels = { order: 'Bestellung', 'return-open': 'Retoure offen', 'r
   'return-closed': 'Retoure eingegangen oder erledigt', 'return-unknown': 'Retourenstatus unklar' }
 
 const inboxPollMs = 120_000
-type InboxFeed = { account?:string, incomplete?:boolean, messages: AttentionMail[], loadedAt: string }
+type InboxFeed = { account?:string, incomplete?:boolean, rateLimited?:boolean, messages: AttentionMail[], loadedAt: string }
 const mailDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' })
 
 function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectures, sourceId }: {
@@ -1536,7 +1536,15 @@ function App() {
     setInboxFeedError('')
     try {
       const feed = await api<Omit<InboxFeed,'loadedAt'>>('/inbox/feed', {confirm:true}, 60_000)
-      if (revision === inboxFeedRevision.current) setInboxFeed({ ...feed, loadedAt: new Date().toISOString() })
+      if (revision === inboxFeedRevision.current) setInboxFeed(current => {
+        if (feed.rateLimited && current && (!feed.account || feed.account === current.account)) {
+          const messages = new Map(current.messages.map(mail=>[mail.id,mail]))
+          for (const mail of feed.messages) messages.set(mail.id,mail)
+          return {...current, incomplete:true,rateLimited:true,
+            messages:[...messages.values()].sort((a,b)=>Number(b.important)-Number(a.important)||(b.at??'').localeCompare(a.at??''))}
+        }
+        return {...feed, loadedAt:feed.rateLimited && !feed.messages.length ? '' : new Date().toISOString()}
+      })
     } catch (reason) {
       if (revision === inboxFeedRevision.current) setInboxFeedError(reason instanceof Error ? reason.message : 'Gmail ist gerade nicht erreichbar.')
     } finally {
@@ -1548,7 +1556,7 @@ function App() {
   }
 
   const watchInbox = Boolean(snapshot && (page === 'Start' || page === 'Posteingang'))
-  const checkActiveInbox = useEffectEvent(() => { if (!document.hidden) void loadInboxFeed() })
+  const checkActiveInbox = useEffectEvent(() => { if (!document.hidden && !refreshingInbox) void loadInboxFeed() })
   useEffect(() => {
     if (!watchInbox) return
     checkActiveInbox()
@@ -1587,8 +1595,8 @@ function App() {
       {loadingInboxFeed && !inboxFeed ? <Loading label="Gmail wird geladen …" /> : null}
       {inboxFeedError ? <p role="alert">Gmail konnte nicht aktualisiert werden. {inboxFeedError}
         {' '}<button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
-      {inboxFeed ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
-      {!compact && inboxFeed?.incomplete ? <p role="status">Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.</p> : null}
+      {inboxFeed?.loadedAt ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
+      {!compact && inboxFeed?.incomplete ? <p role="status">{inboxFeed.rateLimited ? 'Gmail begrenzt gerade die Anfragen. LifePilot zeigt bereits geladene Mails und versucht es später erneut.' : 'Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.'}</p> : null}
       {messages?.length ? <ul className="inbox-feed-list">
         {messages.map(item => <li key={item.id}>
           <span><strong>{item.subject}</strong><small>{item.from}</small>

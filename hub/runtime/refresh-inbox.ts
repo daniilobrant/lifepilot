@@ -1,6 +1,6 @@
 import {scanProjectMails} from './project-mail.ts'
 import { scanClothingOrders } from './clothing-orders.ts'
-import type { GmailPage, GoogleConnector, MailContent } from '../connectors/google.ts'
+import { GmailRateLimit, type GmailPage, type GoogleConnector, type MailContent } from '../connectors/google.ts'
 import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
 import { classifyMail, inboxLabel, type InboxLabel, type MailClassification } from '../../agents/lifepilot/tools/classify-mail.ts'
@@ -40,6 +40,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
   const seen = new Set<string>()
   let account: string | undefined
   let incomplete = false
+  let rateLimited = false
   const collect = (mails: MailContent[], account?: string) => {
     const modelImportant = store && account ? triagedImportant(store, mails, account) : new Set<string>()
     for (const mail of mails) {
@@ -60,6 +61,14 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
     const pageTokens = new Set<string>()
     do {
       const result = await google.recentInbox(key => key === account ? cursor : undefined, false, undefined, afterEpoch)
+        .catch(error => {
+          if (!(error instanceof GmailRateLimit)) throw error
+          return null
+        })
+      if (!result) {
+        rateLimited = incomplete = true
+        break
+      }
       if (account && result.account !== account) throw new Problem(409, 'Das Gmail-Konto hat sich geändert. Aktualisiere erneut.')
       account = result.account
       collect(result.mails, account)
@@ -78,7 +87,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
       if (cursor) pageTokens.add(cursor.pageToken)
     } while (cursor)
   }
-  return { account, incomplete, messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
+  return { account, incomplete, rateLimited, messages: relevant.sort((a,b) => Number(b.important) - Number(a.important) ||
     (b.at ?? '').localeCompare(a.at ?? '')) }
 }
 
