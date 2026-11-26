@@ -15,6 +15,8 @@ export type ApplicationDraft = {
 export type Application = ApplicationDraft & { id: string, revision: number, updated_at: string }
 export type ApplicationSource = Pick<ApplicationDraft, 'company' | 'role' | 'location' | 'status'> & {
   id: string, title: string, application_id: string | null,
+  salary?: string, description?: string, notes?: string, link?: string,
+  applied_on?: string | null, follow_up?: string | null,
 }
 export type ApplicationOverview = {
   items: Application[], sources: ApplicationSource[], stats: Record<ApplicationStatus, number>,

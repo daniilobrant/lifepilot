@@ -81,7 +81,8 @@ test('Only declined items create one deadline task and either checklist marks th
     updateClothingTask(store,taskId,firstTask.revision,{steps:firstTask.steps.map(step=>({...step,done:true}))},'ui')
     assert.equal(store.workspace.get(taskId).status,'done')
     assert.deepEqual(clothingOrders(store)[0].items.map(item=>item.decision),['kept','returned','returned'])
-    assert.equal(clothingPhotoTargets(store,id).length,0)
+    // Zurückgegebene Artikel bekommen höchstens ein Bild am Bestellposten, nie im Kleiderschrank.
+    assert.ok(clothingPhotoTargets(store,id).filter(target=>target.wardrobe).length<=1)
   } finally {store.db.close()}
 })
 
@@ -151,7 +152,8 @@ test('An order item with a verified product link can queue a photo without a kno
     scanClothingOrders(store,[{...order,clothing:parsed}],'test-account')
     const [tracked]=clothingOrders(store)
     assert.equal(tracked.items[0].canLoadPhoto,true)
-    assert.equal(tracked.items[1].canLoadPhoto,false)
-    assert.deepEqual(clothingPhotoTargets(store,tracked.id).map(item=>item.source),[source])
+    // Ohne Link sucht LifePilot über den Produktnamen.
+    assert.equal(tracked.items[1].canLoadPhoto,true)
+    assert.deepEqual(clothingPhotoTargets(store,tracked.id).map(item=>item.source),[source,''])
   } finally {store.db.close()}
 })

@@ -5,16 +5,7 @@ description: Erkennt Anfragen zu Lieferungen, Retouren und Entscheidungen über 
 
 # Bestellungstracker
 
-Wenn die Person nach ihren Bestellungen, Lieferungen, offenen Retouren oder
-behaltenen Artikeln fragt, verwende `skill: "orders"`. Beispiele sind
-„Prüf meine Bestellungen im November“ und „Welche Pakete sind schon angekommen?“
-Der Hub prüft Gmail und öffnet anschließend den Bestellungstracker.
-
-Lasse `skillData` leer und gib keine Aufgaben, Aktionen oder Rückfragen aus.
-Behaupte keine Lieferungen, Beträge oder Buchungen. Der Tracker gleicht diese
-mit Bestell- und Versandnachweisen ab. Entscheidungen über einzelne Artikel
-und Finanzbuchungen trifft die Person im Tracker.
-
-## Zuordnung und Einzelfall
-
-Eine Versandmeldung belegt den Versand, eine Zustellmeldung die Lieferung. „Die Hose aus der letzten Bestellung geht zurück“ gehört zur Artikelentscheidung im Tracker. Bei mehreren passenden Hosen lasse die Auswahl dort offen. Eine angekündigte Retoure ist noch keine Erstattung.
+- **Prüfen:** „Prüf meine Bestellungen im November“, „Welche Pakete sind angekommen?“ → `skill: "orders"`, `skillData: null`, keine Aufgaben. LifePilot gleicht Gmail ab und öffnet den Tracker. Beantworte einfache Fragen zusätzlich aus `directory.bestellungen`.
+- **Entscheiden:** „Die Weekday-Jeans behalte ich“, „Die Hose schicke ich zurück“, „Retoure ist abgegeben“, „Das Uniqlo-Paket ist angekommen“ → `skill: "orders"` mit `skillData: {orderIntent:"decide", order:<ID aus directory.bestellungen>, item:<Teil-ID aus directory.treffer.details.teile oder null>, decision:"kept"|"return"|"returned"|"received"}`.
+- Passen mehrere Teile oder Bestellungen, setze `item: null` nur, wenn genau ein Teil in Frage kommt; sonst frage nach („Meinst du die Wide Jeans oder die Cargo?“).
+- Behaupte keine Lieferungen, Beträge oder Erstattungen. Eine angekündigte Retoure ist noch keine Erstattung.

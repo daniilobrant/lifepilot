@@ -55,7 +55,7 @@ test('Recipe portions retain the source quantities and compare only compatible m
     putGrocery(store,'stock',{name:'Knoblauch',quantity:'4 Zehen'})
     putGrocery(store,'stock',{name:'Milch',quantity:'1 L'})
     putGrocery(store,'stock',{name:'Olivenöl'})
-    putGrocery(store,'stock',{name:'Mehl',quantity:'2 Dosen'})
+    putGrocery(store,'stock',{name:'Mehl',quantity:'2 Stück'})
     const {id}=saveRecipe(store,{title:'Musterrezept',servings:3,steps:['Mit 1 TL Olivenöl braten.'],
       ingredients:[{name:'Eier',quantity:'3 Stück'},{name:'Knoblauch',quantity:'2 Zehen'},
         {name:'Milch',quantity:'500 ml'},{name:'Olivenöl'},{name:'Mehl',quantity:'100 g'}]})
@@ -64,7 +64,7 @@ test('Recipe portions retain the source quantities and compare only compatible m
       ['enough','enough','enough','unknown','unknown'])
     updateRecipePortions(store,id,6)
     assert.deepEqual(listRecipes(store)[0].ingredients.map(item=>item.quantity),
-      ['6 Stück','4 Zehen','1000 ml','2 TL','200 g'])
+      ['6 Stück','4 Stück','1000 ml','2 TL','200 g'])
     assert.equal(listRecipes(store)[0].ingredientChecks[0],false)
     updateRecipePortions(store,id,1)
     updateRecipePortions(store,id,3)

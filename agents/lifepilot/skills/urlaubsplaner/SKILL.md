@@ -15,4 +15,8 @@ description: Erfasst Reisewünsche und Korrekturen und bereitet bestätigbare lo
 
 Der Hub erstellt die lokale Vorschau mit leichter An- und Abreise, Vorbereitung und Packliste. Er berechnet freie Reisezeiträume aus den bestätigten Arbeits- und Urlaubsdaten. Speichern und Änderungen passieren über die LifePilot-Freigaben. Der optionale Reiseguide hat eigene Modellanweisungen.
 
+### Einheitlicher Reiseguide
+
+Jede Reise hat denselben Aufbau: Überblick, für jeden Tag ein Schwerpunkt mit Vormittag, Nachmittag und Abend, danach immer die acht Tipp-Themen Sicherheit, Gesundheit, Kultur, Lokales Essen, Apps & Transport, Sehenswürdigkeiten, Häufige Betrugsmaschen und Nützliche Sätze. Der Hub erzeugt Tipps und Tagesabschnitte von höchstens sechs Tagen parallel und wiederholt einen unvollständigen Teil einmal. Das Ziel kann jeder Ort der Erde sein: bei Regionen oder Ländern wird eine Basis gewählt, bei kleinen Orten die Umgebung genutzt, Jahreszeit und Klima der Reisedaten fließen ein, die Sätze stehen in der Alltagssprache des Ziels. Sicherheit beginnt mit der landesweiten Notrufnummer und nennt Gegenden, die man meiden sollte; Gesundheit nennt die Rettungsnummer mit Vorgehen und ob Leitungswasser trinkbar ist. Die Packliste plant Kleidung nach Dauer, Gepäck und Wetter und schlägt passende Teile aus dem Kleiderschrank sowie mehrere Düfte aus der eigenen Sammlung vor.
+
 [Fachregeln, Codepfade und Beispiele](references/reiseablauf.md)

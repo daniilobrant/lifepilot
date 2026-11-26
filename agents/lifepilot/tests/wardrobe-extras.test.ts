@@ -22,8 +22,9 @@ test('Resale summarizes observed attributes, differentiates photo provenance and
     attachOutfitPhoto(store,id,photo,'image/png','web')
     let sale=store.transaction(()=>changeResale(store,id,'selling',{condition:'Gut',flaws:'Kleine Naht ausgebessert',originalPrice:60}))[0]
     assert.equal(sale.hasOwnPhoto,false)
-    assert.match(sale.listing.description,/Größe: 42/)
-    assert.equal(sale.listing.start,21)
+    assert.match(sale.listing.description,/Größe 42/)
+    assert.equal(sale.listing.start,18)
+    assert.match(sale.listing.description,/^Ich verkaufe Test Hose in Braun/u)
     assert.equal(sale.askingPriceCents,null)
     assert.throws(()=>store.transaction(()=>changeResale(store,id,'selling',
       {condition:'Gut',originalPrice:60,askingPriceCents:-1})),{status:400})
@@ -37,12 +38,19 @@ test('Resale summarizes observed attributes, differentiates photo provenance and
     assert.equal(sale.askingPriceCents,350)
     assert.equal(store.transaction(()=>changeResale(store,id,'sold',null))[0].state,'sold')
     assert.equal(outfitOverview(store).wardrobe.length,0)
-    store.transaction(()=>changeResale(store,id,'restore',null))
-    assert.equal(outfitOverview(store).wardrobe.length,1)
-    assert.deepEqual(store.transaction(()=>changeResale(store,id,'sorted',null)),[])
+    // Verkaufte Teile gehen nicht zurück, sie können nur endgültig entfernt werden.
+    assert.throws(()=>store.transaction(()=>changeResale(store,id,'restore',null)),{status:409})
+    assert.deepEqual(store.transaction(()=>changeResale(store,id,'delete',null)),[])
+    assert.equal(Number(store.db.prepare('SELECT count(*) AS n FROM wardrobe_items').get()?.n),0)
+    const other=saveWardrobe(store,{name:'Jacke',category:'outer',brand:'Zara'}).id
+    assert.deepEqual(store.transaction(()=>changeResale(store,other,'sorted',null)),[])
     assert.equal(outfitOverview(store).wardrobe[0].saleState,'sorted')
-    assert.throws(()=>new OutfitStudio().generate(store,{style:'Schlicht',mode:'anchor',required:[id],variant:0}),{status:409})
-    assert.equal(changeResale(store,id,'start',null)[0].state,'selling')
+    assert.throws(()=>new OutfitStudio().generate(store,{style:'Schlicht',mode:'anchor',required:[other],variant:0}),{status:409})
+    const started=changeResale(store,other,'start',null)[0]
+    assert.equal(started.state,'selling')
+    assert.equal(started.priceClass,'Basic / Fast Fashion')
+    const estimated=store.transaction(()=>changeResale(store,other,'selling',{condition:'Sehr gut',originalPrice:80,quantity:1,estimate:true}))[0]
+    assert.equal(estimated.askingPriceCents,2600)
   } finally {store.db.close()}
 })
 
@@ -179,7 +187,7 @@ test('Fragrance research corrects the MYSLF spelling and attaches researched not
   assert.equal(result.draft.name,'MYSLF Eau de Parfum')
   assert.equal(result.draft.brand,'Yves Saint Laurent')
   assert.match(result.draft.notes,/Orangenblüte/)
-  assert.match(result.draft.pairing??'',/Sakko/)
+  assert.doesNotMatch(result.draft.pairing??'',/Sakko/)
   assert.equal(result.draft.containerMl,null)
   assert.ok(result.images[0]?.startsWith('https://'))
 })
@@ -196,3 +204,26 @@ test('Fragrance metadata reads notes from the product section and ignores review
   assert.equal(draft.profile,'Frisch')
   assert.equal(draft.containerMl,null)
 })
+
+test('Scent guides describe purpose, intensity, timing and season from the notes and never suggest a blazer',async()=>{
+  const {scentGuide,scentPairing,withScentGuide}=await import('../../../hub/runtime/scent-profile.ts')
+  const base={brand:'Test',description:'',profile:'Ausgewogen' as const,containerMl:null,source:'https://example.com/d'}
+  const oud=scentGuide({...base,name:'Oud Rose Parfum',notes:'Rose, Vanille, Oud, Moschus'})
+  assert.match(oud.intensity,/^Sehr kräftig/u)
+  assert.deepEqual(oud.seasons,['Herbst','Winter'])
+  assert.ok(!oud.occasions.includes('Büro'))
+  const fresh=scentGuide({...base,name:'Aqua Eau de Toilette',notes:'Zitrone, Grapefruit, Bergamotte, Lavendel'})
+  assert.match(fresh.intensity,/^Dezent/u)
+  assert.ok(fresh.seasons.includes('Sommer')&&fresh.times.includes('Tagsüber'))
+  const iris=scentGuide({...base,name:'Homme Intense Eau de Parfum',notes:'Lavendel, Iris, Ambrette, Birne, Zedernholz'})
+  assert.equal(iris.character,'Pudrig und elegant')
+  assert.doesNotMatch(scentPairing('Zu einem schlichten Freizeitlook oder einem Hemd mit Sakko.',fresh),/Sakko/u)
+  assert.doesNotMatch(scentPairing('Zu Jeans oder einem schlichten Sakko.',fresh),/Sakko/u)
+  const templated=withScentGuide({...base,name:'Aqua Eau de Toilette',notes:'Zitrone, Grapefruit',occasions:['Alltag','Büro','Date'],
+    seasons:['Frühling','Sommer','Herbst','Winter'],times:['Tagsüber','Abends']})
+  assert.ok(templated.occasions.includes('Sport & Freizeit'))
+  const confirmed=withScentGuide({...base,name:'Aqua',notes:'Zitrone',occasions:['Alltag','Büro','Date'],
+    seasons:['Frühling','Sommer','Herbst','Winter'],times:['Tagsüber','Abends'],tagsConfirmed:true})
+  assert.deepEqual(confirmed.occasions,['Alltag','Büro','Date'])
+})
+

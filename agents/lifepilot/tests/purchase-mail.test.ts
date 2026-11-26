@@ -87,3 +87,15 @@ test('inference requires three distinct dates in monthly cadence for the same pa
     assert.equal(pendingMailFinances(store,'a').length,4)
   }finally{store.db.close()}
 })
+
+test('App Store subscription receipts without the word Abo in the plan line are recognised',()=>{
+  const charge=readRecurringCharge(receipt({from:'Apple <no_reply@email.apple.com>',subject:'Deine Rechnung von Apple',at:'2026-11-25T17:00:00Z',
+    text:'Rechnung\n25. November 2026\nBeispiel KI\nBeispiel Subscription\nBeispiel Pro - Monthly (Monatlich)\nVerlängerung am 25. Dezember 2026\n22,00 €\nZwischensumme\n18,49 €\nVisa •••• 0000 (Apple Pay)\n22,00 €'}))
+  assert.equal(charge?.cents,2200)
+  assert.equal(charge?.title,'Beispiel Pro')
+  assert.equal(charge?.cycle,'monthly')
+  assert.equal(charge?.renewal,'2026-12-25')
+  const plus=readRecurringCharge(receipt({from:'Apple <no_reply@email.apple.com>',subject:'Deine Rechnung von Apple',
+    text:'Rechnung\n18. November 2026\nBeispiel Chat\nBeispiel Chat Plan\nBeispiel Plus (Monatlich)\nVerlängerung am 18. Dezember 2026\n23,99 €\nVisa •••• 0000 (Apple Pay)\n23,99 €'}))
+  assert.equal(plus?.cents,2399)
+})

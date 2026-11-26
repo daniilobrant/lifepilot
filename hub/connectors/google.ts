@@ -643,7 +643,7 @@ export class GoogleConnector {
     const account=createHash('sha256').update(address).digest('hex')
     if(expected&&expected!==account) throw new Problem(409,'Bestellungen sind einem anderen Gmail-Konto zugeordnet.')
     const query='after:'+afterEpoch+' before:'+untilEpoch+' -in:sent -in:drafts '+
-      '{subject:Bestellbestätigung subject:Bestellung subject:Rechnung subject:Einkauf subject:Sendung subject:Paket subject:Retoure subject:Rücksendung subject:Rückerstattung subject:order subject:receipt subject:refund}'
+      '{subject:Bestellbestätigung subject:Bestellung subject:Bestellt subject:Versendet subject:Zugestellt subject:Rechnung subject:Einkauf subject:Sendung subject:Paket subject:Retoure subject:Rücksendung subject:Rückerstattung subject:order subject:receipt subject:refund}'
     const ids=new Set<string>()
     let next=''
     for(let page=0;page<4;page++){

@@ -1,0 +1,568 @@
+{
+  "day": "2026-11-25",
+  "directory": {
+    "hinweis": "Fiktives Testverzeichnis (Mittwoch, 25.11.2026).",
+    "heute": "2026-11-25",
+    "termine": [
+      "KI & Data Science Vorlesung · Do 2026-11-26 09:45–13:00, Do 2026-12-03 09:45–13:00 [aaaaaaaa-0000-4000-8000-000000000001]",
+      "B2B Marketing and Sales Vorlesung · Do 2026-11-26 12:15–15:30, Do 2026-12-03 12:15–15:30 [aaaaaaaa-0000-4000-8000-000000000002]",
+      "Werkstudent · Arbeit · Fr 2026-11-27 08:00–16:00, Mo 2026-11-30 08:00–16:00 [aaaaaaaa-0000-4000-8000-000000000003]",
+      "Zahnarzt Dr. Beispiel · Mi 2026-12-09 10:00–10:45 [aaaaaaaa-0000-4000-8000-000000000004]"
+    ],
+    "aufgaben": [
+      "Steuererklärung abgeben · Frist 2026-12-15 [bbbbbbbb-0000-4000-8000-000000000001]"
+    ],
+    "projekte": [
+      "Bachelorarbeit · Ziel 2027-02-28 · nächster Schritt: Literatur recherchieren und theoretischen Rahmen aufbauen (2026-12-28) · 11 offen [cccccccc-0000-4000-8000-000000000001]"
+    ],
+    "abos": [
+      "Spotify Premium · monatlich [dddddddd-0000-4000-8000-000000000001]",
+      "iCloud+ 2 TB · monatlich [dddddddd-0000-4000-8000-000000000002]"
+    ],
+    "fixkosten": [
+      "Miete · monatlich [dddddddd-0000-4000-8000-000000000003]"
+    ],
+    "bestellungen": [
+      "Weekday · Bestellung 7915991 · review [eeeeeeee-0000-4000-8000-000000000001]"
+    ],
+    "bewerbungen": [
+      "Beispiel GmbH · Werkstudent Data Analytics · applied [ffffffff-0000-4000-8000-000000000001]"
+    ],
+    "reisen": [
+      "Teneriffa · 2026-12-10 bis 2026-12-17 [99999999-0000-4000-8000-000000000001]"
+    ],
+    "vorrat": {
+      "kategorien": "dairy 3, produce 6, pantry 9",
+      "knapp": [
+        "Milch",
+        "Eier"
+      ],
+      "einkaufsliste": [
+        "Brot"
+      ]
+    },
+    "kleiderschrank": "top 11, outer 2, shoes 4, bottom 4",
+    "treffer": []
+  },
+  "cases": [
+    {
+      "id": "aufgabe-frist",
+      "input": "Ich muss bis Freitag die Hausarbeit in Statistik abgeben",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-27"
+        ]
+      }
+    },
+    {
+      "id": "aufgabe-vorlesung",
+      "input": "Morgen in meiner Kai und Data Science Vorlesung muss ich mein Projekt vorstellen",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-26"
+        ],
+        "link": "aaaaaaaa-0000-4000-8000-000000000001"
+      }
+    },
+    {
+      "id": "aufgabe-diktat",
+      "input": "morgen in der B2Bar. Marketing und Sales Vorlesung muss ich eine Präsentation halten baue das als Abgabe ein",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-26"
+        ],
+        "titleIncludes": "B2B"
+      }
+    },
+    {
+      "id": "termin-voll",
+      "input": "Trag am Freitag um 18 Uhr Kino mit Lena ein, zwei Stunden",
+      "expect": {
+        "units": [
+          "termin"
+        ],
+        "dates": [
+          "2026-11-27"
+        ]
+      }
+    },
+    {
+      "id": "termin-unvollstaendig",
+      "input": "Ich habe nächste Woche einen Friseurtermin",
+      "expect": {
+        "question": true
+      }
+    },
+    {
+      "id": "serie",
+      "input": "Jeden Dienstag und Donnerstag von 18 bis 20 Uhr Volleyballtraining bis Ende Februar",
+      "expect": {
+        "units": [
+          "calendar_series"
+        ]
+      }
+    },
+    {
+      "id": "freie-zeit",
+      "input": "Wann habe ich diese Woche zwei Stunden Zeit zum Lernen?",
+      "expect": {
+        "units": [
+          "smart_planning"
+        ]
+      }
+    },
+    {
+      "id": "fristen-frage",
+      "input": "Welche Fristen stehen als Nächstes an?",
+      "expect": {
+        "anyOf": [
+          [
+            "deadline_guardian"
+          ],
+          [
+            "antwort"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "projekt-schritt",
+      "input": "Füg der Bachelorarbeit den Schritt Interviewleitfaden erstellen bis 10. Januar hinzu",
+      "expect": {
+        "units": [
+          "projects"
+        ]
+      }
+    },
+    {
+      "id": "projekt-frage",
+      "input": "Was steht in der Bachelorarbeit als Nächstes an?",
+      "expect": {
+        "anyOf": [
+          [
+            "antwort"
+          ],
+          [
+            "projects"
+          ]
+        ],
+        "answerIncludes": "Literatur"
+      }
+    },
+    {
+      "id": "projekt-neu",
+      "input": "Leg ein Projekt Umzug nach Stuttgart an mit Wohnung suchen, Kisten packen und Ummelden",
+      "expect": {
+        "units": [
+          "projects"
+        ]
+      }
+    },
+    {
+      "id": "einkauf",
+      "input": "Setz Milch, Eier und 500 g Hackfleisch auf die Einkaufsliste",
+      "expect": {
+        "units": [
+          "grocery"
+        ],
+        "groceryIntent": "shop_add"
+      }
+    },
+    {
+      "id": "einkauf-diktat",
+      "input": "setz bitte milsch und tomatn auf die liste",
+      "expect": {
+        "units": [
+          "grocery"
+        ],
+        "groceryIntent": "shop_add"
+      }
+    },
+    {
+      "id": "vorrat-frage",
+      "input": "Was ist in meinem Vorrat knapp?",
+      "expect": {
+        "units": [
+          "grocery"
+        ]
+      }
+    },
+    {
+      "id": "vorrat-leer",
+      "input": "Die Milch ist leer",
+      "expect": {
+        "units": [
+          "grocery"
+        ]
+      }
+    },
+    {
+      "id": "rezept",
+      "input": "Gib mir ein Rezept für Spaghetti Carbonara für zwei Personen",
+      "expect": {
+        "units": [
+          "grocery"
+        ],
+        "groceryIntent": "recipe"
+      }
+    },
+    {
+      "id": "kochideen",
+      "input": "Was kann ich heute mit meinem Vorrat kochen?",
+      "expect": {
+        "units": [
+          "grocery"
+        ],
+        "groceryIntent": "ideas"
+      }
+    },
+    {
+      "id": "finanz-ausgabe",
+      "input": "Ich habe gestern 12,50 Euro fürs Kino ausgegeben",
+      "expect": {
+        "units": [
+          "finance"
+        ]
+      }
+    },
+    {
+      "id": "finanz-abo",
+      "input": "Trag mein Netflix-Abo mit 13,99 € monatlich ein",
+      "expect": {
+        "units": [
+          "finance"
+        ]
+      }
+    },
+    {
+      "id": "finanz-frage",
+      "input": "Welche Abos laufen gerade bei mir?",
+      "expect": {
+        "anyOf": [
+          [
+            "finance"
+          ],
+          [
+            "antwort"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "bestellung-retoure",
+      "input": "Die Sachen von Weekday schicke ich zurück",
+      "expect": {
+        "anyOf": [
+          [
+            "orders"
+          ],
+          [
+            "frage"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "bestellung-pruefen",
+      "input": "Prüf meine Bestellungen aus dem November",
+      "expect": {
+        "units": [
+          "orders"
+        ]
+      }
+    },
+    {
+      "id": "bewerbung-neu",
+      "input": "Ich habe mich bei Muster AG als Werkstudent im Controlling beworben",
+      "expect": {
+        "units": [
+          "applications"
+        ]
+      }
+    },
+    {
+      "id": "bewerbung-gespraech",
+      "input": "Beispiel GmbH hat mich zum Vorstellungsgespräch am 3.12. um 10 Uhr eingeladen",
+      "expect": {
+        "units": [
+          "applications"
+        ]
+      }
+    },
+    {
+      "id": "bewerbung-absage",
+      "input": "Ich habe eine Absage von Beispiel GmbH bekommen",
+      "expect": {
+        "units": [
+          "applications"
+        ]
+      }
+    },
+    {
+      "id": "outfit",
+      "input": "Was soll ich am Samstagabend zum Date anziehen?",
+      "expect": {
+        "units": [
+          "outfit"
+        ]
+      }
+    },
+    {
+      "id": "parfuem",
+      "input": "Nimm das Parfüm Bleu de Chanel in meine Duftsammlung auf",
+      "expect": {
+        "units": [
+          "outfit"
+        ]
+      }
+    },
+    {
+      "id": "reise-neu",
+      "input": "Plan mir vier Tage Lissabon im März, entspanntes Tempo",
+      "expect": {
+        "units": [
+          "travel"
+        ]
+      }
+    },
+    {
+      "id": "reise-frage",
+      "input": "Wann fliege ich nach Teneriffa?",
+      "expect": {
+        "anyOf": [
+          [
+            "antwort"
+          ],
+          [
+            "travel"
+          ]
+        ],
+        "answerIncludes": "10"
+      }
+    },
+    {
+      "id": "mails",
+      "input": "Schau mal in meine Mails, ob was Wichtiges da ist",
+      "expect": {
+        "units": [
+          "inbox_refresh"
+        ]
+      }
+    },
+    {
+      "id": "aufgabe-aendern",
+      "input": "Verschieb die Steuererklärung auf den 20. Dezember",
+      "expect": {
+        "units": [
+          "aktion"
+        ]
+      },
+      "context": [
+        {
+          "id": "bbbbbbbb-0000-4000-8000-000000000001",
+          "title": "Steuererklärung abgeben",
+          "detail": "",
+          "kind": "task",
+          "due_date": "2026-12-15",
+          "priority": "normal",
+          "revision": 1,
+          "related_id": null,
+          "schedule": []
+        }
+      ]
+    },
+    {
+      "id": "termin-frage",
+      "input": "Wann habe ich den Zahnarzttermin?",
+      "expect": {
+        "units": [
+          "antwort"
+        ],
+        "answerIncludes": "9"
+      }
+    },
+    {
+      "id": "kombi-termin-einkauf",
+      "input": "Trag am Freitag um 18 Uhr Kino mit Lena ein, zwei Stunden, außerdem setz Popcorn auf die Einkaufsliste",
+      "expect": {
+        "units": [
+          "termin",
+          "grocery"
+        ]
+      }
+    },
+    {
+      "id": "kombi-drei",
+      "input": "Morgen muss ich in B2B Marketing präsentieren, setz Milch auf die Liste und trag 8 Euro Mittagessen von heute ein",
+      "expect": {
+        "units": [
+          "aufgabe",
+          "grocery",
+          "finance"
+        ]
+      }
+    },
+    {
+      "id": "kombi-bewerbung-outfit",
+      "input": "Ich hab ein Vorstellungsgespräch bei Beispiel GmbH am 3.12. um 10 Uhr, ach ja und schlag mir ein Outfit dafür vor",
+      "expect": {
+        "units": [
+          "applications",
+          "outfit"
+        ]
+      }
+    },
+    {
+      "id": "kombi-reise-outfit",
+      "input": "Was soll ich für Teneriffa einpacken und anziehen?",
+      "expect": {
+        "anyOf": [
+          [
+            "outfit"
+          ],
+          [
+            "travel"
+          ],
+          [
+            "travel",
+            "outfit"
+          ]
+        ]
+      }
+    },
+    {
+      "id": "kombi-rezept-einkauf",
+      "input": "Ich koche am Samstag Lasagne für vier, setz die fehlenden Zutaten auf die Liste",
+      "expect": {
+        "units": [
+          "grocery"
+        ]
+      }
+    },
+    {
+      "id": "kombi-projekt-zeit",
+      "input": "Füg der Bachelorarbeit den Schritt Gliederung bis 5. Dezember hinzu und such mir diese Woche zwei Stunden dafür",
+      "expect": {
+        "units": [
+          "projects",
+          "smart_planning"
+        ]
+      }
+    },
+    {
+      "id": "kombi-finanz-aufgabe",
+      "input": "Ich hab 45 Euro für Bücher ausgegeben und muss bis Montag die Rechnung bei der Uni einreichen",
+      "expect": {
+        "units": [
+          "finance",
+          "aufgabe"
+        ]
+      }
+    },
+    {
+      "id": "kombi-serie-aufgabe",
+      "input": "Jeden Montag 7 Uhr Gym und erinnere mich am Sonntag an die Wäsche",
+      "expect": {
+        "units": [
+          "calendar_series",
+          "aufgabe"
+        ]
+      }
+    },
+    {
+      "id": "lang-diktat",
+      "input": "ok also folgendes ich hab morgen um zehn Uhr fünfundvierzig die Kai Vorlesung da muss ich was vorstellen und dann am Freitag muss ich arbeiten und danach will ich noch einkaufen also Brot und Käse und außerdem hab ich heute fünf Euro für Kaffee ausgegeben",
+      "expect": {
+        "units": [
+          "aufgabe",
+          "grocery",
+          "finance"
+        ]
+      }
+    },
+    {
+      "id": "unklar",
+      "input": "Mach das mal fertig",
+      "expect": {
+        "question": true
+      }
+    },
+    {
+      "id": "smalltalk",
+      "input": "Danke dir!",
+      "expect": {
+        "units": [
+          "antwort"
+        ]
+      }
+    },
+    {
+      "id": "erinnerung",
+      "input": "Erinner mich morgen um 8 an die Wäsche",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-26"
+        ]
+      }
+    },
+    {
+      "id": "frist-monat",
+      "input": "Bis zum 15. Januar muss ich die Krankenkasse anrufen",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2027-01-15"
+        ]
+      }
+    },
+    {
+      "id": "wochentag",
+      "input": "Am Montag muss ich die Miete überweisen",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-30"
+        ]
+      }
+    },
+    {
+      "id": "englisch-kurs",
+      "input": "Morgen in B2B Marketing and Sales muss ich die Buying-Center-Aufgabe abgeben",
+      "expect": {
+        "units": [
+          "aufgabe"
+        ],
+        "dates": [
+          "2026-11-26"
+        ],
+        "link": "aaaaaaaa-0000-4000-8000-000000000002"
+      }
+    },
+    {
+      "id": "kalender-frage",
+      "input": "Was steht morgen an?",
+      "expect": {
+        "units": [
+          "antwort"
+        ],
+        "answerIncludes": "Vorlesung"
+      }
+    }
+  ]
+}

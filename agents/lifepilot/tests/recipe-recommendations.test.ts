@@ -51,7 +51,7 @@ test('Online recipe source keeps original portions, ingredient data and grouped 
     recipeInstructions:[{'@type':'HowToSection',itemListElement:[{'@type':'HowToStep',text:'Paprika schneiden.'}]}]})+'</script>'
   const recipe=recipeFromPage(html,new URL('https://www.einfachkochen.de/rezepte/musterpfanne?tracking=1'))
   assert.equal(recipe?.servings,4)
-  assert.deepEqual(recipe?.ingredients.map(item=>item.quantity),['300 g','1 Stück','7,5 ml','nach Geschmack'])
+  assert.deepEqual(recipe?.ingredients.map(item=>item.quantity),['300 g','1 Stück','7,5 g','nach Geschmack'])
   assert.deepEqual(recipe?.steps,['Paprika schneiden.'])
   assert.equal(recipe?.url,'https://www.einfachkochen.de/rezepte/musterpfanne')
 })

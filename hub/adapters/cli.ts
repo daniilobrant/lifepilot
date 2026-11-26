@@ -1,3 +1,4 @@
+import { adapterRequest, adapterToken } from '../runtime/local-adapter.ts'
 import { spawn } from 'node:child_process'
 import { createServer } from 'node:net'
 import { chmodSync, constants, copyFileSync, existsSync, mkdirSync, openSync, closeSync, fstatSync, readFileSync, renameSync, rmSync } from 'node:fs'
@@ -77,17 +78,16 @@ const help = `LifePilot [--acceptance | --nightbot] <Befehl>
 
 async function call<T = unknown>(path: string, payload?: object, timeout = 7000): Promise<T> {
   let secret: string
-  try { secret = readFileSync(secretPath, 'utf8') } catch { throw new Error('LifePilot ist nicht gestartet. Nutze ./bin/lifepilot start.') }
+  try { secret = adapterToken(secretPath) } catch { throw new Error('LifePilot ist nicht gestartet. Nutze ./bin/lifepilot start.') }
   const headers = { Authorization: `Bearer ${secret}`, ...(payload && { 'Content-Type': 'application/json' }) }
-  let response: Response
+  let response: Awaited<ReturnType<typeof adapterRequest>>
   try {
-    response = await fetch(origin + '/api' + path, { headers, method: payload ? 'POST' : 'GET',
-      body: payload ? JSON.stringify(payload) : undefined, signal: AbortSignal.timeout(timeout), redirect: 'error' })
+    response = await adapterRequest(path, headers, payload ? JSON.stringify(payload) : undefined, timeout)
   } catch {
     throw new Error('LifePilot ist nicht erreichbar. Prüfe den Dienst mit ./bin/lifepilot status.')
   }
-  const result = await response.json()
-  if (!response.ok) throw new Error(result.error ?? `HTTP ${response.status}`)
+  const result = JSON.parse(response.text)
+  if (response.status < 200 || response.status >= 300) throw new Error(result.error ?? `HTTP ${response.status}`)
   return result
 }
 
@@ -331,13 +331,11 @@ async function dispatch() {
         const lookQuery = new URLSearchParams(args[0]==='-'?{}:{look:args[0]??''})
         if (look && args[3]) lookQuery.set('name',args[3])
         const path = audio ? '/chat/dictation' : command==='fragrance-label' ? '/outfits/fragrance-label' : scan ? '/grocery/scan'+(args[2]==='--receipt'?'?kind=receipt':args[2]==='--item'?'?kind=item':'') : look ? '/outfits/look-photo?'+lookQuery : attach ? '/outfits/photo?item=' + encodeURIComponent(args[0] ?? '') : outfit ? '/outfits/analyze-photo' : '/applications/image'
-        const response = await fetch(origin + '/api' + path, {
-          method: 'POST', headers: { Authorization: 'Bearer ' + readFileSync(secretPath, 'utf8'),
+        const response = await adapterRequest(path, { Authorization: 'Bearer ' + adapterToken(secretPath),
             'Content-Type': audio ? 'audio/mp4' : 'application/octet-stream', 'X-LifePilot-Confirm': audio ? 'dictation' : codexImage ? 'codex-image' : 'image' },
-          body: readFileSync(descriptor), signal: AbortSignal.timeout(audio?85000:codexImage?105000:scan?62000:50000), redirect: 'error',
-        })
-        const result = await response.json()
-        if (!response.ok) throw Error(result.error)
+          readFileSync(descriptor), audio?85000:codexImage?105000:scan?62000:50000)
+        const result = JSON.parse(response.text)
+        if (response.status < 200 || response.status >= 300) throw Error(result.error)
         return result
       } finally { closeSync(descriptor) }
     }

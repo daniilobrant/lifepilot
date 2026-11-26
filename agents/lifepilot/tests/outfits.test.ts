@@ -75,7 +75,7 @@ test('Outfit wardrobe, photo, fit profile and archived look survive a SQLite res
     saveStyle(store,{height:'181 cm',preferences:'Layering'})
     const studio = new OutfitStudio()
     const {look,proposal} = studio.generate(store,{...query,temperature:5},'Büro')
-    assert.match(look.rationale,/181 cm/u)
+    assert.match(look.tips.join(' '),/181 cm/u)
     assert.match(look.tips.join(' '),/Layering/u)
     studio.save(store,proposal)
     store.db.close()
@@ -217,7 +217,7 @@ test('Outfit preferences default the style and rank explicit sizes and cuts, wit
     assert.deepEqual(look.itemIds,[fitting.id])
     assert.match(look.tips.join(' '),/höheren Bund/u)
     assert.match(look.tips.join(' '),/bevorzugter Schnitt/u)
-    assert.match(look.rationale,/Oberteil M/u)
+    assert.match(look.tips.join(' '),/Oberteil M/u)
     assert.notEqual(fitting.id,large.id)
     assert.equal(studio.generate(store,query).look.style,'Schlicht')
   } finally {store.db.close()}
@@ -327,4 +327,84 @@ test('Calendar context classifies the selected event and uses Berlin local time'
   assert.equal(work.daypart,'Abends')
   assert.equal(work.time,'19:00')
   assert.match(outfitCalendarContext('Handballtraining').occasion,/Sport & Bewegung/u)
+})
+
+test('Outfit slots separate T-shirts and longsleeves from knitwear, enforce max one per slot, and adapt jackets to weather',async()=>{
+  const {outfitSlot}=await import('../../../hub/runtime/outfit-types.ts')
+  const store=new Store(':memory:')
+  try {
+    const henleyBlue=saveWardrobe(store,{name:'Topman Slim Fit Langarm-Ripp-Henley-T-Shirt in Marineblau',category:'top',garmentType:'T-Shirt'}).id
+    const henleyBrown=saveWardrobe(store,{name:'Topman Slim Fit Langarm-Ripp-Henley-T-Shirt in Braun',category:'top',garmentType:'T-Shirt'}).id
+    const pullover=saveWardrobe(store,{name:'100 % Merinowolle Pullover (Polokragen)',category:'top',garmentType:'Pullover & Strick',material:'100 % Merinowolle'}).id
+    const jeans=saveWardrobe(store,{name:'Solar Mid Waist Loose Wide Unisex Jeans',category:'bottom',garmentType:'Jeans'}).id
+    const lightJacket=saveWardrobe(store,{name:'Bershka karierte Jacke mit Reißverschluss in Schwarz',category:'outer',garmentType:'Jacke'}).id
+    const pufferJacket=saveWardrobe(store,{name:'ASOS DESIGN Steppjacke mit Rippkragen in Schwarz',category:'outer',garmentType:'Jacke'}).id
+    const items=outfitOverview(store).wardrobe
+    assert.equal(outfitSlot(items.find(i=>i.id===henleyBlue)!),'base')
+    assert.equal(outfitSlot(items.find(i=>i.id===pullover)!),'knit')
+
+    const studio=new OutfitStudio()
+    // Even if two items from the same slot are passed, at most 1 per slot is kept, and a longsleeve Henley does not get a Pullover layered on top
+    const coldLook=studio.generate(store,{...query,mode:'anchor',required:[henleyBlue,henleyBrown],temperature:1}).look
+    assert.ok(!coldLook.itemIds.includes(henleyBlue) || !coldLook.itemIds.includes(henleyBrown))
+    assert.ok(!coldLook.itemIds.includes(pullover))
+    assert.ok(coldLook.itemIds.includes(pufferJacket))
+
+    // Mild transition weather (14 °C) prefers the transition jacket over the winter puffer jacket
+    const mildLook=studio.generate(store,{...query,temperature:14}).look
+    assert.ok(mildLook.itemIds.includes(lightJacket))
+
+    // Fixed slot ordering: top (base/knit) -> bottom -> outer
+    const slots=mildLook.itemIds.map(id=>outfitSlot(items.find(i=>i.id===id)!))
+    assert.equal(slots[0]==='base' || slots[0]==='knit',true)
+    assert.equal(slots[1],'bottom')
+    assert.equal(slots[2],'outer')
+  } finally {store.db.close()}
+})
+
+test('Cold looks always layer a shirt under knitwear and skip clashing colours when a calm option exists',async()=>{
+  const {outfitSlot,itemOccasion}=await import('../../../hub/runtime/outfit-types.ts')
+  const {paletteScore,isPatterned,colorRelation}=await import('../../../hub/runtime/outfit-palette.ts')
+  const store=new Store(':memory:')
+  try {
+    const knit=saveWardrobe(store,{name:'Baumwolle Pullover (soft, Rundhals)',category:'top',garmentType:'Pullover & Strick',color:'Blau'}).id
+    const henley=saveWardrobe(store,{name:'Slim Fit Langarm-Henley-T-Shirt',category:'top',garmentType:'T-Shirt',color:'Marineblau'}).id
+    saveWardrobe(store,{name:'Wide Jeans',category:'bottom',garmentType:'Jeans',color:'Grau'})
+    const red=saveWardrobe(store,{name:'Jacke (kurz, gefüttert)',category:'outer',garmentType:'Jacke',color:'Weinrot'}).id
+    const black=saveWardrobe(store,{name:'Steppjacke mit Rippkragen',category:'outer',garmentType:'Jacke',color:'Schwarz'}).id
+    saveWardrobe(store,{name:'Sneakers Retro',category:'shoes',garmentType:'Sneaker',color:'Grau',tags:'Streetwear'})
+    const studio=new OutfitStudio()
+    for (const variant of [0,1,2,3,4,5]) {
+      const look=studio.generate(store,{...query,style:'Auffällig',mode:'anchor',required:[knit],temperature:2,variant}).look
+      assert.ok(look.itemIds.includes(henley),'Langarmshirt unter dem Pullover')
+      assert.ok(look.itemIds.includes(black)&&!look.itemIds.includes(red),'keine Weinrot-Jacke zum blauen Pullover')
+      assert.doesNotMatch(look.title,/Auffällig|Rund um/u)
+      const slots=look.itemIds.map(id=>outfitSlot(outfitOverview(store).wardrobe.find(item=>item.id===id)!))
+      assert.deepEqual(slots.slice(0,2),['base','knit'])
+    }
+    assert.equal(colorRelation('Marineblau','Weinrot'),'neutral')
+    assert.ok(isPatterned('Schwarz','Bershka karierte Jacke'))
+    assert.ok(paletteScore({color:'Weinrot'},[{color:'Blau'}],'Schlicht')<paletteScore({color:'Schwarz'},[{color:'Blau'}],'Schlicht'))
+    assert.equal(itemOccasion({name:'Steppjacke',category:'outer',garmentType:'Jacke',material:'',tags:''}),'Kalte Tage · Alltag')
+    assert.equal(itemOccasion({name:'Loafer ADRIAN',category:'shoes',garmentType:'Loafer',material:'',tags:''}),'Büro · Dinner')
+    const titled=studio.generate(store,{...query,mode:'occasion',occasion:'Abendessen mit Freunden',variant:0}).look
+    assert.equal(titled.title,'Dein Look für Abendessen mit Freunden')
+  } finally {store.db.close()}
+})
+
+
+test('Uniqlo links use the photo of the linked or chosen colour instead of the default colour',async()=>{
+  const {uniqloVariants,completeProductMetadata}=await import('../../../hub/connectors/outfit-import.ts')
+  const html='<meta property="og:image" content="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/123456/item/eugoods_14_123456_3x4.jpg">'+
+    '<script>{"colors":[{"displayCode":"14","name":"ROT"},{"displayCode":"19","name":"WEINROT"},{"displayCode":"38","name":"DUNKELBRAUN"}],'+
+    '"sizes":[{"displayCode":"004","name":"M"}]}</script>'+
+    ['14','19','38'].map(code=>`<img src="https://image.uniqlo.com/UQ/ST3/eu/imagesgoods/123456/item/eugoods_${code}_123456_3x4.jpg">`).join('')
+  const linked=new URL('https://www.uniqlo.com/de/de/products/E123456-000/00?colorDisplayCode=19')
+  const variant=uniqloVariants(html,linked)!
+  assert.deepEqual(variant.colors,['Rot','Weinrot','Dunkelbraun'])
+  assert.equal(variant.color,'Weinrot')
+  assert.match(variant.image!,/eugoods_19_123456/u)
+  const chosen=completeProductMetadata(html,linked,'Dunkelbraun')
+  assert.match(chosen.image!,/eugoods_38_123456/u)
+  assert.equal(chosen.draft.color,'Dunkelbraun')
 })

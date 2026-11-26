@@ -1,6 +1,180 @@
 # Versionsverlauf
 
-Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import. [Planung und offene Vorhaben](docs/ROADMAP.md)
+Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
+
+## v1.0.42 · 26. November 2026
+
+- Entscheidungstabelle: einmalige Erinnerung ohne Uhrzeit wird eine Aufgabe ohne Rückfrage.
+
+## v1.0.41 · 26. November 2026
+
+- Claude Code CLI vollständig angebunden und live geprüft; zu lange Zusammenfassungen werden gekürzt, Hinweise außerhalb des Kontexts verworfen statt die Antwort abzulehnen.
+- Testsatz mit 48 Beispielsätzen (`npm run eval:chat`) für einzelne Skills, Kombinationen, Diktatfehler und Rückfragen; Vorzerlegung erkennt Liste, Einreichen, Einpacken und freie Zeit.
+- README: Anleitung zur KI-Anbindung mit Codex oder Claude Code.
+- Repository aufgeräumt: GitHub-Workflow, interne Berichte, Roadmap und Prüfskripte entfernt.
+
+## v1.0.40 · 26. November 2026
+
+- Claude-Adapter: Anmeldung im Schlüsselbund wird gefunden; das interne Antwortformat-Werkzeug der CLI ist erlaubt, alle anderen bleiben gesperrt.
+
+## v1.0.39 · 26. November 2026
+
+- Modellanbieter umschaltbar: Codex (Standard) oder Claude über die lokale Claude Code CLI, ohne Werkzeuge, mit gleicher Schemaprüfung; Auswahl in Einstellungen › Übersicht.
+
+## v1.0.38 · 25. November 2026
+
+- Pilot-Chat: Entscheidungstabelle (Signal → Skill) mit Ketten-Regeln; Outfit-Designer, Bewerbungsmanager und Kalenderplanung werden geladen, Mail-Erkennungsregeln nicht mehr.
+- Neue Chat-Handlungen mit Freigabe: Bestellteil behalten, zurücksenden, Retoure abgegeben, angekommen; Bewerbung anlegen oder Status ändern, Vorstellungsgespräch wird als Termin eingetragen.
+- Verschachtelte Speichervorgänge nutzen Savepoints.
+
+## v1.0.37 · 25. November 2026
+
+- Pilot-Chat: lokale Vorzerlegung langer und diktierter Nachrichten (Abschnitte nach Signalwörtern, Themen, aufgelöste Daten wie „morgen“ oder „am Freitag“); Regeln für Bezüge wie „dafür“ und Anliegen ohne eigenen Inhalt.
+
+## v1.0.36 · 25. November 2026
+
+- Pilot-Chat: kompaktes Verzeichnis aller Bereiche (Termine, Aufgaben, Projekte, Abos, Bestellungen, Bewerbungen, Reisen, Vorrat, Kleiderschrank) mit fehlertoleranter Trefferliste für Diktat- und Tippfehler.
+- Neue Aufgaben können per link einem Termin oder Projekt zugeordnet werden; Erinnerung zur Terminzeit.
+- Arbeitsanweisung für lange und diktierte Nachrichten: berichtigen, zerlegen, verknüpfen.
+
+## v1.0.35 · 25. November 2026
+
+- Aufgabeneditor: Aufgaben und Fristen lassen sich einem Kalendertermin zuordnen; Speichern, Erledigt und Archivieren stehen ganz unten; Verlauf entfernt.
+
+## v1.0.34 · 25. November 2026
+
+- Aufgaben: Abgaben, die eine Vorlesung oder einen Termin am selben Tag nennen, werden damit verknüpft und zur Startzeit erinnert; der Chat übernimmt den genauen Kursnamen.
+
+## v1.0.33 · 25. November 2026
+
+- Meine Looks: Look-Fotos werden ohne erneute Rückfrage per Codex analysiert (auf Wunsch, in SICHERHEIT.md vermerkt).
+
+## v1.0.32 · 25. November 2026
+
+- Start: „Wartet auf dein OK“ zeigt Bestellungen mit offener Entscheidung (Behalten/Zurücksenden, Retoure abgegeben, fällige Lieferung bestätigen).
+- Skills: E-Mail-Manager führt in den Posteingang.
+
+## v1.0.31 · 25. November 2026
+
+- Finanzen: App-Store-Abos (Claude Pro, ChatGPT Plus) sowie Belege von Stripe, Uber, Uber Eats, Bolt, Airbnb, Läden und Post werden erkannt und vollständig gelesen; Ankündigungen und fällige Beiträge bleiben außen vor.
+- Termin- und Aufgabeneditor: aufgeräumtes Raster, Aktionen unten, Zeitblöcke als Liste; „In Mac-Kalender eintragen“ entfernt.
+
+## v1.0.30 · 25. November 2026
+
+- Projekte: Schritte nach Frist sortiert (früheste oben), Frist rechtsbündig ohne „Checkpoint“, Stift zum Bearbeiten an jedem Schritt und am Projekt; im Editor nur noch ein Fristfeld.
+
+## v1.0.29 · 25. November 2026
+
+- Vorrat & Einkauf: nur noch die Einheiten Stück, g, kg, ml und l; EL, TL, Dose, Packung, Bund, Zehe und Scheibe werden in Rezepten und Vorrat umgerechnet.
+- Artikel bearbeiten: kompakte Zeile ohne Notizfeld.
+- Globale Suchleiste oben entfernt.
+
+## v1.0.28 · 25. November 2026
+
+- Kleiderschrank: Boxershorts mit „Shorts“ im Namen gelten als Unterwäsche; das Aufräumen erkennt Unterwäsche am Produktnamen.
+
+## v1.0.27 · 25. November 2026
+
+- Kleiderschrank: Unterwäsche und Socken aus Bestellungen landen nicht mehr im Kleiderschrank; die Kategorien sind entfernt, vorhandene Einträge werden aufgeräumt.
+- Meine Looks: getrennte Bereiche „Vorgeschlagene Looks“ und „Eigene Looks“, Fotos überdecken den Text nicht mehr.
+
+## v1.0.26 · 25. November 2026
+
+- Sicherheitsprüfung: Paketrabatt ohne mehrdeutige Schreibweise, Semgrep prüft die Verkaufsregeln wieder vollständig.
+
+## v1.0.25 · 25. November 2026
+
+- Sicherheitsprüfung: Markenmuster ohne Apostroph, damit Semgrep die Verkaufsregeln vollständig prüfen kann.
+
+## v1.0.24 · 25. November 2026
+
+- Vorrat & Einkauf: Menge als Zahl mit Einheit (Stück, g, kg, ml, l, Packung, Dose, Flasche, Bund, Zehen, EL, TL), die Einheit passt sich dem Produkt an.
+- Neue Kategorien Frische Kräuter, Konserven & Hülsenfrüchte, Backen & Süßen; Schinken, Salami und Wurst zählen zu Fleisch & Fisch. Rund 150 weitere Alltagsartikel in Suche und Schnellerfassung.
+- Bestehende Vorräte und Einkaufsliste erhalten passende Kategorien und realistische Mengen.
+- Chat-Rückfragen bieten Antwortknöpfe: zwei Möglichkeiten plus „Keins von beiden“ oder Ja/Nein.
+- Freunde & Familie erfasst auch ältere PayPal-Zahlungen an Personen.
+
+## v1.0.23 · 25. November 2026
+
+- Finanzen: Zahlungen von und an Personen (PayPal „Freunde und Familie“) bekommen die Kategorie Freunde & Familie. Bestehende Einträge werden beim nächsten Mail-Abgleich umsortiert.
+- Bewerbungen: Kein Zurück-Knopf und kein „Gmail prüfen“ mehr; „Bewerbung hinzufügen“ steht rechts neben der Suche. Aufgaben & Fristen: Hinzufügen nur noch in den Spalten.
+- Meine Looks: Kacheln zeigen alle Teile als kleine Bilder, eigene Fotos mit Bildleiste, sauberer Innenabstand.
+- Verkaufen: Preisklasse und Anzahl, „Verkaufspreis ermitteln“ nach festen Regeln, ausformulierter Anzeigentext. Verkaufte Teile lassen sich nur noch endgültig entfernen, das Foto wird im Kleiderschrank geändert.
+
+## v1.0.22 · 25. November 2026
+
+- Sicherheitsprüfung: Uniqlo-Farbbilder und Kleidungsvorlagen der Packliste kommen ohne aus Daten gebaute reguläre Ausdrücke aus. Die Semgrep-Prüfung in der Pull-Request-Pipeline läuft wieder durch.
+
+## v1.0.21 · 25. November 2026
+
+- Urlaubsplaner: Währungsrechner zwischen Euro und Landeswährung neben der Unterkunft, mit Tauschknopf und manuellem Aktualisieren (EZB-Referenzkurs, sonst Tageskurs).
+- Tipps: Sicherheit nennt die Notrufnummer und Gegenden, die man meiden sollte; Gesundheit die Rettungsnummer mit Vorgehen und ob Leitungswasser trinkbar ist.
+- Packliste: Kategorien sind aufgeklappt, Mengen mit Plus und Minus, keine Mengen bei Dokumenten oder Technik. Kleidung nach Dauer, Gepäck und Wetter (Hosen, Pullover, Übergangs-, Regen- oder Winterjacke, Schuhe, Badesachen) mit Vorschlägen aus dem Kleiderschrank. Mehrere Düfte aus der eigenen Sammlung.
+- Eigene Punkte und Gegenstände werden über einklappbare, kompakte Formulare ergänzt.
+
+## v1.0.20 · 25. November 2026
+
+- Bestelltracker: Amazon-Bestellungen erkennen alle Artikel, auch bei Preisen mit einer Nachkommastelle und sehr langen Namen. Fehlende Artikel werden bei bestehenden Bestellungen nachgetragen.
+- Technik und Gerätezubehör (etwa Laptophüllen, Ladegeräte) kommen nicht in den Kleiderschrank.
+- Dieselbe Bestellung von verschiedenen Absendern eines Shops (etwa mail2.weekday.com und weekday.com) wird zusammengeführt, doppelt angelegte Kleiderschrankteile werden entfernt.
+- Kleidung bekommt nur Bilder aus der Bestellmail, vom Produktlink oder aus einer Shop-Suche mit passender Farbe. Unsicher geratene Bilder werden entfernt.
+
+## v1.0.19 · 25. November 2026
+
+- Urlaubsplaner: Tipps und Tagesabschnitte (höchstens sechs Tage) entstehen parallel in kleinen Anfragen. Lange Reisen laufen so nicht mehr ins Zeitlimit.
+- Ein unvollständiger Teil wird einmal neu angefragt, überzählige Tipps gekürzt und überlange Texte abgeschnitten statt den Guide zu verwerfen.
+- Die Anweisungen decken beliebige Ziele ab: Großstadt, Region, Land, Insel oder kleiner Ort, mit Jahreszeit, Klima und Alltagssprache des Ziels.
+
+## v1.0.18 · 25. November 2026
+
+- Der Bestelltracker erkennt Amazon-Bestellungen („Bestellt:“, „Versendet:“, „Zugestellt:“) mit Artikeln, Menge, Preis und Produktbild aus der Mail.
+- Jeder Bestellposten bekommt ein Bild, auch stornierte und Artikel, die keine Kleidung sind. Ohne Bild in der Mail sucht LifePilot über Produktname oder -nummer.
+- Behalten oder zurückgeben gilt für alle Artikel. Nur Kleidung kommt in den Kleiderschrank.
+
+## v1.0.17 · 25. November 2026
+
+- Produktlinks von Uniqlo zeigen das Bild der Farbe aus dem Link. Die Farbauswahl im Dialog lädt das passende Farbbild.
+- Gesperrte Shopseiten (etwa Zara, Bershka) suchen das Produktbild über die Bildersuche, nur mit Seite und Bild desselben Shops. Platzhalterbilder werden ignoriert.
+- Ohne Produktbild bietet der Dialog an, ein eigenes Foto anzuhängen. Ein anderes Foto lässt sich jederzeit anhängen.
+- Urlaubsgarderobe: Der Anlass ist ein Auswahlmenü mit typischen Urlaubsanlässen und einem eigenen Anlass.
+- Der Löschdialog und die Kleidungskarten überlappen nicht mehr.
+
+## v1.0.16 · 25. November 2026
+
+- Finanzvorschläge erkennen Zahlungsbestätigungen von Händlern ohne PayPal, etwa „Zahlung erfolgreich“ von Buchungsportalen, Flugbuchungen und zweisprachige Parkbelege. Maßgeblich ist der bezahlte Gesamtbetrag.
+- Meldet PayPal dieselbe Zahlung, entsteht nur ein Vorschlag. Angekündigte Abbuchungen und Beträge ohne Euro bleiben ohne Vorschlag.
+
+## v1.0.15 · 25. November 2026
+
+- Styling-Studio: Die Auswahl der Pflichtteile zeigt je Kategorie eine übersichtliche Liste mit Foto oder Farbpunkt, vollständigem Namen, Farbe und Material. Nichts überlappt oder scrollt mehr seitlich.
+- Unter jedem Pullover liegt ein T-Shirt oder Langarmshirt, bei Kälte bevorzugt ein Langarmshirt.
+- Farben werden als Palette abgestimmt. Marine, Ecru, Camel und Denim gelten als Neutraltöne, gemusterte und mehrfarbige Teile werden erkannt. Unruhige Paare wie Blau und Weinrot fallen heraus, wenn es eine ruhige Alternative gibt.
+- Jedes Teil im Look zeigt seinen Anlass. Die Überschrift ist kurz und nennt keinen Stilnamen mehr, Größenhinweise stehen bei den Styling-Tipps.
+- Düfte beschreiben Charakter, Einsatzzweck, Intensität mit Sprühstößen, beste Tageszeit und Jahreszeiten anhand ihrer Noten. Fehlende Noten bekannter Düfte werden ergänzt, Sakko-Hinweise entfallen.
+
+## v1.0.14 · 25. November 2026
+
+- Finanzvorschläge erkennen Händler-Erstattungen außerhalb von PayPal, etwa eine Gutschriftbestätigung zu einer Bestellung. Maßgeblich ist der genannte Gesamtbetrag, nicht Teilbeträge für Artikel, Steuer oder Versand.
+- Mails mit Gutschrift, Rückerstattung, Rückzahlung oder Quittung im Betreff werden vollständig gelesen. Absender wie payments-messages@ gelten als Transaktionsabsender.
+- Meldet ein Händler dieselbe Erstattung wie PayPal, entsteht nur ein Vorschlag.
+- Beantragte oder angekündigte Erstattungen, Gutscheine, Umbuchungen auf das Bankkonto und Stornierungen ohne Belastung bleiben ohne Vorschlag.
+- Der Skill zur Mail-Tiefenprüfung beschreibt diese Betreffe und Ausschlüsse.
+
+## v1.0.13 · 25. November 2026
+
+- Das gemeinsame Antwortschema erlaubt für optionale Rezeptfelder `null`, weil der Modellanbieter für jedes Feld einen Schlüssel verlangt. Der Adapter entfernt die Nullwerte vor der internen Validierung.
+- Lehnt der Anbieter das Antwortformat ab, zeigt LifePilot eine eindeutige Fehlermeldung.
+- Der Kochassistent erkennt zusätzlich Anfragen wie „aus meinen Zutaten“.
+
+## v1.0.11 · 25. November 2026
+
+Die CLI verwendet einen privaten Unix-Socket und prüft die lokalen Schlüsseldateien. Die HTTP- und Rollenprüfungen laufen auch in der Pull-Request-Pipeline. Die Oberfläche erklärt den lokalen Google-Verbindungsabbau.
+
+## v1.0.10 · 25. November 2026
+
+- Reiseaktionen, Routen und Reiseformulare kompakter angeordnet und eine Adresssuche mit Zielort ergänzt.
+- Gmail-Vorschläge um Stellenangaben, Datum, Link und nächste Schritte erweitert. Der Ort ist optional.
+- Einheitliche Kleiderschrankkacheln und feste Styling-Kategorien mit wetterabhängiger Schichtung und Jackenwahl.
 
 ## v1.0.9 · 24. November 2026
 

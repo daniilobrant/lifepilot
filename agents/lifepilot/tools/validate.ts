@@ -14,13 +14,15 @@ import type { Priority, TaskContext } from '../../../hub/runtime/workspace.ts'
 import { bounded, isDate } from '../../../hub/runtime/values.ts'
 
 export type Block = { start: string, minutes: number | null, weeks: number }
-export type Task = { title: string, doneWhen: string, evidence: string, kind: 'task' | 'appointment', date: string | null, category?: Category | null, priority?:Priority, steps?: string[], blocks?: Block[] }
+export type Task = { title: string, doneWhen: string, evidence: string, kind: 'task' | 'appointment', date: string | null, category?: Category | null, priority?:Priority, steps?: string[], blocks?: Block[], link?: string | null }
 export type Proposal = {
   kind: 'deadline' | 'priority' | 'complete' | 'plan' | 'reschedule' | 'reminder' | 'remember' | 'correct_memory' | 'rename' | 'description' | 'category' | 'archive',
   target: string | null, value: string, duration: number | null, reason: string, tags?: string[]
 }
 export type Advice = { target: string, reason: string }
-export type Result = { skill?: 'inbox_refresh' | 'appointment' | 'deadline_guardian' | 'smart_planning' | 'applications' | 'outfit' | 'travel' | 'finance' | 'grocery' | 'orders' | 'calendar_series' | 'projects' | null, skillData?: FreeQuery | OutfitChatPlan | FragranceChatPlan | TripChatPlan | FinanceChat | FinanceBatch | GroceryPlan | SeriesPlan | ProjectPlan | null, parts?: Result[], tasks: Task[], questions: string[], actions?: Proposal[], advice?: Advice[], summary?: string | null, correctedInput?: string | null }
+export type OrderDecisionPlan = { orderIntent:'decide', order:string, item:string|null, decision:'kept'|'return'|'returned'|'received' }
+export type ApplicationPlan = { applicationIntent:'create'|'update', application:string|null, company:string, role:string, status:'applied'|'reply'|'interview'|'offer'|'rejected'|'withdrawn', appliedOn:string|null, interviewDate:string|null, interviewTime:string|null, note:string|null }
+export type Result = { skill?: 'inbox_refresh' | 'appointment' | 'deadline_guardian' | 'smart_planning' | 'applications' | 'outfit' | 'travel' | 'finance' | 'grocery' | 'orders' | 'calendar_series' | 'projects' | null, skillData?: FreeQuery | OutfitChatPlan | FragranceChatPlan | TripChatPlan | FinanceChat | FinanceBatch | GroceryPlan | SeriesPlan | ProjectPlan | OrderDecisionPlan | ApplicationPlan | null, parts?: Result[], tasks: Task[], questions: string[], actions?: Proposal[], advice?: Advice[], summary?: string | null, correctedInput?: string | null }
 export const schemaFile = new URL('../output.schema.json', import.meta.url)
 const ajv = new Ajv({ allErrors: false, allowUnionTypes: true })
 const currentSchema = JSON.parse(readFileSync(schemaFile, 'utf8'))
@@ -105,10 +107,22 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       (task.steps && (task.steps.length > 12 || task.steps.some(step => !bounded(step, 120))))) {
       throw new Error('Ein Vorschlag hat einen ungültigen oder fehlenden Beleg.')
     }
+    if (task.link != null && !/^[0-9a-f-]{36}$/u.test(task.link)) task.link = null
     if ((task.blocks?.length ?? 0) > 8) throw new Error('Zu viele Zeitblöcke für eine Aufgabe.')
     for (const block of task.blocks ?? []) totalBlocks += expandBlock(block).length
   }
-  if (['inbox_refresh','orders'].includes(candidate.skill ?? '') && (candidate.tasks.length || candidate.actions?.length || candidate.questions.length)) {
+  const decision = candidate.skillData && typeof candidate.skillData === 'object' && 'orderIntent' in candidate.skillData
+  const application = candidate.skillData && typeof candidate.skillData === 'object' && 'applicationIntent' in candidate.skillData
+  if ((decision && candidate.skill !== 'orders') || (application && candidate.skill !== 'applications')) throw new Error('Der Entwurf passt nicht zum Skill.')
+  if (application) {
+    const plan = candidate.skillData as ApplicationPlan
+    if (![plan.company, plan.role].every(value => bounded(value, 120)) || (plan.note !== null && !bounded(plan.note, 600)) ||
+      [plan.appliedOn, plan.interviewDate].some(value => value !== null && !isDate(value)) ||
+      (plan.interviewTime !== null && !/^(?:[01]\d|2[0-3]):[0-5]\d$/u.test(plan.interviewTime)) ||
+      (plan.applicationIntent === 'create' ? !plan.company.trim() : !plan.application)) throw new Error('Der Bewerbungsentwurf ist unvollständig.')
+  }
+  if (decision && (candidate.tasks.length || candidate.actions?.length)) throw new Error('Diesen Skill separat vorschlagen.')
+  if (['inbox_refresh','orders'].includes(candidate.skill ?? '') && !decision && (candidate.tasks.length || candidate.actions?.length || candidate.questions.length)) {
     throw new Error('Ein Mail-Durchlauf muss separat vorgeschlagen werden.')
   }
   if (['deadline_guardian','smart_planning','applications','outfit','travel','finance','grocery'].includes(candidate.skill ?? '') &&
@@ -206,6 +220,8 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       plan.intent!=='change' && plan.start && plan.end && plan.start>plan.end ||
       plan.people!==null && (plan.people<1 || plan.people>30) ||
       plan.maxLeave!==null && (plan.maxLeave<0 || plan.maxLeave>14)) throw new Error('Ungültige Reiseangaben.')
+  } else if (plan && ('orderIntent' in plan || 'applicationIntent' in plan)) {
+    // Bereits oben geprüft.
   } else if (plan && (candidate.skill !== 'smart_planning' || candidate.questions.length ||
       !isDate(plan.date) || plan.days < 1 || plan.days > 7 || plan.minutes < 15 || plan.minutes > 480 ||
       ![plan.start,plan.end].every(value=>/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)) || plan.start >= plan.end)) {
@@ -218,6 +234,16 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
     throw new Error('Ein Termin benötigt Datum, Uhrzeit und Dauer oder eine Rückfrage.')
   }
   if (totalBlocks > 32) throw new Error('Der Vorschlag enthält zu viele Terminwiederholungen.')
+  // Zu lange Texte werden am Satzende gekürzt statt den ganzen Vorschlag zu verwerfen.
+  const clip = (text: string, max: number) => {
+    const clean = text.trim()
+    if (clean.length <= max) return clean
+    const cut = clean.slice(0, max - 1)
+    const end = Math.max(cut.lastIndexOf('. '), cut.lastIndexOf('? '), cut.lastIndexOf('! '))
+    return (end > max / 2 ? cut.slice(0, end + 1) : cut.trimEnd() + '…')
+  }
+  if (typeof candidate.summary === 'string') candidate.summary = clip(candidate.summary, 420) || null
+  candidate.questions = candidate.questions.map(question => typeof question === 'string' ? clip(question, 280) : question)
   if (candidate.questions.some(question => !bounded(question, 280)) ||
       (candidate.summary != null && !bounded(candidate.summary, 420))) throw new Error('Ungültiger Antworttext.')
   const ids = new Set(context.map(task => task.id))
@@ -245,6 +271,8 @@ export function verifyOutput(candidate: unknown, input: string | readonly string
       throw new Error('Ungültige Dauer.')
     }
   }
+  // Hinweise zu Einträgen außerhalb des Bearbeitungskontexts (z. B. nur im Verzeichnis) werden verworfen, nicht der ganze Vorschlag.
+  if (candidate.advice) candidate.advice = candidate.advice.filter(item => ids.has(item.target))
   if (candidate.advice?.some(item => !ids.has(item.target) || !bounded(item.reason, 280))) {
     throw new Error('Die Empfehlung verweist auf eine unbekannte Aufgabe.')
   }
