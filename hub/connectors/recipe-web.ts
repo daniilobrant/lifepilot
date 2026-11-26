@@ -1,3 +1,4 @@
+import { metricQuantity } from '../runtime/grocery-units.ts'
 import {matchesRecipe} from '../runtime/recipe-preferences.ts'
 import {publicRecipeHtml,searchProductPages} from './outfit-import.ts'
 import {groceryKey,grocerySearchKey} from '../runtime/grocery-catalog.ts'
@@ -37,7 +38,8 @@ function ingredient(value:unknown){
 }
 function combineIngredients(items:GroceryInput[]){
   const byName=new Map<string,GroceryInput>()
-  for(const item of items){
+  for(const raw of items){
+    const item=raw.quantity?{...raw,quantity:metricQuantity(raw.name,raw.quantity)}:raw
     const key=groceryKey(item.name.replace(/^(?:kleine[nrms]?|große[nrms]?)\s+/iu,''))
     const current=byName.get(key)
     if(!current){byName.set(key,item);continue}
@@ -45,8 +47,8 @@ function combineIngredients(items:GroceryInput[]){
     if(!b)continue
     if(!a){byName.set(key,item);continue}
     if(a.kind!==b.kind)return
-    if(a.kind==='weight'||a.kind==='volume'){
-      const quantity=(a.value+b.value).toLocaleString('de-DE',{useGrouping:false})+' '+(a.kind==='weight'?'g':'ml')
+    if(a.kind==='mass'){
+      const quantity=(a.value+b.value).toLocaleString('de-DE',{useGrouping:false})+' '+(/\b(?:ml|l)$/iu.test(current.quantity??'')?'ml':'g')
       byName.set(key,{...current,quantity})
     }else{
       const unit=current.quantity?.split(/\s+/u).slice(1).join(' ')

@@ -9,7 +9,7 @@ const generate=()=>({
   overview:'Drei Tage mit Belém und Alfama.',
   days:['2027-05-06','2027-05-07','2027-05-08'].map(date=>({date,title:'Unterwegs in Lissabon',
     activities:tripPeriods.map(period=>({period,text:'Am Ufer von Belém spazieren.',place:'Belém, Lissabon'}))})),
-  tips:tipTopics.map((topic,i)=>({topic,items:Array.from({length:[3,3,9,5,5,6,3,8][i]},(_,j)=>({
+  tips:tipTopics.map((topic,i)=>({topic,items:Array.from({length:[4,4,9,5,5,6,3,8][i]},(_,j)=>({
     title:'Eintrag '+j,detail:'Für den Vormittag Zeit einplanen.',translation:null,pronunciation:null,
   }))})),
 })
@@ -19,7 +19,7 @@ test('Travel guide replaces the suggestion content and preserves the local plan'
   assert.equal(result.guide,'generated')
   assert.equal(result.days.length,3)
   assert.equal(result.days[0].activities[0].place,'Belém, Lissabon')
-  assert.equal(result.tips.flatMap(tip=>tip.content.sections.flatMap(section=>section.items)).length,42)
+  assert.equal(result.tips.flatMap(tip=>tip.content.sections.flatMap(section=>section.items)).length,44)
   assert.deepEqual(result.checklist,base.checklist)
   assert.deepEqual(result.packing,base.packing)
   assert.deepEqual(result.draft,base.draft)
@@ -37,3 +37,15 @@ test('Travel guide refuses wrong dates, reordered blocks and incomplete tips',()
   partial.tips[0].items.pop()
   assert.throws(()=>applyTripGuide(base,partial),{status:422})
 })
+
+test('Long trips are split into balanced parallel day blocks and overlong texts are clipped, not rejected',async()=>{
+  const {dayChunks,clipGuide}=await import('../../../hub/runtime/trip-guide.ts')
+  const dates=Array.from({length:17},(_,i)=>'2027-03-'+String(15+i).padStart(2,'0'))
+  assert.deepEqual(dayChunks(dates).map(part=>part.length),[6,6,5])
+  assert.deepEqual(dayChunks(dates.slice(0,4)).map(part=>part.length),[4])
+  assert.equal(dayChunks(dates).flat().join(),dates.join())
+  const clipped=clipGuide({overview:'x'.repeat(400),days:[{title:'Titel '.repeat(30),activities:[]}],tips:[]}) as {overview:string,days:{title:string}[]}
+  assert.ok(clipped.overview.length<=350)
+  assert.ok(clipped.days[0].title.length<=95)
+})
+

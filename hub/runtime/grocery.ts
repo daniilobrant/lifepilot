@@ -1,3 +1,4 @@
+import { metricQuantity } from './grocery-units.ts'
 import {matchesRecipe} from './recipe-preferences.ts'
 import { canonicalGroceryName, groceryCategory, groceryKey } from './grocery-catalog.ts'
 import { randomUUID } from 'node:crypto'
@@ -32,7 +33,7 @@ export function normalizeGrocery(input:unknown): Omit<StockItem,'id'> {
   const expiry=row.expiry||null
   if(typeof location!=='string'||!Object.hasOwn(locations,location)||typeof status!=='string'||!Object.hasOwn(stockStates,status)||
       expiry!==null&&!isDate(expiry)) throw new Problem(400,'Ungültiger Lagerort, Bestand oder Datum.')
-  return {name,category,quantity:text(row.quantity,50),note:text(row.note,120),location:location as StockItem['location'],status:status as StockItem['status'],expiry:expiry as string|null}
+  return {name,category,quantity:metricQuantity(name,text(row.quantity,50)),note:text(row.note,120),location:location as StockItem['location'],status:status as StockItem['status'],expiry:expiry as string|null}
 }
 export function refreshLegacyGroceryCatalog(store:Store) {
   for (const table of ['grocery_stock','grocery_shopping','grocery_recent']) {
@@ -173,6 +174,7 @@ export function normalizeRecipeAnswer(answer:GroceryAnswer):GroceryAnswer {
   if(!answer.ingredients?.length)return answer
   const base=answer.baseServings??answer.servings??legacyRecipeServings
   const source=recoverRecipeQuantities(answer.title,answer.baseIngredients??answer.ingredients,base,answer.steps)
+    .map(item=>item.quantity?{...item,quantity:metricQuantity(item.name,item.quantity)}:item)
   return {...answer,baseServings:base,baseIngredients:source,
     ingredients:scaleRecipeIngredients(source,base,answer.servings??base)}
 }
@@ -185,7 +187,7 @@ export function groceryAnswer(store:Store,plan:GroceryPlan,day=dateInBerlin()):G
   const candidate=(name:string)=>known.get(groceryKey(name))
   const available=(name:string)=>covers(candidate(name),{name},day)
   const empty={title:'',available:[],missing:[],steps:[],write:null,rows:[]} satisfies GroceryAnswer
-  const proposed=unique(plan.items.map(row=>({name:row.name,quantity:row.quantity??'',status:row.status??undefined})))
+  const proposed=unique(plan.items.map(row=>({name:row.name,quantity:metricQuantity(row.name,row.quantity??''),status:row.status??undefined})))
   if(plan.groceryIntent==='stock_read') return {...empty,title:'Aktueller Vorrat',available:stock.filter(x=>available(x.name)).slice(0,40).map(x=>x.name+(x.status==='low'?' · knapp':''))}
   if(plan.groceryIntent==='list_read') return {...empty,title:'Noch zu kaufen',available:shopping.filter(x=>!x.checked).slice(0,40).map(x=>x.name)}
   if(plan.groceryIntent==='shop_remove') {

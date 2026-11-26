@@ -20,6 +20,11 @@ import { boundedDialogue, MAX_CHAT_APPROVAL_BYTES, MAX_CHAT_INPUT, type ModelMes
 import { dateInBerlin } from './values.ts'
 import { relevance, searchTerms } from './relevance.ts'
 import { sourceNote, type SourceNote } from './source-note.ts'
+import { directoryWords, titleMatch } from './agent-directory.ts'
+import { changeClothingOrder, clothingOrders } from './clothing-orders.ts'
+import { applicationOverview, saveApplication } from './applications.ts'
+import { applicationStatuses, emptyApplication } from './application-types.ts'
+import type { ApplicationPlan, OrderDecisionPlan } from '../../agents/lifepilot/tools/validate.ts'
 import type { ChatMode } from './chat-release.ts'
 
 export type Channel = 'ui' | 'cli'
@@ -59,11 +64,19 @@ export class Store {
     const current = Number(this.db.prepare('PRAGMA user_version').get()?.user_version)
     this.workspace = new Workspace(this.db)
     this.calendarConfirmations = new CalendarConfirmations(this.db)
-    const migrations = ['001-initial.sql', '002-workspace.sql', '003-proposal-history.sql', '004-dialogue.sql', '005-memory-scopes.sql', '006-memory-tags.sql', '007-source-note.sql', '008-calendar-exports.sql', '009-inbox-proposals.sql', '010-gmail-pages.sql', '011-google-calendar-test.sql', '012-task-categories.sql', '013-google-sync.sql', '014-applications.sql', '015-google-event-changes.sql', '016-outfit-studio.sql','017-travel.sql','018-trip-chat-decisions.sql','019-personal-profile-and-completion.sql','020-finance.sql','021-outfit-import-and-look-photos.sql','022-grocery.sql','023-chat-continuity.sql','024-recipes.sql','025-trips-and-wardrobe.sql','026-clothing-orders.sql','027-wardrobe-extras.sql','028-wardrobe-retailer.sql','029-mail-workflows.sql','030-order-tracker.sql','031-skill-links.sql','032-calendar-series.sql','033-projects.sql','034-project-tasks.sql','035-tasks-board.sql','036-order-activity.sql','037-resale-asking-price.sql']
+    const migrations = ['001-initial.sql', '002-workspace.sql', '003-proposal-history.sql', '004-dialogue.sql', '005-memory-scopes.sql', '006-memory-tags.sql', '007-source-note.sql', '008-calendar-exports.sql', '009-inbox-proposals.sql', '010-gmail-pages.sql', '011-google-calendar-test.sql', '012-task-categories.sql', '013-google-sync.sql', '014-applications.sql', '015-google-event-changes.sql', '016-outfit-studio.sql','017-travel.sql','018-trip-chat-decisions.sql','019-personal-profile-and-completion.sql','020-finance.sql','021-outfit-import-and-look-photos.sql','022-grocery.sql','023-chat-continuity.sql','024-recipes.sql','025-trips-and-wardrobe.sql','026-clothing-orders.sql','027-wardrobe-extras.sql','028-wardrobe-retailer.sql','029-mail-workflows.sql','030-order-tracker.sql','031-skill-links.sql','032-calendar-series.sql','033-projects.sql','034-project-tasks.sql','035-tasks-board.sql','036-order-activity.sql','037-resale-asking-price.sql', '038-application-source-details.sql', '039-resale-estimate.sql']
     if (current > schemaVersion) throw new Error('Diese Datenbank benötigt eine neuere Hub-Version.')
     for (let index = current; index < migrations.length; index++) {
       this.transaction(() => {
-        this.db.exec(readFileSync(new URL('../migrations/' + migrations[index], import.meta.url), 'utf8'))
+        const migration = readFileSync(new URL('../migrations/' + migrations[index], import.meta.url), 'utf8')
+        if (migrations[index] === '038-application-source-details.sql') {
+          // Antigravity previews may have created these columns before this numbered migration.
+          const existing = new Set(this.db.prepare('PRAGMA table_info(application_sources)').all().map(row=>row.name))
+          for (const statement of migration.trim().split('\n')) {
+            const column = statement.match(/ADD COLUMN (\w+)/u)?.[1]
+            if (column && !existing.has(column)) this.db.exec(statement)
+          }
+        } else this.db.exec(migration)
         this.db.exec('PRAGMA user_version=' + (index + 1))
         if (index===26) refreshLegacyGroceryCatalog(this)
         if (index === 3 || index === 4) {
@@ -87,6 +100,19 @@ export class Store {
   }
 
   transaction<T>(fn: () => T): T {
+    // Verschachtelt (z. B. Chat-Übernahme ruft Bestell- oder Bewerbungsfunktionen): Savepoint statt neuer Transaktion.
+    if (this.db.isTransaction) {
+      this.db.exec('SAVEPOINT nested')
+      try {
+        const result = fn()
+        this.db.exec('RELEASE nested')
+        return result
+      } catch (error) {
+        this.db.exec('ROLLBACK TO nested')
+        this.db.exec('RELEASE nested')
+        throw error
+      }
+    }
     this.db.exec('BEGIN IMMEDIATE')
     try {
       const result = fn()
@@ -328,12 +354,15 @@ export class Store {
 
   private editContext(input:string):TaskContext[]{
     if(/\b(?:serie[n]?|serientermine?|wiederkehrend\w*)\b/iu.test(input)||
-      !/(?:^|\s)(?:ändere|verschiebe|korrigiere|benenne|lösche|entferne|archiviere|erledige|aktualisiere|markiere|setze|plane|erinnere|priorisiere|verlängere|hake|verlege)\b/iu.test(input))return []
-    const normalize=(text:string)=>(' '+text.toLocaleLowerCase('de-DE').replace(/[^\p{L}\p{N}]+/gu,' ').trim()+' ')
-    const query=normalize(input)
-    return this.workspace.context(input).filter(task=>task.title.trim().length>=3&&query.includes(normalize(task.title)))
-      .slice(0,4).map(task=>({...task,detail:'',schedule:task.schedule.slice(0,8)}))
+      !/(?:^|\s)(?:ändere|änder|verschiebe|verschieb|korrigiere|benenne|lösche|lösch|entferne|archiviere|erledige|aktualisiere|markiere|setze|setz|plane|erinnere|priorisiere|verlängere|hake|verlege|streiche|sag ab|absagen)\b/iu.test(input))return []
+    // Aufgaben und Termine, die die Nachricht nennt, auch bei Tipp- oder Diktatfehlern („Kai und Data Science“).
+    const words=directoryWords(input)
+    const ids=this.workspace.list().filter(task=>task.status==='open'&&task.title.trim().length>=3)
+      .map(task=>({id:task.id,score:titleMatch(words,task.title)})).filter(({score})=>score>=0.5)
+      .sort((a,b)=>b.score-a.score).slice(0,8).map(({id})=>id)
+    return this.workspace.contextOf(ids).map(task=>({...task,detail:''}))
   }
+
 
   private permits(row: Pick<Run, 'synthetic' | 'memory_snapshot' | 'context_snapshot'>) {
     if (this.chat === 'synthetic') return row.synthetic === 1
@@ -605,6 +634,10 @@ export class Store {
       adoptGrocery(this,proposal)
       return
     }
+    if((result.skill==='orders'||result.skill==='applications')&&result.skillData&&('orderIntent' in result.skillData||'applicationIntent' in result.skillData)){
+      this.adoptRecord(result.skillData,actor)
+      return
+    }
     if(result.skill==='finance') {
       const changes=this.financeChanges(row.id,this.followups(row.id).length)
       if(!changes.length) throw new Problem(409,'Der Finanzentwurf ist nicht mehr verfügbar.')
@@ -800,11 +833,63 @@ export class Store {
         result={...result,summary:null,questions:[reason.message]}
       }
     }
-    const changes = Boolean(result && (financeWrite || groceryWrite || seriesWrite || projectWrite || result.tasks.length || result.actions?.length))
+    let recordWrite=false
+    if(result?.skill==='orders'&&plan&&'orderIntent' in plan&&!result.questions.length){
+      try{result={...result,summary:this.describeOrderDecision(plan)};recordWrite=true}
+      catch(reason){if(!(reason instanceof Problem))throw reason;result={...result,skillData:null,summary:null,questions:[reason.message]}}
+    }
+    if(result?.skill==='applications'&&plan&&'applicationIntent' in plan&&!result.questions.length){
+      try{result={...result,summary:this.describeApplication(plan)};recordWrite=true}
+      catch(reason){if(!(reason instanceof Problem))throw reason;result={...result,skillData:null,summary:null,questions:[reason.message]}}
+    }
+    const changes = Boolean(result && (financeWrite || groceryWrite || seriesWrite || projectWrite || recordWrite || result.tasks.length || result.actions?.length))
     const review = Boolean(result && (changes || result.questions.length || result.skill === 'inbox_refresh'))
     this.db.prepare('UPDATE runs SET state=?, result=?, error=?, metrics=?, updated_at=? WHERE id=?')
       .run(result ? review ? 'review' : 'accepted' : 'failed', result ? JSON.stringify(result) : null, error, metrics?JSON.stringify(metrics):null, now(), id)
     if (result && changes) this.approval(this.run(id), 'adopt')
+  }
+
+  private orderTarget(plan:OrderDecisionPlan){
+    const order=clothingOrders(this,undefined,plan.order).find(entry=>entry.id===plan.order)
+    if(!order)throw new Problem(404,'Diese Bestellung finde ich nicht. Nenne Shop und Artikel.')
+    if(plan.decision==='received')return {order,item:undefined}
+    const wanted=plan.decision==='returned'?['return']:['pending','kept','return']
+    const candidates=order.items.filter(item=>plan.item?item.id===plan.item:wanted.includes(item.decision)&&(plan.decision==='returned'||item.arrived))
+    if(candidates.length!==1)throw new Problem(409,candidates.length?'Welches Teil aus der Bestellung '+order.merchant+' meinst du?':'Dieses Teil ist noch nicht als angekommen bestätigt.')
+    return {order,item:candidates[0]}
+  }
+  private describeOrderDecision(plan:OrderDecisionPlan){
+    const {order,item}=this.orderTarget(plan)
+    const labels={kept:'behalten',return:'zur Rücksendung vormerken',returned:'Retoure als abgegeben markieren',received:'als angekommen markieren'}
+    return `${order.merchant}${item?' · '+item.draft.name:' · Bestellung '+order.reference}: ${labels[plan.decision]}`
+  }
+  private describeApplication(plan:ApplicationPlan){
+    const existing=plan.application?applicationOverview(this).items.find(item=>item.id===plan.application):undefined
+    if(plan.applicationIntent==='update'&&!existing)throw new Problem(404,'Diese Bewerbung finde ich nicht. Nenne Firma und Stelle.')
+    const interview=plan.interviewDate?` · Vorstellungsgespräch ${plan.interviewDate}${plan.interviewTime?' '+plan.interviewTime:''} als Termin`:''
+    return `${existing?'Bewerbung ändern':'Bewerbung anlegen'}: ${plan.company||existing?.company} · ${plan.role||existing?.role} · ${applicationStatuses[plan.status]}${interview}`
+  }
+  private adoptRecord(plan:OrderDecisionPlan|ApplicationPlan,actor:Channel){
+    if('orderIntent' in plan){
+      const {order,item}=this.orderTarget(plan)
+      if(plan.decision==='received')changeClothingOrder(this,order.id,'received')
+      else{
+        if(plan.decision!=='returned'&&item&&!item.arrived)changeClothingOrder(this,order.id,'received')
+        changeClothingOrder(this,order.id,plan.decision,item!.id)
+      }
+      return
+    }
+    const existing=plan.application?applicationOverview(this).items.find(item=>item.id===plan.application):undefined
+    const notes=[existing?.notes,plan.note].filter(Boolean).join('\n').slice(0,2000)
+    const draft={...emptyApplication,...(existing??{}),company:plan.company||existing?.company||'',role:plan.role||existing?.role||'',status:plan.status,
+      applied_on:plan.appliedOn??existing?.applied_on??null,notes}
+    const saved=saveApplication(this,draft,existing?{id:existing.id,revision:existing.revision}:undefined) as {id:string}
+    if(plan.interviewDate){
+      const task=this.workspace.add(null,{title:'Vorstellungsgespräch '+draft.company,detail:(draft.role?draft.role+' · ':'')+'Bewerbung '+saved.id.slice(0,8),
+        date:plan.interviewDate,kind:'appointment',category:'work'},actor)
+      if(plan.interviewTime)for(const instance of expandBlock({start:plan.interviewDate+'T'+plan.interviewTime,minutes:60,weeks:1}))
+        this.workspace.addSchedule(task.id,'slot',instance.at,instance.endsAt,actor,true)
+    }
   }
 
   backup() {

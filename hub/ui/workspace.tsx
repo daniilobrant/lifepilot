@@ -1,5 +1,5 @@
 import type {Project} from '../runtime/project-types.ts'
-import {DateInput} from './presentation.tsx'
+import {DateInput,displayDay} from './presentation.tsx'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import type { ScheduleRow, TaskRow, Step } from '../runtime/workspace.ts'
 import { categoryLabels } from '../runtime/categories.ts'
@@ -81,17 +81,9 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
   projects?:Project[], openSchedule?:boolean, renderExport?: (slot: ScheduleRow) => ReactNode, loadHistory: (id: string) => Promise<{ history: Activity[] }>
 }) {
   const [steps, setSteps] = useState<Step[]>(task.steps)
-  const [history, setHistory] = useState<Activity[]>([])
-  const [historyError, setHistoryError] = useState('')
   const [busy, setBusy] = useState(false)
   const [planKind, setPlanKind] = useState<'reminder' | 'slot'>(openSchedule?'slot':'reminder')
   const activeSchedule = schedule.filter(item => item.task_id === task.id)
-  useEffect(() => {
-    let live = true
-    loadHistory(task.id).then(data => { if (live) setHistory(data.history) })
-      .catch(() => { if (live) setHistoryError('Der Verlauf konnte nicht geladen werden.') })
-    return () => { live = false }
-  }, [task.id, task.revision, schedule.length])
 
   async function change(path: string, data: object) {
     if (busy) return
@@ -115,11 +107,19 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
   }
   return <article className="card settings workspace-editor">
     <div className="editor-title"><h2>{task.title}</h2><button type="button" onClick={onClose}>Schließen</button></div>
-    <form onSubmit={save}>
-      <label>Titel<input name="title" defaultValue={task.title} maxLength={120} required /></label>
+    <form id={'task-edit-'+task.id} onSubmit={save}>
+      <div className="editor-grid">
+      <label className="editor-wide">Titel<input name="title" defaultValue={task.title} maxLength={120} required /></label>
       <label>{task.kind === 'appointment' ? 'Datum' : 'Frist'}<DateInput  name="date" defaultValue={task.due_date ?? ''} required={task.kind === 'appointment'} /></label>
+      </div>
       {task.kind==='task'&&projects.length?<ProjectField projects={projects} current={task.project_id}/>:null}
-      <details className="task-options"><summary>Weitere Angaben</summary>
+      {task.kind==='task'?<label>Termin (optional)<select name="related" defaultValue={task.related_id ?? ''}>
+        <option value="">Ohne Termin</option>
+        {tasks.filter(item => item.id !== task.id && (item.kind === 'appointment' || item.id === task.related_id) && item.status !== 'archived')
+          .sort((a, b) => (a.due_date ?? '').localeCompare(b.due_date ?? '') || a.title.localeCompare(b.title, 'de'))
+          .map(item => <option key={item.id} value={item.id}>{item.title}{item.due_date ? ' · ' + displayDay(item.due_date) : ''}</option>)}
+      </select></label>:<input type="hidden" name="related" value={task.related_id ?? ''}/>}
+      <details className="task-options editor-section"><summary>Weitere Angaben</summary>
       <label>Beschreibung oder Ziel (optional)<textarea name="detail" defaultValue={task.detail} maxLength={360} /></label>
       <div className="filters">
         <label>Priorität<select name="priority" defaultValue={task.priority}>
@@ -128,9 +128,6 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
       </div>
       <label>Kategorie<select name="category" defaultValue={task.category ?? ''}><option value="">Ohne Kategorie</option>
         {Object.entries(categoryLabels).map(([key, label]) => <option value={key} key={key}>{label}</option>)}
-      </select></label>
-      <label>Verknüpfte Aufgabe<select name="related" defaultValue={task.related_id ?? ''}>
-        <option value="">Keine</option>{tasks.filter(item => item.id !== task.id).map(item => <option key={item.id} value={item.id}>{item.title}</option>)}
       </select></label>
       <fieldset><legend>Teilaufgaben</legend>
         {steps.map((step, index) => <div className="step" key={index}>
@@ -143,17 +140,14 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
         {steps.length < 12 ? <button type="button" onClick={() => setSteps(rows => [...rows, { title: '', done: false }])}>Teilaufgabe hinzufügen</button> : null}
       </fieldset>
       </details>
-      <div className="actions">
-        <button className="primary" disabled={busy}>Änderungen speichern</button>
-        <button type="button" disabled={busy} onClick={() => void setStatus(task.status === 'done' ? 'open' : 'done')}>{task.status === 'done' ? 'Wieder öffnen' : 'Erledigt'}</button>
-        <button type="button" className="quiet" disabled={busy} onClick={() => void setStatus('archived')}>Archivieren</button>
-      </div>
+
     </form>
-    {task.status === 'open' ? <details open={openSchedule||undefined}><summary>Erinnerung oder Zeitblock</summary>
-      {activeSchedule.map(item => <div key={item.id}><p className="schedule-line">
-        <span>{item.kind === 'slot' ? 'Zeitblock' : 'Erinnerung'} · {displayTime(item.at)}</span><button className="quiet" onClick={() => void change('/schedule/' + item.id + '/dismiss', { confirm: true })}>Entfernen</button>
-      </p>{item.kind === 'slot' ? renderExport?.(item) : null}</div>)}
-      <form onSubmit={async event => {
+    {task.status === 'open' ? <details className="editor-section" open={openSchedule||undefined}><summary>Zeitblöcke &amp; Erinnerungen{activeSchedule.length ? ' · ' + activeSchedule.length : ''}</summary>
+      {activeSchedule.length ? <ul className="schedule-list">{activeSchedule.map(item => <li key={item.id}>
+        <span className="schedule-kind">{item.kind === 'slot' ? 'Zeitblock' : 'Erinnerung'}</span><time>{displayTime(item.at)}</time>
+        <button type="button" className="icon-button" aria-label="Entfernen" title="Entfernen" onClick={() => void change('/schedule/' + item.id + '/dismiss', { confirm: true })}>×</button>
+      </li>)}</ul> : null}
+      <form className="schedule-add" onSubmit={async event => {
         event.preventDefault()
         const form = event.currentTarget
         const data = new FormData(form)
@@ -166,12 +160,14 @@ export function TaskEditor({ task, tasks, schedule, mutate, onClose, loadHistory
         </select></label>
         <label>Zeitpunkt (Berlin)<input type="datetime-local" name="at" required /></label>
         {planKind === 'slot' ? <label>Dauer in Minuten<input type="number" name="minutes" defaultValue={60} min={5} max={480} required /></label> : null}
-        <button disabled={busy}>Zeitpunkt speichern</button>
+        <button disabled={busy}>Hinzufügen</button>
       </form>
     </details> : null}
-    <details><summary>Verlauf</summary>
-      {historyError ? <p role="alert">{historyError}</p> : null}
-      <ul>{history.map(item => <li key={item.id}>{item.event} · <time>{displayTime(item.at)}</time></li>)}</ul>
-    </details>
+
+    <div className="actions editor-actions">
+        <button className="primary" form={"task-edit-"+task.id} disabled={busy}>Speichern</button>
+        <button type="button" disabled={busy} onClick={() => void setStatus(task.status === 'done' ? 'open' : 'done')}>{task.status === 'done' ? 'Wieder öffnen' : 'Erledigt'}</button>
+        <button type="button" className="quiet" disabled={busy} onClick={() => void setStatus('archived')}>Archivieren</button>
+      </div>
   </article>
 }

@@ -8,7 +8,6 @@ import {projectAreas,projectPriorities,timeframeNames,type Project,type ProjectC
 type SavePlan=(plan:Partial<ProjectPlan>&Pick<ProjectPlan,'projectIntent'>,project?:Project,step?:string)=>Promise<boolean>
 type DecideMail=(suggestion:ProjectSuggestion,approved:boolean)=>Promise<void>
 type ApproveMails=(items:readonly (ProjectSuggestion&{title:string})[])=>Promise<BatchResult>
-const modes={none:'Kein Datum',deadline:'Feste Deadline',checkpoint:'Ungefährer Checkpoint'} as const
 const displayDate=(date:string)=>displayDay(date)
 export const priorityText=(priority:Project['priority'])=>projectPriorities[priority]
 
@@ -19,7 +18,12 @@ function Timing({item}:{item:ProjectTiming}){
   if((!item.date&&!item.approxLabel)||item.scheduleMode==='none')return null
   const exact=item.date?displayDate(item.date):''
   const note=item.approxLabel&&item.approxLabel!=='Planungsdatum'?item.approxLabel:''
-  return <span className="project-date">{[item.scheduleMode==='checkpoint'?'Checkpoint':'Deadline',exact,note].filter(Boolean).join(' · ')}</span>
+  return <span className="project-date" title={note||undefined}>{exact||note}</span>
+}
+const pencil=<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 20h4L19 9l-4-4L4 16v4z"/><path d="M13.5 6.5l4 4"/></svg>
+/** Frühestes Datum oben, Schritte ohne Datum am Ende; gleiche Daten behalten ihre Reihenfolge. */
+export function byDate<T extends {date?:string|null}>(steps:readonly T[]){
+  return steps.map((step,index)=>({step,index})).sort((a,b)=>(a.step.date??'9999').localeCompare(b.step.date??'9999')||a.index-b.index).map(({step})=>step)
 }
 type EditorStep=ProjectStepDraft&{id?:string,key:string}
 type SaveEditor=(plan:ProjectPlanInput,steps:EditorStep[],project?:Project)=>Promise<boolean>
@@ -41,14 +45,15 @@ function ProjectCard({item,open,save,archive,busy}:{item:Project,open:(step?:str
       <span className="project-progress">{done}/{item.steps.length}
         {item.steps.length?<progress value={done} max={item.steps.length} aria-label="Abgeschlossene Unterpunkte"/>:null}
       </span>
-      <button type="button" onClick={()=>open()}>Öffnen</button>
+      <button type="button" className="icon-button project-edit" aria-label={item.title+' bearbeiten'} title="Projekt bearbeiten" onClick={()=>open()}>{pencil}</button>
     </div>
     <Timing item={item}/>
-    {item.steps.length?<ul className="project-checklist compact-checklist">{item.steps.map(step=><li key={step.id} data-completed={step.completed}>
+    {item.steps.length?<ul className="project-checklist compact-checklist">{byDate(item.steps).map(step=><li key={step.id} data-completed={step.completed} className="project-step-row">
       <input type="checkbox" checked={step.completed} aria-label={step.title} disabled={busy}
         onChange={event=>void save({projectIntent:'update_step',completed:event.target.checked},item,step.id)}/>
-      <button type="button" className="quiet" onClick={()=>open(step.id)}>{step.title}</button>
+      <button type="button" className="quiet project-step-title" onClick={()=>open(step.id)}>{step.title}</button>
       <Timing item={step}/>
+      <button type="button" className="icon-button project-edit" aria-label={step.title+' bearbeiten'} title="Schritt bearbeiten" onClick={()=>open(step.id)}>{pencil}</button>
     </li>)}</ul>:null}
     <div className="project-compact-actions">
       <form onSubmit={add}><input aria-label="Schritt schnell hinzufügen" name="title" placeholder="+ Schritt schnell hinzufügen …" maxLength={120} disabled={busy} required/></form>
@@ -68,7 +73,7 @@ function ProjectOverlay({project,focus,close,save,saveEditor,archive,busy,error,
   const [priority,setPriority]=useState<Project['priority']>(project?.priority??'medium')
   const [date,setDate]=useState(project?.date??'')
   const [revision,setRevision]=useState(project?.revision)
-  const [steps,setSteps]=useState<EditorStep[]>(()=>project?.steps.map(step=>({...step,key:step.id}))??[])
+  const [steps,setSteps]=useState<EditorStep[]>(()=>byDate(project?.steps??[]).map(step=>({...step,key:step.id})))
   const [drag,setDrag]=useState<number>()
   const [target,setTarget]=useState<number>()
   const [dirty,setDirty]=useState(false)
@@ -105,7 +110,7 @@ function ProjectOverlay({project,focus,close,save,saveEditor,archive,busy,error,
     event.preventDefault()
     const mode=project?.scheduleMode==='checkpoint'&&date===(project.date??'')?'checkpoint':date?'deadline':'none'
     const plan={projectIntent:project?'update':'create',title,description,area,priority,date:date||null,scheduleMode:mode} as const
-    if(await saveEditor(plan,steps,project?{...project,revision:revision??project.revision}:undefined))close()
+    if(await saveEditor(plan,byDate(steps),project?{...project,revision:revision??project.revision}:undefined))close()
   }
   function cancel(){
     if(!dirty||window.confirm('Ungespeicherte Eingaben verwerfen?'))close()
@@ -167,15 +172,10 @@ function ProjectOverlay({project,focus,close,save,saveEditor,archive,busy,error,
             <button type="button" className="quiet" aria-label={'Schritt '+(index+1)+' nach unten'} disabled={index===steps.length-1||busy||moving} onClick={()=>void move(index,index+1)}>↓</button>
           </div>
           <details open={focus.step!==undefined&&focus.step===step.id?true:undefined}>
-            <summary>Details{step.date?' · '+displayDate(step.date):step.approxLabel?' · '+step.approxLabel:''}</summary>
+            <summary>Details{step.date?' · Frist '+displayDate(step.date):''}</summary>
             <div className="profile-grid">
-              <label>Datumstyp<select value={step.scheduleMode??'none'} onChange={event=>changeStep(step.key,{scheduleMode:event.target.value as ProjectStepDraft['scheduleMode']})}>
-                {Object.entries(modes).map(([id,label])=><option key={id} value={id}>{label}</option>)}
-              </select></label>
-              {step.scheduleMode&&step.scheduleMode!=='none'?<label>Zieldatum<DateInput value={step.date??''} required={step.scheduleMode==='deadline'}
-                onChange={event=>changeStep(step.key,{date:event.target.value||null})}/></label>:null}
-              {step.scheduleMode==='checkpoint'?<label>Ungefähre Angabe<input value={step.approxLabel??''} maxLength={100}
-                onChange={event=>changeStep(step.key,{approxLabel:event.target.value})}/></label>:null}
+              <label>Frist<DateInput value={step.date??''}
+                onChange={event=>changeStep(step.key,{date:event.target.value||null,scheduleMode:event.target.value?'deadline':'none',approxLabel:null})}/></label>
               <label>Priorität<select value={step.priority??'inherit'} onChange={event=>changeStep(step.key,{priority:event.target.value as ProjectStepDraft['priority']})}>
                 <option value="inherit">Vom Projekt übernehmen</option>
                 {Object.entries(projectPriorities).map(([id,label])=><option key={id} value={id}>{label}</option>)}
@@ -254,7 +254,7 @@ export function ProjectsPanel({overview,save,saveEditor,mail,approveMails,work,b
   }
   return <div className="projects-panel">
     <div className="editor-title projects-summary">
-      <p>{active.length} aktive Projekte · {overview.weekCheckpoints} {overview.weekCheckpoints===1?'Checkpoint':'Checkpoints'} diese Woche</p>
+      <p>{active.length} aktive Projekte · {overview.weekCheckpoints} {overview.weekCheckpoints===1?'Frist':'Fristen'} diese Woche</p>
       <button type="button" className="primary" onClick={()=>setFocus({area:'uni'})}>+ Neues Projekt</button>
     </div>
     <ProjectMailSuggestions suggestions={overview.suggestions} decide={mail} approveAll={approveMails} busy={busy}/>
@@ -310,7 +310,7 @@ export function ProjectDeadlineRow({item,open,toggle,busy}:{item:ProjectDeadline
       onChange={event=>void toggle(event.target.checked)}/>
     <button type="button" className="quiet" onClick={()=>open(item.projectId)}>{item.title}
       {item.title!==item.projectTitle?<small>{item.projectTitle}</small>:null}</button>
-    <time dateTime={item.date}>{item.mode==='checkpoint'?'Checkpoint · ':'Frist · '}{displayDate(item.date)}{item.label&&item.label!=='Planungsdatum'?<small>{item.label}</small>:null}</time>
+    <time dateTime={item.date}>{displayDate(item.date)}{item.label&&item.label!=='Planungsdatum'?<small>{item.label}</small>:null}</time>
   </li>
 }
 

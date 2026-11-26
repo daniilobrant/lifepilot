@@ -13,10 +13,11 @@ import {publicHoliday,travelDays} from './trip-windows.ts'
 import {approveLectureCancellation,inboxWithLectureTargets} from './university-calendar.ts'
 import {MAX_CHAT_BODY_BYTES,MAX_CHAT_INPUT} from './model-payload.ts'
 import { addTravelWardrobeItem, changeResale, fragranceList, fragrancePhoto, updateFragranceTags, resaleList, saveFragrance, saveTravelWardrobe, travelWardrobe } from './wardrobe-extras.ts'
+import { exchangeRate } from './currency.ts'
 import { researchFragrance, normalizedFragranceQuery } from './fragrance-research.ts'
 import type { FragranceDraft } from './wardrobe-extras-types.ts'
 import type { WardrobeDraft } from './outfit-types.ts'
-import { bookOrderFinance,clothingOrders, changeClothingOrder, clothingPhotoTargets,scanClothingOrders, updateClothingTask } from './clothing-orders.ts'
+import { bookOrderFinance,clothingOrders, changeClothingOrder, clothingPhotoTargets,orderItemPhoto,scanClothingOrders, updateClothingTask } from './clothing-orders.ts'
 import { transcribeDictation, maxDictationBytes } from '../connectors/local-dictation.ts'
 import { validRecipeServings } from './recipe-portions.ts'
 import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe, updateRecipePortions } from './grocery.ts'
@@ -30,16 +31,18 @@ import { previewTripChange, decideTripChange } from './trip-chat-change.ts'
 import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTrip, changeTrip, tripDateChange, readTripPreview, removeSavedTrip } from './trips.ts'
 import { travelWindows } from './trip-windows.ts'
 import { tripCalendarTitle } from './trip-types.ts'
-import {searchTripPlaces} from '../connectors/trip-places.ts'
+import {searchTripAddresses,searchTripPlaces} from '../connectors/trip-places.ts'
 import { fetchOutfitWeather, outfitLocation } from '../connectors/outfit-weather.ts'
 import { outfitGarment, productWardrobeFields, textProductColor } from './outfit-fields.ts'
 import { matchProductPhoto } from './outfit-catalog.ts'
 import { analyzeOutfitPhoto, prepareFullOutfitPhoto } from '../connectors/outfit-vision.ts'
 import { OutfitStudio, outfitOverview, saveWardrobe, saveStyle, attachOutfitPhoto, outfitPhoto, removeOutfitData, lookPhoto, saveLookPhoto, removeLookPhoto, assignLookPieces } from './outfits.ts'
 import { inspectProduct, importProductPhoto, searchProductImages, searchProductPages, photoMime, uploadOutfitPhoto, outfitUploadLimit } from '../connectors/outfit-import.ts'
+import { createServer as createSocketServer } from 'node:net'
+import { adapterToken, prepareAdapterSocket } from './local-adapter.ts'
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { createHash, randomBytes, timingSafeEqual, randomUUID } from 'node:crypto'
-import { chmodSync, readFileSync, mkdirSync, writeFileSync } from 'node:fs'
+import { chmodSync, readFileSync, mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { acceptance, audit, chatMode, cloudModel, data, fixtures, host, MAX_INPUT, MODEL_MS, nightbot, origin, port, Problem, root, secretPath, probeSecretPath, version } from './settings.ts'
 import { Store, type Channel } from './store.ts'
@@ -48,6 +51,9 @@ import { GoogleConnector, googleService } from '../connectors/google.ts'
 import { MacCalendar, macCalendarBridge } from '../connectors/mac-calendar.ts'
 import { analyzeCodexImage } from '../adapters/codex-image.ts'
 import { runCodex } from '../adapters/codex.ts'
+import { claudeAvailable, modelProvider, setModelProvider } from '../adapters/claude.ts'
+import { agentDirectory } from './agent-directory.ts'
+import { analyseMessage } from './message-analysis.ts'
 import { berlinInstant } from '../../agents/lifepilot/tools/validate.ts'
 import type { TaskPatch, Step } from './workspace.ts'
 import { bounded, dateInBerlin, isDate, mondayOf, shiftDay } from './values.ts'
@@ -87,10 +93,12 @@ function stageOutfitPhoto(photo: Buffer, origin:'own'|'web'='own',fragranceSourc
 }
 async function prepareProductImage(images:string[], deadline:number, useCurl=false, allowRetailerPhoto=false) {
   let retailerPhoto:Awaited<ReturnType<typeof analyzeOutfitPhoto>>|undefined
-  for (const address of images.slice(0,5)) {
+  const imageRank=(url:string)=> /packshot|flatlay|freisteller|still[-_]?life/iu.test(url)?0:
+    /on[-_]?model|lifestyle|detail|close[-_]?up/iu.test(url)?2:1
+  for (const address of [...new Set(images)].sort((a,b)=>imageRank(a)-imageRank(b)).slice(0,5)) {
     if (Date.now()>=deadline) break
     try {
-      const result = await analyzeOutfitPhoto(await importProductPhoto(address,useCurl))
+      const result = await analyzeOutfitPhoto(await importProductPhoto(address,useCurl),true)
       if (result.personFree) return result
       if (allowRetailerPhoto) retailerPhoto ??= result
     } catch (error) {
@@ -104,7 +112,7 @@ async function loadClothingPhotos(order:string) {
   const running=clothingPhotoJobs.get(order)
   if (running) return running
   if (clothingPhotoJobs.size>=2) throw new Problem(429,'Artikelbilder werden gerade vorbereitet.')
-  const targets=clothingPhotoTargets(store,order).filter(target=>!outfitPhoto(store,target.wardrobe)).slice(0,8)
+  const targets=clothingPhotoTargets(store,order).filter(target=>target.wardrobe ? !outfitPhoto(store,target.wardrobe) : !orderItemPhoto(store,target.id)).slice(0,8)
   const job=(async()=>{
     let loaded=0
     const deadline=Date.now()+45_000
@@ -129,9 +137,26 @@ async function loadClothingPhotos(order:string) {
           if(image){product=candidate;break}
         }
       }
+      // Kein Bild in der Mail und keine Produktseite: Bildersuche über Produktname bzw. -nummer.
+      // Kleidung nur mit bekannter Farbe und Treffer vom Shop, dessen Titel die Farbe nennt (richtiger Colorway).
+      // Andere Artikel (etwa Technik) dürfen über Name bzw. Produktnummer gesucht werden.
+      const clothing=target.draft.isClothing!==false
+      if(!image && Date.now()<deadline && (!clothing || target.draft.color)) {
+        const query=[target.draft.brand,target.draft.name.slice(0,110),target.draft.color,target.sku&&/\d{5,}/u.test(target.sku)?target.sku:'',target.merchant].filter(Boolean).join(' ')
+        const color=target.draft.color.toLocaleLowerCase('de-DE')
+        const hits=(await searchProductImages(query).catch(()=>[])).filter(hit=>!clothing ||
+          new URL(hit.source).hostname.endsWith(target.shop) && hit.name.toLocaleLowerCase('de-DE').includes(color))
+        if(hits.length) image=await prepareProductImage(hits.slice(0,4).map(hit=>hit.image),deadline,true,true)
+      }
       const saved=store.transaction(()=>{
         const item=store.db.prepare('SELECT wardrobe_id,decision,details FROM clothing_order_items WHERE id=?').get(target.id)
-        if (!item || item.wardrobe_id!==target.wardrobe || item.decision==='returned') return false
+        if (!item) return false
+        if (!target.wardrobe) {
+          if (image) store.db.prepare('UPDATE clothing_order_items SET product_photo=coalesce(product_photo,?),image_checked=1 WHERE id=?').run(image.photo,target.id)
+          else store.db.prepare('UPDATE clothing_order_items SET image_checked=1 WHERE id=?').run(target.id)
+          return Boolean(image)
+        }
+        if (item.wardrobe_id!==target.wardrobe || item.decision==='returned') return false
         if (image && !outfitPhoto(store,target.wardrobe)) attachOutfitPhoto(store,target.wardrobe,image.photo,'image/png','web')
         if (product?.structured) {
           const details=JSON.parse(String(item.details)) as WardrobeDraft
@@ -380,7 +405,7 @@ async function work() {
     }:null
     const recurring=projectFromChat(store,next.payload)??seriesFromChat(next.payload)??taskBoardFromChat(next.payload)
     const model=recurring ? {result:recurring,error:null,metrics:offlineMetrics} : cloudModel ?
-      await runCodex(next.payload,controller.signal) : {result:fallback,error:null,metrics:offlineMetrics}
+      await runCodex({...next.payload,directory:agentDirectory(store,latest),analyse:analyseMessage(latest,next.payload.messages.at(-1)?.referenceDay??dateInBerlin())},controller.signal) : {result:fallback,error:null,metrics:offlineMetrics}
     const result=model.result??fallback
     const {error,metrics}=model
     if (!stopping) {
@@ -423,7 +448,7 @@ async function work() {
           if(cloudModel)webRecipes=await researchPantryRecipes(groceryOverview(store).stock,preference,controller.signal)
         }
       }
-      if(!controller.signal.aborted)store.finish(next.id,categorized,categorized?null:error??'Im Testprofil ist für diesen Auftrag kein lokaler Entwurf verfügbar.',metrics,webRecipes)
+      if(!controller.signal.aborted)store.finish(next.id,categorized,categorized?null:error??(cloudModel?'Für diesen Auftrag ist kein Entwurf verfügbar.':'Im Testprofil sind externe Modelle gesperrt. Für diesen Auftrag ist kein lokaler Entwurf verfügbar.'),metrics,webRecipes)
     }
   } catch {
     if (!stopping) store.finish(next.id, null, 'Der Modelladapter konnte nicht gestartet werden.', { wallMs: 0, model: null, usage: null, cost: null })
@@ -632,8 +657,15 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (draftRoute && method==='GET') return reply(res,200,readTripPreview(store,id(draftRoute[1])))
   if (path === '/api/trips/places' && method === 'GET') {
     const kind=url.searchParams.get('kind')
+    if (kind==='address') {
+      return reply(res,200,{addresses:await searchTripAddresses(url.searchParams.get('q')??'',url.searchParams.get('destination')??'')})
+    }
     if (kind!=='destination' && kind!=='departure') throw new Problem(400,'Wähle Reiseziel oder Abreiseort.')
     return reply(res,200,{places:await searchTripPlaces(url.searchParams.get('q')??'',kind==='departure')})
+  }
+  if (path === '/api/currency' && method === 'GET') {
+    if (acceptance) return reply(res,200,{from:'EUR',to:'USD',rate:1.08,date:'2026-01-01',source:'Testprofil',fetched:new Date().toISOString()})
+    return reply(res,200,await exchangeRate(url.searchParams.get('from'),url.searchParams.get('to'),url.searchParams.get('refresh')==='1'))
   }
   if (path === '/api/trips' && method === 'GET') return reply(res,200,trips(store))
   const tripDetail = /^\/api\/trips\/([a-f0-9-]{36})$/iu.exec(path)
@@ -675,7 +707,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       if (!cloudModel) throw new Problem(423,'Der externe Reiseguide ist in diesem Profil gesperrt. Speichere bei Bedarf die lokale Reisevorschau.')
       return reply(res,200,await generateTripPreview(store,id(preview),async plan=>{
         const forecast=fetchOutfitWeather(plan.draft.destination.split(',')[0].trim(),plan.draft.start).catch(()=>undefined)
-        const guide=await createTripGuide(plan,AbortSignal.timeout(MODEL_MS+3000))
+        const guide=await createTripGuide(plan,AbortSignal.timeout(140_000))
         const weather=await forecast
         return weather ? {...guide,packingTemperature:weather.max} : guide
       }))
@@ -758,9 +790,16 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   }
   if (path==='/api/outfits/travel' && method==='GET') return reply(res,200,travelWardrobe(store,id(url.searchParams.get('trip'))))
   if (path==='/api/outfits/travel' && method==='POST') {
-    const {tripId,items,item,confirm}=await body(req,['tripId','items','item','confirm'])
+    const {tripId,items,item,removeItem,confirm}=await body(req,['tripId','items','item','removeItem','confirm'])
     confirmLocalChange(confirm)
     const tripKey=id(tripId)
+    if (removeItem!==undefined) {
+      if (item!==undefined || items!==undefined) throw new Problem(400,'Wähle ein Teil zum Auspacken.')
+      return reply(res,200,store.transaction(()=>{
+        store.db.prepare('DELETE FROM wardrobe_travel WHERE trip_id=? AND wardrobe_id=?').run(tripKey,id(removeItem))
+        return travelWardrobe(store,tripKey)
+      }))
+    }
     if (item!==undefined && items===undefined) {
       return reply(res,200,store.transaction(()=>addTravelWardrobeItem(store,tripKey,id(item))))
     }
@@ -817,6 +856,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (path === '/api/outfits' && method === 'GET') return reply(res, 200, {
     ...outfitOverview(store, acceptance), weatherPlace: outfitLocation(personalProfile(store).fields.location) ? personalProfile(store).fields.location : '',
   })
+  if (path === '/api/clothing-orders/photo' && method === 'GET') {
+    const photo = orderItemPhoto(store,id(url.searchParams.get('item')))
+    if (!photo) throw new Problem(404,'Kein Artikelbild vorhanden.')
+    res.writeHead(200,{ 'Content-Type':'image/png', 'Cache-Control':'private, no-store' })
+    return res.end(photo)
+  }
   if (path === '/api/outfits/prepared-photo' && method === 'GET') {
     const file = preparedPhoto(id(url.searchParams.get('token')))
     res.writeHead(200,{ 'Content-Type':'image/png', 'Cache-Control':'private, no-store' })
@@ -1006,7 +1051,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
       let note = product.name ? '' : 'Die Produktseite liefert keine Angaben. Ergänze den Namen im Formular.'
       const waitingForColor = product.colors.length>1 && !('color' in product.draft && product.draft.color)
       if (prepareImage && !waitingForColor && product.name) {
-        const image = await prepareProductImage(product.images,Date.now()+17_000,false,true)
+        const image = await prepareProductImage(product.images,Date.now()+17_000,true,true)
         if (image) return reply(res,200,{...product,draft:productWardrobeFields(product.name,product.description,'',product.draft,image.draft.color),
           photoToken:stageOutfitPhoto(image.photo,'web'),note})
         note = 'Für diese Auswahl ließ sich kein Produktbild laden.'
@@ -1177,6 +1222,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
   if (path==='/api/clothing-orders' && method==='GET') {
     const month=url.searchParams.get('month'), focus=url.searchParams.get('focus')
     return reply(res,200,clothingOrders(store,month===null?undefined:financeMonth(month),focus===null?undefined:id(focus)))
+  }
+  if (path==='/api/model-provider' && method==='POST') {
+    const {provider,confirm}=await body(req,['provider','confirm'])
+    confirmLocalChange(confirm)
+    if(acceptance)throw new Problem(403,'Im Testprofil bleibt der Modellanbieter fest.')
+    try{return reply(res,200,{provider:setModelProvider(provider)})}catch{throw new Problem(400,'Wähle Codex oder Claude.')}
   }
   if (path==='/api/clothing-orders/change' && method==='POST') {
     const {order,item,action,value,confirm}=await body(req,['order','item','action','value','confirm'])
@@ -1352,7 +1403,7 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (path === '/api/state') {
       store.expire()
       const target = acceptance ? undefined : macCalendar.preferred(store)
-      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? 'Codex' : 'LifePilot (lokal)', cloudModel,
+      return reply(res, 200, { version, acceptance, nightbot, chatMode,directTestChat:audit, modelName: cloudModel ? (modelProvider()==='claude'?'Claude':'Codex') : 'LifePilot (lokal)', modelProvider: modelProvider(), claudeInstalled: await claudeAvailable(), cloudModel,
         googleAppointmentWrite: !acceptance && google.status().some(item => item.service === 'calendar-test' && item.connected), calendarTarget: target ? { name: target.name, account: target.account } : null,
         agents: [manifest], connectors, runs: store.list(), tasks: store.workspace.list(), schedule: store.workspace.schedule(), fixtures: acceptance ? fixtures : null })
     }
@@ -1555,12 +1606,15 @@ const server = createServer({ requestTimeout: 10_000, headersTimeout: 5000, keep
     reply(res, 500, { error: 'Der Hub konnte diese Aktion nicht abschließen.' })
   })
 })
+const adapter = createSocketServer(socket => { server.emit('connection', socket) })
+adapter.once('error', () => { console.error('Lokaler Adapter nicht erreichbar.'); stop(); process.exitCode = 1 })
 let interval: NodeJS.Timeout | undefined
 function stop() {
   if (stopping) return
   stopping = true
   clearInterval(interval)
   active?.controller.abort()
+  if (adapter.listening) adapter.close()
   server.close(() => {
     store?.recover()
     store?.db.close()
@@ -1584,16 +1638,9 @@ server.listen(port, '127.0.0.1', () => {
   try {
     mkdirSync(data, { recursive: true, mode: 0o700 })
     chmodSync(data, 0o700)
-    try { writeFileSync(secretPath, token(), { flag: 'wx', mode: 0o600 }) }
-    catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error }
-    chmodSync(secretPath, 0o600)
-    secret = readFileSync(secretPath)
-    if (audit) {
-      try { writeFileSync(probeSecretPath, token(), { flag: 'wx', mode: 0o600 }) }
-      catch (error) { if ((error as NodeJS.ErrnoException).code !== 'EEXIST') throw error }
-      chmodSync(probeSecretPath, 0o600)
-      probeSecret = readFileSync(probeSecretPath)
-    }
+    secret = Buffer.from(adapterToken(secretPath, true))
+    if (audit) probeSecret = Buffer.from(adapterToken(probeSecretPath, true))
+    adapter.listen(prepareAdapterSocket())
     store = new Store()
     store.recover()
     let seriesDay=''

@@ -10,6 +10,19 @@ export const groceryCatalog = [
   'Zahnpasta','Zahnbürste','Zahnseide','Deodorant','Shampoo','Duschgel','Sonnencreme','Handseife','Kontaktlinsenlösung',
   'Spülmittel','Waschmittel','Allzweckreiniger','Müllbeutel','Toilettenpapier','Küchenrolle','Taschentücher','Gefrierbeutel','Backpapier','Alufolie',
   'Hundefutter','Katzenfutter','Katzenstreu','Tiefkühlpizza','Schokolade','Haferdrink',
+  // Alltagsartikel für Suche und Schnellerfassung
+  'Schinken','Kochschinken','Salami','Speck','Bacon','Aufschnitt','Putenbrust','Hähnchenschenkel','Schweinefilet','Rindersteak','Bratwurst','Wiener Würstchen','Thunfisch','Garnelen','Fischstäbchen',
+  'Gouda','Emmentaler','Mozzarella','Feta','Parmesan','Frischkäse','Schmand','Saure Sahne','Sahne','Crème fraîche','Skyr','Mascarpone','Halloumi',
+  'Brötchen','Vollkornbrot','Baguette','Croissants','Bagels','Knäckebrot',
+  'Zucchini','Aubergine','Avocado','Limetten','Orangen','Trauben','Blaubeeren','Himbeeren','Birnen','Mango','Ananas','Süßkartoffeln','Blumenkohl','Rotkohl','Weißkohl','Lauch','Sellerie','Radieschen','Mais','Erbsen','Rucola','Feldsalat','Pilze','Thai-Chilis','Frühlingsrollen',
+  'Basilikum','Thai-Basilikum','Koriander','Schnittlauch','Dill','Minze','Rosmarin','Thymian',
+  'Spaghetti','Penne','Fusilli','Lasagneplatten','Basmatireis','Jasminreis','Couscous','Bulgur','Quinoa','Gnocchi','Rote Linsen','Kidneybohnen','Weiße Bohnen','Mais (Dose)','Gehackte Tomaten','Tomatenmark','Kokosmilch','Gemüsebrühe','Hühnerbrühe',
+  'Zucker','Puderzucker','Backpulver','Hefe','Vanillezucker','Kakao','Speisestärke','Paniermehl',
+  'Oregano','Curry','Kurkuma','Kreuzkümmel','Zimt','Chiliflocken','Muskat','Knoblauchpulver','Paprikapulver edelsüß',
+  'Austernsoße','Fischsauce','Sriracha','Pesto','BBQ-Soße','Tabasco','Balsamico','Sonnenblumenöl',
+  'Nutella','Butterkekse','Chips','Nüsse','Mandeln','Gummibärchen','Müsliriegel','Popcorn',
+  'Apfelsaft','Cola','Bier','Wein','Sprudelwasser','Eistee','Energy Drink',
+  'Spülmaschinentabs','Weichspüler','Schwämme','Glasreiniger','Badreiniger','WC-Reiniger','Handtuchpapier','Frischhaltefolie','Rasierer','Rasierschaum','Bodylotion','Wattepads','Pflaster','Ibuprofen','Paracetamol',
 ]
 
 export function grocerySearchKey(name:string) {
@@ -83,6 +96,9 @@ export function canonicalGroceryName(value:string,correctTypos=true) {
 }
 
 const rules: [GroceryCategory,RegExp][] = [
+  ['herbs',/basilikum|krapao|koriander|schnittlauch|petersilie|\bdill\b|minze|rosmarin|thymian|salbei|zitronengras/u],
+  ['canned',/(?:\(dose\)|dose)|kidneybohnen|weisse bohnen|kichererbs|linsen|kokosmilch|gehackte tomaten|thunfisch|mais/u],
+  ['baking',/backpulver|hefe|vanillezucker|puderzucker|kakao|speisestarke|paniermehl|^zucker$|mehl/u],
   ['pets',/katzenstreu|tierfutter|hundefutter|katzenfutter|hundekeks/u],
   ['paper',/toilettenpapier|kuchenrolle|taschentuch|backpapier|alufolie|gefrierbeutel|mullbeutel/u],
   ['frozen',/tiefkuhl|tiefgefroren|gefrier|^tk\b|pizza|fertiggericht/u],
@@ -92,14 +108,14 @@ const rules: [GroceryCategory,RegExp][] = [
   ['care',/zahnpasta|zahnburste|duschgel|shampoo|taschentuch|deodorant|seife/u],
   ['drinks',/wasser|kaffee|^tee|saft|bier|haferdrink|hafermilch|getrank|cola/u],
   ['bakery',/brot|brotchen|toast|wraps?|baguette|croissant/u],
-  ['meat',/hackfleisch|hahnchen|lachs|fisch|rind|schwein|wurst|speck|aufschnitt|thunfisch/u],
-  ['dairy',/milch|joghurt|yogurt|quark|butter|kase|mozzarella|parmesan|^ei(?:er)?$|sahne|skyr|feta/u],
+  ['meat',/hackfleisch|hahnchen|lachs|fisch|rind|schwein|wurst|wurstchen|speck|bacon|aufschnitt|schinken|salami|pute|garnele|shrimp|steak|schnitzel|mortadella|chorizo/u],
+  ['dairy',/milch|joghurt|yogurt|quark|butter|kase|mozzarella|parmesan|gouda|emmentaler|^ei(?:er)?$|sahne|schmand|creme fraiche|skyr|feta|mascarpone|halloumi/u],
   ['breakfast',/honig|marmelad|konfitur|musli|porridge|aufstrich/u],
   ['oil',/essig|olivenol|rapsol|sonnenblumenol|sesamol|^speiseol/u],
-  ['sauce',/sauce|sosse|ketchup|senf|mayonnaise|sojasos|tabasco/u],
+  ['sauce',/sauce|sosse|ketchup|senf|mayonnaise|sojasos|tabasco|sriracha|pesto|bruhe|balsamico/u],
   ['pantry',/passiert|tomatenmark|nudel|spaghetti|pasta|reis|mehl|olivenol|linsen|haferflock|gewurz|pfeffer|paprikapulver|^salz|zucker|essig|bohnen|kichererbs|pesto|couscous|bulgur/u],
   ['snacks',/nuss|nusse|schokolade|chips|riegel|keks|mandel|gummib/u],
-  ['produce',/apfel|banane|tomat|zwiebel|knoblauch|salat|gurke|lauchzwiebel|paprika|zucchini|sellerie|kartoff|karotte|mohre|brokkoli|spinat|zitrone|avocado|birne|beere|orange|pilz|champignon|ingwer|petersilie|chili/u],
+  ['produce',/apfel|banane|tomat|zwiebel|knoblauch|salat|gurke|lauchzwiebel|paprika|zucchini|sellerie|kartoff|karotte|mohre|brokkoli|spinat|zitrone|avocado|birne|beere|orange|pilz|champignon|ingwer|chili|zucchini|aubergine|lauch|kohl|radieschen|rucola|feldsalat|mango|ananas|trauben|limette|mais/u],
 ]
 
 export function groceryCategory(name:string) {

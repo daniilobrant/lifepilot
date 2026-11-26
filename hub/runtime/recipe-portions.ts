@@ -22,7 +22,9 @@ export function scaleRecipeIngredients(items:GroceryInput[],base:number,servings
   return items.map(item=>{
     const quantity=parseQuantity(item.quantity)
     if(!quantity||quantity.amount<=0)return item
-    const amount=portionsFormat.format(quantity.amount*servings/base)
+    const scaled=quantity.amount*servings/base
+    // Gramm und Milliliter ab 10 auf ganze Zahlen runden, kleine Mengen bleiben genau.
+    const amount=portionsFormat.format(/^(?:g|ml)$/iu.test(quantity.unit)&&scaled>=10?Math.round(scaled):scaled)
     return {...item,quantity:[amount,quantity.unit].filter(Boolean).join(' ')}
   })
 }
@@ -32,14 +34,15 @@ export function measured(quantity:string|undefined){
   if(!parsed)return null
   const unit=parsed.unit.toLocaleLowerCase('de-DE').replace(/\.$/u,'')
   switch(unit){
-    case 'kg':return {kind:'weight',value:parsed.amount*1000}
-    case 'g':return {kind:'weight',value:parsed.amount}
-    case 'l':return {kind:'volume',value:parsed.amount*1000}
-    case 'ml':return {kind:'volume',value:parsed.amount}
-    case 'el':return {kind:'volume',value:parsed.amount*15}
-    case 'tl':return {kind:'volume',value:parsed.amount*5}
+    // Gramm und Milliliter gelten als vergleichbar (≈ 1 g/ml), damit Rezept und Vorrat sich prüfen lassen.
+    case 'kg':return {kind:'mass',value:parsed.amount*1000}
+    case 'g':return {kind:'mass',value:parsed.amount}
+    case 'l':return {kind:'mass',value:parsed.amount*1000}
+    case 'ml':return {kind:'mass',value:parsed.amount}
+    case 'el':return {kind:'mass',value:parsed.amount*15}
+    case 'tl':return {kind:'mass',value:parsed.amount*5}
     case '':case 'stück':case 'stk':case 'st':return {kind:'count',value:parsed.amount}
-    case 'zehe':case 'zehen':return {kind:'zehe',value:parsed.amount}
+    case 'zehe':case 'zehen':return {kind:'count',value:parsed.amount}
     case 'dose':case 'dosen':return {kind:'dose',value:parsed.amount}
     case 'scheibe':case 'scheiben':return {kind:'scheibe',value:parsed.amount}
     case 'bund':case 'bünde':return {kind:'bund',value:parsed.amount}

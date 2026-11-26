@@ -12,7 +12,7 @@ import {quickReplyFor} from './chat-quick-replies.ts'
 import {DateInput,TimeInput} from './presentation.tsx'
 import {MAX_CHAT_INPUT} from '../runtime/model-payload.ts'
 import { MailFinance } from './mail-finance.tsx'
-import { OrderTracker } from './clothing-orders.tsx'
+import { OrderApprovals, OrderTracker } from './clothing-orders.tsx'
 import { ChatRecipe, ChatRecipeOptions, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
 import { FinanceForm, FinancePanel } from './finance.tsx'
@@ -48,7 +48,7 @@ type Followup = { turn: number, input: string, previousResult: Result | null, sh
 type Run = { projectChange?:ProjectChange, seriesChange?:SeriesChange, previous_run?:string|null, parent_run?:string|null, updated_at:string, financeChanges?:FinanceChange[], groceryChange?:GroceryAnswer, financeChange?:FinanceChange, googleSync?: 'pending' | 'saved' | 'removed' | null, id: string, input: string, state: State, origin: 'ui' | 'cli', result: Result | null,
   error: string | null, turn: number, followups: Followup[], version: string, approvals: Approval[], memory: Entry[], context: TaskContext[],
   reference_day: string | null, sourceName: string | null }
-type Snapshot = { cloudModel?: boolean, directTestChat?:boolean, nightbot?:boolean, googleAppointmentWrite?: boolean, modelName?: string, version: string, acceptance: boolean, chatMode: 'disabled' | 'synthetic' | 'private', runs: Run[], tasks?: TaskRow[], schedule?: ScheduleRow[], connectors?: ConnectorEntry[],
+type Snapshot = { modelProvider?: 'codex'|'claude', claudeInstalled?: boolean, cloudModel?: boolean, directTestChat?:boolean, nightbot?:boolean, googleAppointmentWrite?: boolean, modelName?: string, version: string, acceptance: boolean, chatMode: 'disabled' | 'synthetic' | 'private', runs: Run[], tasks?: TaskRow[], schedule?: ScheduleRow[], connectors?: ConnectorEntry[],
   agents: { name: string, description: string, version: string }[],
   calendarTarget?: { name: string, account: string } | null
   fixtures: { ui: string, cli: string, memory: string } | null }
@@ -233,7 +233,7 @@ function GoogleSettings({onMailConnectionChange}: {onMailConnectionChange:()=>vo
       .map(entry=><article className="google-connection" key={entry.service}>
         <div><h3>{googleNames[entry.service]}</h3><span className="status">{entry.connected?'Verbunden':entry.configured?'Anmeldung offen':'Einrichtung offen'}</span></div>
         {entry.connected ? <button type="button" disabled={busy} onClick={()=>void act(async()=>{
-          if (!window.confirm(googleNames[entry.service]+' von LifePilot trennen?')) return
+          if (!window.confirm(googleNames[entry.service]+' lokal von LifePilot trennen? Die Berechtigung bei Google kannst du in deinem Google-Konto widerrufen.')) return
           setStatus(await api('/google/disconnect',{service:entry.service,confirm:true}))
           if (entry.service==='gmail'||entry.service==='gmail-content') onMailConnectionChange()
         })}>Trennen</button> : entry.configured ?
@@ -1025,7 +1025,6 @@ function App() {
   const [taskId, setTaskId] = useState<string | null>(null)
   const taskDialog = useRef<HTMLDialogElement>(null)
   useEffect(() => { taskDialog.current?.showModal() }, [taskId])
-  const [pageSearch, setPageSearch] = useState('')
   const [synthetic, setSynthetic] = useState(false)
   const [input, setInput] = useState('')
   const [doc, setDoc] = useState<SourceNote>()
@@ -1591,11 +1590,8 @@ function App() {
     if(name!=='Projekte')setProjectSelection(undefined)
     if (name === 'Outfit-Assistent') setOutfitRequest(undefined)
     if (name === 'Urlaubsplaner') setTravelRequest(undefined)
-    setPageSearch('')
     setPage(name)
   }
-  const searchResults = pageSearch.trim() ? [...navigation.flatMap(group => group.links.map(([name]) => name)),
-    'Einstellungen'].filter(name => name.toLocaleLowerCase('de').includes(pageSearch.trim().toLocaleLowerCase('de'))) as Page[] : []
 
   return <div className="shell">
     {calendarApproval?<CalendarConflictDialog confirmation={calendarApproval.confirmation} busy={busy}
@@ -1620,19 +1616,6 @@ function App() {
     </nav>
     <main id="main-content" tabIndex={-1}>
       <header className="topbar">
-        <form className="navigation-search" role="search" onSubmit={event => {
-          event.preventDefault()
-          if (searchResults.length) navigate(searchResults[0]!)
-        }}>
-          <Icon name="search" /><input type="search" aria-label="Bereich suchen" placeholder="Suchen …" value={pageSearch}
-            onChange={event => setPageSearch(event.target.value)} onKeyDown={event => {
-              if (event.key === 'Escape') setPageSearch('')
-            }} />
-          {pageSearch.trim() ? <div className="search-results card">
-            {searchResults.length ? searchResults.map(name => <button key={name} type="button" className="quiet"
-              onClick={() => navigate(name)}>{name}</button>) : <p>Kein Bereich gefunden.</p>}
-          </div> : null}
-        </form>
         <a className="layout-jump" href="#agent-chat"><Icon name="chat" />Zu Pilot</a>
       </header>
       <div className="main-content">
@@ -1713,6 +1696,8 @@ function App() {
 
                 <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline} compact/>
                 <MailFinance api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion} onUpdate={financeMailUpdated}/>
+                <OrderApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey}
+                  onOpen={id=>{navigate('Bestellungstracker');setBoardSource({source_type:'order',source_id:id} as never)}} onUpdate={()=>void refresh()}/>
                 <LiveInbox batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
                 <button type="button" className="quiet" onClick={()=>navigate('Posteingang')}>Mailvorschläge öffnen →</button>
                 <BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}
@@ -1737,7 +1722,7 @@ function App() {
               description="LifePilot übernimmt die offenen Pilot-Vorschläge. Kalenderänderungen werden lokal ausgeführt."/></Section> : null}
             <div className="skill-grid">
               {([
-                ['E-Mail-Manager','envelope','Prüft relevante Mails und schlägt Ausgaben, Abos und Fristen vor.'],
+                ['E-Mail-Manager','envelope','Prüft relevante Mails und schlägt Ausgaben, Abos und Fristen vor.','Posteingang',()=>navigate('Posteingang')],
                 ['Projektplaner','folder','Verwaltet Projektaufgaben, Meilensteine und Fristen.','Projekte',()=>navigate('Projekte')],
                 ['Bestellungstracker','parcel','Verfolgt Lieferungen, Retouren und Erstattungen.','Bestellungen',()=>navigate('Bestellungstracker')],
                 ['Urlaubsplaner','plane','Bündelt Tagespläne, Buchungen und Reisevorbereitung.','Reisen',()=>navigate('Urlaubsplaner')],
@@ -1778,7 +1763,13 @@ function App() {
             <PersonalAccountOverview version={snapshot.version} testMode={snapshot.acceptance}/>
             <div className="card settings"><h2>Erscheinungsbild</h2><p>Heller Modus</p></div>
             <div className="card settings"><h2>Agenten-Chat</h2>
-              <p>{snapshot.chatMode==='disabled' ? 'Wartet auf Freigabe' : snapshot.chatMode==='synthetic' ? 'Bereit für Testdaten' : 'Mit Codex verbunden'}</p>
+              <p>{snapshot.chatMode==='disabled' ? 'Wartet auf Freigabe' : snapshot.chatMode==='synthetic' ? 'Bereit für Testdaten' : 'Mit '+(snapshot.modelProvider==='claude'?'Claude':'Codex')+' verbunden'}</p>
+              {snapshot.chatMode==='private' ? <label className="model-provider">Modell für Pilot, Reiseguide und Bildanalyse
+                <select value={snapshot.modelProvider??'codex'} disabled={busy} onChange={event=>void mutate('/model-provider',{provider:event.target.value,confirm:true})}>
+                  <option value="codex">Codex (ChatGPT)</option>
+                  <option value="claude">Claude (Claude Code CLI){snapshot.claudeInstalled?'':' – nicht installiert'}</option>
+                </select></label> : null}
+              {snapshot.modelProvider==='claude'&&!snapshot.claudeInstalled ? <p role="alert">Die Claude Code CLI ist auf diesem Mac nicht installiert. Bis dahin schlagen Pilot-Anfragen fehl.</p> : null}
             </div>
             <details className="card settings"><summary>Verbesserung anfragen</summary>
               <form onSubmit={async event => {
@@ -1803,9 +1794,7 @@ function App() {
           onCancel={event => { event.preventDefault(); setTaskId(null) }}>
           {error && currentTask && (error.path.startsWith('/tasks/') || error.path.startsWith('/schedule')) ? <p role="alert">{error.message}</p> : null}
           <TaskEditor key={currentTask.id + ':' + currentTask.revision} task={currentTask} tasks={tasks} schedule={schedule} projects={projects?.projects} openSchedule={taskScheduleFocus}
-            mutate={mutate} onClose={() => setTaskId(null)} loadHistory={id => api('/tasks/' + id)}
-            renderExport={snapshot?.acceptance ? undefined : slot => <CalendarExport slot={slot.id}
-              preferred={!!snapshot?.calendarTarget} onSaved={() => void refresh()} />} />
+            mutate={mutate} onClose={() => setTaskId(null)} loadHistory={id => api('/tasks/' + id)} />
         </dialog> : null}
       </div>
     </main>
@@ -1877,8 +1866,8 @@ function App() {
         {focus?.result?.skill==='orders' && skillResult?.orders ? <p role="status">{skillResult.orders.checked} Bestellmails geprüft.
           {skillResult.orders.limited ? ' Der Abruf hat sein Limit erreicht.' : ''}</p> : null}
         {focus?.result?.skill==='orders' ? <button className="quiet" type="button" disabled={skillBusy}
-          onClick={()=>skillResult?.orders ? openFromPilot('Bestellungstracker') : void executeChatSkill(focus)}>
-          {skillResult?.orders ? 'Bestellungstracker öffnen' : 'Bestellungen prüfen'}</button> : null}
+          onClick={()=>skillResult?.orders||(focus.result?.skillData&&'orderIntent' in focus.result.skillData) ? openFromPilot('Bestellungstracker') : void executeChatSkill(focus)}>
+          {skillResult?.orders||(focus.result?.skillData&&'orderIntent' in focus.result.skillData) ? 'Bestellungstracker öffnen' : 'Bestellungen prüfen'}</button> : null}
         {focus?.result?.skill==='finance' ? <button className="quiet" type="button" onClick={()=>{openFromPilot('Finanzen & Abos')}}>Finanzen &amp; Abos öffnen</button> : null}
         {focus && ['review','accepted'].includes(focus.state) && focus.result?.skill==='travel' && !focus.result.questions.length &&
           !(focus.result.skillData && 'intent' in focus.result.skillData && focus.result.skillData.intent==='change') ? <button type="button"

@@ -1,6 +1,6 @@
 {
   "name": "lifepilot",
-  "version": "1.0.9",
+  "version": "1.0.42",
   "private": true,
   "type": "module",
   "engines": {
@@ -12,7 +12,7 @@
     "start": "./bin/lifepilot start",
     "stop": "./bin/lifepilot stop",
     "test:integration": "node --test agents/lifepilot/tests/http.live.mjs",
-    "security:check": "node scripts/security-check.mjs"
+    "eval:chat": "node agents/lifepilot/evals/run.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

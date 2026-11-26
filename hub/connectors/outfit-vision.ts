@@ -11,7 +11,7 @@ import { outfitUploadLimit, photoLimit, photoMime } from './outfit-import.ts'
 const execute = promisify(execFile)
 let active = 0
 
-async function processPhoto(image: Buffer, fullPhoto: boolean) {
+async function processPhoto(image: Buffer, fullPhoto: boolean, preserveFrame=false) {
   if (image.length > outfitUploadLimit) throw new Problem(413,'Das Foto darf höchstens 16 MB groß sein.')
   const format = photoMime(image,true).split('/')[1]
   if (active >= 2) throw new Problem(429,'Die Bilderkennung ist beschäftigt. Versuche es gleich erneut.')
@@ -22,7 +22,7 @@ async function processPhoto(image: Buffer, fullPhoto: boolean) {
     const path = join(directory,'outfit.'+format)
     await writeFile(path,image,{mode:0o600,flag:'wx'})
     const formatted = join(directory,fullPhoto?'look.jpg':'prepared.png')
-    const { stdout } = await execute(join(root,'dist/outfit-vision'),[path,formatted,...(fullPhoto?['full']:[])],{maxBuffer:24_000,timeout:15_000})
+    const { stdout } = await execute(join(root,'dist/outfit-vision'),[path,formatted,...(fullPhoto?['full']:preserveFrame?['product']:[])],{maxBuffer:24_000,timeout:15_000})
     const photo = await readFile(formatted)
     if (photo.length > photoLimit || photoMime(photo) !== (fullPhoto?'image/jpeg':'image/png')) throw Error()
     return {photo,stdout}
@@ -38,8 +38,8 @@ export async function prepareFullOutfitPhoto(image: Buffer) {
   return (await processPhoto(image,true)).photo
 }
 
-export async function analyzeOutfitPhoto(image: Buffer) {
-  const {photo,stdout} = await processPhoto(image,false)
+export async function analyzeOutfitPhoto(image: Buffer,preserveFrame=false) {
+  const {photo,stdout} = await processPhoto(image,false,preserveFrame)
   const { lines, labels, color, feature, containsPerson, checkedPeople } = JSON.parse(stdout)
   if (!Array.isArray(lines) || !Array.isArray(labels)) throw new Problem(422,'Die Analyse lieferte kein lesbares Ergebnis.')
   const text = lines.filter(value=>typeof value==='string').join('\n').slice(0,3200)

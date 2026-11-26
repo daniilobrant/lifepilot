@@ -1,9 +1,11 @@
-import {TripDateField,TripPlaceField,TravelChoices} from './travel-fields.tsx'
+import {TripAddressField,TripDateField,TripPlaceField,TravelChoices} from './travel-fields.tsx'
 import {DateInput,TimeInput} from './presentation.tsx'
 import {tripIntakeExtras} from '../runtime/trip-intake.ts'
 import { mapProviders, mapRoute, type MapProvider } from '../runtime/trip-routes.ts'
-import { useEffect, useState, type FormEvent } from 'react'
+import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from 'react'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
+import { currencyNames, destinationCurrency } from '../runtime/currency-codes.ts'
+import { itemOccasion, outerWeight, outfitSlot, type OutfitSlot, type WardrobeItem } from '../runtime/outfit-types.ts'
 import { bookingOutsideTrip, bookingKinds, packingCategories, tripPeriods, tripStates, type TravelWindows, type Trip, type TripChatPlan,
   type TripDraft, type TripPlan, type TripPreview, type TripSummary, type TripItem } from '../runtime/trip-types.ts'
 
@@ -17,14 +19,68 @@ const weekdays=[['Mo',1],['Di',2],['Mi',3],['Do',4],['Fr',5],['Sa',6],['So',0]] 
 function showDay(value:string) {
   return new Intl.DateTimeFormat('de-DE',{dateStyle:'medium',timeZone:'UTC'}).format(new Date(value+'T12:00Z'))
 }
+function useDismissOnOutside(open: boolean, ref: RefObject<HTMLDetailsElement | null>) {
+  useEffect(() => {
+    if (!open) return
+    const dismiss = (event: PointerEvent) => {
+      if (ref.current && event.target instanceof Node && !ref.current.contains(event.target)) {
+        ref.current.open = false
+      }
+    }
+    document.addEventListener('pointerdown', dismiss, true)
+    return () => document.removeEventListener('pointerdown', dismiss, true)
+  }, [open, ref])
+}
+function closeMenuOnEscape(event: KeyboardEvent<HTMLDetailsElement>) {
+  if (event.key !== 'Escape' || !event.currentTarget.open) return
+  event.preventDefault()
+  event.currentTarget.open = false
+  event.currentTarget.querySelector('summary')?.focus()
+}
+function ChevronIcon({ size = 12 }: { size?: number }) {
+  return <svg aria-hidden="true" width={size} height={size} viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M3 4.5 6 7.5 9 4.5" />
+  </svg>
+}
+function TripActionsMenu({ busy, showCalendar, onCalendar, onWeather, onRemove }: {
+  busy: boolean, showCalendar: boolean, onCalendar: () => void, onWeather: () => void, onRemove: () => void,
+}) {
+  const menu = useRef<HTMLDetailsElement>(null)
+  const [open, setOpen] = useState(false)
+  useDismissOnOutside(open, menu)
+  const choose = (action: () => void) => {
+    menu.current?.removeAttribute('open')
+    action()
+  }
+  return <details className="travel-trip-menu" ref={menu} onToggle={event => setOpen(event.currentTarget.open)} onKeyDown={closeMenuOnEscape}>
+    <summary aria-label="Reise-Optionen">
+      <span>Aktionen</span>
+      <ChevronIcon />
+    </summary>
+    <div className="travel-trip-menu-panel">
+      {showCalendar ? <button type="button" onClick={() => choose(onCalendar)}>Zu Google Kalender hinzufügen</button> : null}
+      <button type="button" disabled={busy} onClick={() => choose(onWeather)}>Wetter für Duftvorschlag abrufen</button>
+      <button type="button" className="travel-danger-action" onClick={() => choose(onRemove)}>Reise entfernen</button>
+    </div>
+  </details>
+}
 function RouteLink({ destination, origin, mode, label='Route öffnen' }: {
   destination?:string,origin?:string,mode?:Exclude<TripDraft['transport'],'open'>,label?:string,
 }) {
+  const choice = useRef<HTMLDetailsElement>(null)
+  const [open, setOpen] = useState(false)
+  useDismissOnOutside(open, choice)
   if (!destination?.trim()) return null
   return <div className="travel-route-actions">
-    <a className="travel-route" href={mapRoute('google',destination,origin,mode)} target="_blank" rel="noreferrer">{label}</a>
-    <details className="travel-route-choice">
-      <summary aria-label={'Karten-App für „'+label+'“'}><span aria-hidden="true">⌄</span></summary>
+    <a className="travel-route" href={mapRoute('google',destination,origin,mode)} target="_blank" rel="noreferrer">
+      <svg aria-hidden="true" width="12" height="12" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M8 14s4.5-4.1 4.5-7.5a4.5 4.5 0 1 0-9 0C3.5 9.9 8 14 8 14Z" />
+        <circle cx="8" cy="6.5" r="1.5" />
+      </svg>
+      <span>{label}</span>
+    </a>
+    <details className="travel-route-choice" ref={choice} onToggle={event => setOpen(event.currentTarget.open)} onKeyDown={closeMenuOnEscape}>
+      <summary aria-label={'Karten-App für „'+label+'“'}><ChevronIcon size={11} /></summary>
       <span className="card">
         {(Object.keys(mapProviders) as MapProvider[]).map(provider=><a key={provider}
           href={mapRoute(provider,destination,origin,mode)} target="_blank" rel="noreferrer"
@@ -178,10 +234,95 @@ function addItem(event:FormEvent<HTMLFormElement>,mutate:Patch,kind:'task'|'pack
   const form=event.currentTarget
   const fields=Object.fromEntries(new FormData(form))
   const value=kind==='booking' ? {kind,booking:fields} : {...fields,kind,date,...(kind==='pack' && {quantity:Number(fields.quantity)})}
-  void mutate(value).then(()=>form.reset()).catch(()=>{})
+  void mutate(value).then(()=>{
+    form.reset()
+    form.closest('details.travel-add-activity')?.removeAttribute('open')
+  }).catch(()=>{})
 }
 
-function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boolean }) {
+type Rate={from:string,to:string,rate:number,date:string,source:string,fetched:string}
+const money=(value:number,currency:string)=>new Intl.NumberFormat('de-DE',{style:'currency',currency,maximumFractionDigits:currency==='JPY'||currency==='KRW'?0:2}).format(value)
+
+/** Rechner zwischen Heimatwährung (Euro) und Landeswährung. Kurs beim Öffnen, auf Wunsch neu abrufen. */
+function CurrencyConverter({api,destination}:{api?:Api,destination:string}) {
+  const foreign=destinationCurrency(destination)
+  const [pair,setPair]=useState<[string,string]>(['EUR',foreign])
+  const [amount,setAmount]=useState('100')
+  const [rate,setRate]=useState<Rate>()
+  const [state,setState]=useState<'idle'|'loading'|'error'>('idle')
+  const storage='lifepilot-rate-EUR'+foreign
+  async function load(refresh=false) {
+    if (!api || foreign==='EUR') return
+    setState('loading')
+    try {
+      const value=await api<Rate>(`/currency?from=EUR&to=${foreign}${refresh?'&refresh=1':''}`)
+      setRate(value);localStorage.setItem(storage,JSON.stringify(value));setState('idle')
+    } catch {setState('error')}
+  }
+  useEffect(()=>{
+    const saved=localStorage.getItem(storage)
+    if (saved) try {setRate(JSON.parse(saved) as Rate)} catch {/* Neu laden. */}
+    void load()
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  },[foreign])
+  if (foreign==='EUR') return <section className="travel-currency"><strong>Währung</strong><p>Am Ziel gilt ebenfalls der Euro.</p></section>
+  const value=Number(amount.replace(',','.'))
+  const factor=rate ? (pair[0]==='EUR' ? rate.rate : 1/rate.rate) : undefined
+  return <section className="travel-currency" aria-label="Währungsrechner">
+    <header><strong>Währungsrechner</strong>
+      <button type="button" className="travel-small-button" disabled={state==='loading'} onClick={()=>void load(true)}>{state==='loading'?'Lädt …':'Aktualisieren'}</button></header>
+    <div className="travel-currency-row">
+      <label><span>Betrag</span><input inputMode="decimal" value={amount} onChange={event=>setAmount(event.target.value)} aria-label={'Betrag in '+pair[0]}/></label>
+      <span className="travel-currency-code" title={currencyNames[pair[0]]}>{pair[0]}</span>
+      <button type="button" className="travel-swap" aria-label="Währungen tauschen" onClick={()=>setPair(([a,b])=>[b,a])}>⇄</button>
+      <output aria-live="polite">{factor && Number.isFinite(value) ? money(value*factor,pair[1]) : '–'}</output>
+    </div>
+    <small>{rate ? `1 ${pair[0]} = ${(pair[0]==='EUR'?rate.rate:1/rate.rate).toLocaleString('de-DE',{maximumFractionDigits:4})} ${pair[1]} · Stand ${showDay(rate.date)} · ${rate.source}` :
+      state==='error' ? 'Kurs nicht abrufbar. Versuche es mit „Aktualisieren“ erneut.' : 'Kurs wird geladen …'}</small>
+  </section>
+}
+
+function Stepper({value,label,onChange,disabled}:{value:number,label:string,onChange:(value:number)=>void,disabled?:boolean}) {
+  return <div className="travel-stepper" role="group" aria-label={'Menge '+label}>
+    <button type="button" disabled={disabled||value<=1} aria-label="Weniger" onClick={()=>onChange(value-1)}>−</button>
+    <span aria-live="polite">{value}</span>
+    <button type="button" disabled={disabled||value>=99} aria-label="Mehr" onClick={()=>onChange(value+1)}>+</button>
+  </div>
+}
+
+// Packstücke, bei denen eine Menge keinen Sinn ergibt, zeigen keinen Zähler.
+const countable=(entry:TripPlan['packing'][number])=>entry.category==='Kleidung' || /parfüm|parfum|kontaktlinsen|socken|unterwäsche/iu.test(entry.text) || entry.quantity>1
+const packSlots:[RegExp,OutfitSlot][]=[[/oberteil|t-?shirt|shirt|langarm/iu,'base'],[/pullover|strick/iu,'knit'],[/hose/iu,'bottom'],
+  [/jacke|mantel/iu,'outer'],[/schuh/iu,'shoes'],[/abends/iu,'outer']]
+function wardrobeTips(entry:TripPlan['packing'][number],wardrobe:WardrobeItem[],temperature?:number) {
+  const slot=packSlots.find(([pattern])=>pattern.test(entry.text))?.[1]
+  if (!slot || entry.category!=='Kleidung') return []
+  const pieces=wardrobe.filter(item=>!item.orderState && !item.saleState && outfitSlot(item)===slot)
+  const wanted=/winter/iu.test(entry.text)?'winter':/regen/iu.test(entry.text)?'rain':/übergang/iu.test(entry.text)?'transition':undefined
+  const fitting=slot==='outer' && wanted ? pieces.filter(item=>outerWeight(item)===wanted) : pieces
+  const evening=/abends/iu.test(entry.text)
+  return fitting.filter(item=>!evening || /büro|dinner|abends/iu.test(itemOccasion(item)))
+    .filter(()=>temperature===undefined || true).slice(0,4)
+}
+function PackRow({entry,mutate,busy,wardrobe,temperature}:{entry:TripPlan['packing'][number],mutate?:Patch,busy?:boolean,wardrobe:WardrobeItem[],temperature?:number}) {
+  const suggestions=/^Vorschläge: /u.exec(entry.detail) ? entry.detail.slice(12).split('. ')[0].split(' · ') : []
+  const detail=suggestions.length ? entry.detail.slice(entry.detail.indexOf('. ')+2) : entry.detail
+  const pieces=wardrobeTips(entry,wardrobe,temperature)
+  return <div className="travel-pack-row" data-done={entry.done||undefined}>
+    <label className="travel-item">
+      {mutate ? <input type="checkbox" checked={entry.done} onChange={event=>void mutate({kind:'toggle',item:entry.id,done:event.target.checked}).catch(()=>{})}/> : null}
+      <span><strong>{entry.text}</strong>{detail ? <small>{detail}</small> : null}</span>
+    </label>
+    {countable(entry) ? mutate ? <Stepper value={entry.quantity} label={entry.text} disabled={busy}
+      onChange={quantity=>void mutate({kind:'quantity',item:entry.id,quantity}).catch(()=>{})}/> : <span className="travel-qty">× {entry.quantity}</span> : null}
+    {suggestions.length || pieces.length ? <ul className="travel-pack-suggestions" aria-label="Vorschläge aus deinem Bestand">
+      {suggestions.map(name=><li key={name}>{name}</li>)}
+      {pieces.map(item=><li key={item.id} title={itemOccasion(item)}>{item.name.length>42?item.name.slice(0,40)+' …':item.name}<small>{itemOccasion(item)}</small></li>)}
+    </ul> : null}
+  </div>
+}
+
+function TripGuide({ plan,mutate,busy,api,wardrobe=[] }: { plan:TripPlan,mutate?:Patch,busy?:boolean,api?:Api,wardrobe?:WardrobeItem[] }) {
   const [section,setSection]=useState<'Tagesplan'|'Tipps'|'Vorbereitung'|'Buchungen'>('Tagesplan')
   const {arrival,draft}=plan
   const confirmed=plan.bookings.filter(entry=>entry.kind==='stay' && entry.status==='confirmed')
@@ -190,21 +331,21 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
     <section className="card travel-intro">
       <h2>{plan.draft.destination}</h2><p>{showDay(plan.draft.start)} – {showDay(plan.draft.end)} · {plan.days.length} Tage · {plan.draft.people} {plan.draft.people===1?'Person':'Personen'}</p>
       <p>{plan.overview}</p>
-      {mutate ? <details><summary>Reisezeitraum ändern</summary>
-        <form key={draft.start+draft.end} onSubmit={event=>{
+      {mutate ? <details className="travel-inline-details"><summary>Reisezeitraum ändern</summary>
+        <form key={draft.start+draft.end} className="travel-compact-form" onSubmit={event=>{
           event.preventDefault()
+          const details=event.currentTarget.closest('details')
           const fields=new FormData(event.currentTarget)
-          void mutate({kind:'dates',start:fields.get('start'),end:fields.get('end')}).catch(()=>{})
-        }}><fieldset disabled={busy} className="travel-grid">
-          <label>Anreise<DateInput  name="start" defaultValue={draft.start} required /></label>
-          <label>Abreise<DateInput  name="end" defaultValue={draft.end} required /></label>
-          <p>Der Tagesplan zieht mit. Buchungen behalten ihre Daten. Ein verbundener Google-Kalenderblock zieht ebenfalls mit.</p>
-          <button type="submit">Reisezeitraum speichern</button>
+          void mutate({kind:'dates',start:fields.get('start'),end:fields.get('end')}).then(()=>details?.removeAttribute('open')).catch(()=>{})
+        }}><fieldset disabled={busy} className="travel-date-row">
+          <label>Anreise<DateInput name="start" defaultValue={draft.start} required /></label>
+          <label>Abreise<DateInput name="end" defaultValue={draft.end} required /></label>
+          <button type="submit">Speichern</button>
         </fieldset></form>
       </details>:null}
       {plan.bookings.some(entry=>bookingOutsideTrip(entry,draft)) ?
         <p role="status">Mindestens eine Buchung liegt außerhalb des neuen Reisezeitraums. Prüfe die markierten Buchungen.</p>:null}
-      <div className="travel-grid">
+      <div className="travel-intro-columns">
         <div className="travel-stack">
           <strong>Anreise{arrival.mode ? ' · '+modes[arrival.mode] : ''}</strong>
           <p>Ab {draft.departure}. {arrival.reason}</p>
@@ -219,18 +360,21 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
           </> : null}
           {arrival.mode==='flight' ? <small>Flugverbindungen für die Reisedaten prüfen.</small> : null}
         </div>
-        <div className="travel-stack"><strong>Unterkunft</strong><p>{draft.stay || (confirmed.length===1 ? confirmed[0].name : '') || 'Noch offen'}</p>
+        <div className="travel-stack travel-stay-col"><strong>Unterkunft</strong><p>{draft.stay || (confirmed.length===1 ? confirmed[0].name : '') || 'Noch offen'}</p>
           {draft.stayAddress ? <p>{draft.stayAddress}</p> : null}
           <RouteLink destination={inDestination(lodging,draft.destination)} label="Route zur Unterkunft" />
-          {mutate ? <details><summary>Unterkunft bearbeiten</summary><form onSubmit={event=>{
+          {mutate ? <details className="travel-inline-details"><summary>Unterkunft bearbeiten</summary><form className="travel-compact-form" onSubmit={event=>{
             event.preventDefault()
+            const details=event.currentTarget.closest('details')
             const data=new FormData(event.currentTarget)
-            void mutate({kind:'stay',text:data.get('text'),address:data.get('address')}).catch(()=>{})
-          }}><fieldset disabled={busy} className="travel-grid">
-            <label>Name der Unterkunft<input name="text" maxLength={150} defaultValue={draft.stay} /></label>
-            <label>Adresse<input name="address" maxLength={200} defaultValue={draft.stayAddress} /></label>
-            <button type="submit">Unterkunft speichern</button>
+            void mutate({kind:'stay',text:data.get('text'),address:data.get('address')}).then(()=>details?.removeAttribute('open')).catch(()=>{})
+          }}><fieldset disabled={busy} className="travel-stay-row">
+            <label>Name<input name="text" maxLength={150} defaultValue={draft.stay} placeholder="Hotel oder Apartment" /></label>
+            <TripAddressField name="address" label="Adresse" initial={draft.stayAddress} destination={draft.destination}
+              placeholder="Adresse suchen …" fillSiblingName="text" />
+            <button type="submit">Speichern</button>
           </fieldset></form></details> : null}
+          <CurrencyConverter api={api} destination={draft.destination} />
         </div>
       </div>
     </section>
@@ -251,34 +395,42 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
           {day.activities.filter(entry=>entry.period===period).map(entry=><div className="travel-activity" key={entry.id}>
           <p>{entry.text}</p><RouteLink origin={plan.bookings.find(stay=>stay.kind==='stay' && stay.status==='confirmed' && stay.date<=day.date && (stay.until??stay.date)>=day.date)?.location || draft.stayAddress}
             destination={inDestination(entry.place,draft.destination)} />
-          {mutate ? <details><summary>Tagespunkt bearbeiten</summary>
-            <form onSubmit={event=>{
-              event.preventDefault()
-              const data=new FormData(event.currentTarget)
-              void mutate({kind:'activity-place',item:entry.id,place:data.get('place')}).catch(()=>{})
-            }}><fieldset disabled={busy} className="travel-grid">
-              <label>Ort oder Adresse<input name="place" maxLength={200} defaultValue={entry.place} /></label>
-              <button>Ort speichern</button>
-            </fieldset></form>
-            <form onSubmit={event=>{
-              event.preventDefault()
-              const data=new FormData(event.currentTarget)
-              void mutate({kind:'move',item:entry.id,date:data.get('date'),period:data.get('period')}).catch(()=>{})
-            }}><fieldset disabled={busy} className="travel-grid">
-              <label>Verschieben auf<select name="date" defaultValue={day.date}>
-                {plan.days.map(option=><option key={option.date} value={option.date}>{showDay(option.date)}</option>)}
-              </select></label>
-              <label>Zeitblock<select name="period" defaultValue={entry.period}>{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
-              <button>Verschieben</button>
-            </fieldset></form>
+          {mutate ? <details className="travel-inline-details"><summary>Tagespunkt bearbeiten</summary>
+            <div className="travel-inline-panel travel-editor-stack">
+              <form onSubmit={event=>{
+                event.preventDefault()
+                const details=event.currentTarget.closest('details')
+                const data=new FormData(event.currentTarget)
+                void mutate({kind:'activity-place',item:entry.id,place:data.get('place')}).then(()=>details?.removeAttribute('open')).catch(()=>{})
+              }}><fieldset disabled={busy} className="travel-place-edit">
+                <TripAddressField name="place" label="Ort oder Adresse" initial={entry.place} destination={draft.destination}
+                  placeholder="Sehenswürdigkeit oder Adresse suchen …" />
+                <button type="submit">Ort speichern</button>
+              </fieldset></form>
+              <form onSubmit={event=>{
+                event.preventDefault()
+                const data=new FormData(event.currentTarget)
+                void mutate({kind:'move',item:entry.id,date:data.get('date'),period:data.get('period')}).catch(()=>{})
+              }}><fieldset disabled={busy} className="travel-move-edit">
+                <label>Verschieben auf<select name="date" defaultValue={day.date}>
+                  {plan.days.map(option=><option key={option.date} value={option.date}>{showDay(option.date)}</option>)}
+                </select></label>
+                <label>Zeitblock<select name="period" defaultValue={entry.period}>{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
+                <button type="submit">Verschieben</button>
+              </fieldset></form>
+            </div>
           </details>:null}</div>)}
         </div>)}
-        {mutate ? <form onSubmit={event=>addItem(event,mutate,'activity',day.date)}><fieldset disabled={busy} className="travel-grid">
-          <label>Eigener Tagespunkt<input name="text" required maxLength={150} /></label>
-          <label>Ort oder Adresse (optional)<input name="place" maxLength={200} placeholder="z. B. Name der Sehenswürdigkeit" /></label>
-          <label>Zeitblock<select name="period">{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
-          <button>Hinzufügen</button>
-        </fieldset></form>:null}
+        {mutate ? <details className="travel-add-activity">
+          <summary className="travel-add-summary">+ Tagespunkt hinzufügen</summary>
+          <form className="travel-inline-panel" onSubmit={event=>addItem(event,mutate,'activity',day.date)}><fieldset disabled={busy} className="travel-activity-form">
+            <label>Eigener Tagespunkt<input name="text" required maxLength={150} placeholder="z. B. Kathedrale besuchen" /></label>
+            <TripAddressField name="place" label="Ort oder Adresse (optional)" initial="" destination={draft.destination}
+              placeholder="z. B. Name der Sehenswürdigkeit oder Adresse" />
+            <label>Zeitblock<select name="period">{tripPeriods.map(value=><option key={value}>{value}</option>)}</select></label>
+            <button type="submit" className="primary">Hinzufügen</button>
+          </fieldset></form>
+        </details>:null}
       </details>)}
     </section>
     </> : null}
@@ -308,8 +460,8 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
           <label>Check-out für Unterkunft<DateInput name="until"  min={plan.draft.start} max={plan.draft.end} /></label>
           <label>Ortszeit<TimeInput name="time" /></label>
           <label>Zeitzone (optional)<input name="timezone" maxLength={70} placeholder="z. B. Europe/Lisbon" /></label>
-          <label>Zielort oder Adresse<input name="location" maxLength={200} /></label>
-          <label>Startort der Route (optional)<input name="origin" maxLength={200} /></label>
+          <TripAddressField name="location" label="Zielort oder Adresse" initial="" destination={draft.destination} />
+          <TripAddressField name="origin" label="Startort der Route (optional)" initial="" destination={draft.destination} />
           <label>Belegverweis (optional)<input name="reference" maxLength={100} /></label>
           <label>Status<select name="status">{Object.entries(statuses).map(([key,label])=><option key={key} value={key}>{label}</option>)}</select></label>
           <button className="primary">Buchung zuordnen</button>
@@ -321,31 +473,32 @@ function TripGuide({ plan,mutate,busy }: { plan:TripPlan,mutate?:Patch,busy?:boo
       {plan.checklist.length + plan.extra.length ? <progress aria-label="Reisevorbereitung" max={plan.checklist.length + plan.extra.length}
         value={[...plan.checklist, ...plan.extra].filter(entry=>entry.done).length} /> : null}
       <fieldset disabled={busy}>{[...plan.checklist,...plan.extra].map(entry=><LocalItem item={entry} key={entry.id} mutate={mutate ? value=>mutate(value).catch(()=>{}) : undefined} />)}</fieldset>
-      {mutate ? <form onSubmit={event=>addItem(event,mutate,'task')}><fieldset className="travel-grid" disabled={busy}>
-        <label>Eigenen Punkt hinzufügen<input required name="text" maxLength={120} /></label><button>Hinzufügen</button>
-      </fieldset></form>:null}
+      {mutate ? <details className="travel-add-activity travel-add-inline"><summary>+ Eigenen Punkt hinzufügen</summary>
+        <form onSubmit={event=>addItem(event,mutate,'task')}><fieldset className="travel-inline-form" disabled={busy}>
+          <input required name="text" maxLength={120} placeholder="z. B. Mietwagen bestätigen" aria-label="Eigener Punkt" />
+          <button className="travel-small-button primary">Hinzufügen</button>
+        </fieldset></form></details>:null}
     </section>
     <section className="card travel-stack"><h2>Packliste</h2><p>{plan.packingWeather}</p>
       {plan.packing.length ? <div className="travel-pack-progress">
         <label htmlFor="travel-pack-progress">Eingepackt {plan.packing.filter(item=>item.done).length} von {plan.packing.length}</label>
         <progress id="travel-pack-progress" max={plan.packing.length} value={plan.packing.filter(item=>item.done).length}/>
       </div> : null}
-      {packingCategories.map(category=><details key={category} className="travel-day">
-        <summary>{category} · {plan.packing.filter(entry=>entry.category===category&&entry.done).length}/{plan.packing.filter(entry=>entry.category===category).length}</summary>
-        <fieldset disabled={busy}>{plan.packing.filter(entry=>entry.category===category).map(entry=><div key={entry.id} className="travel-pack-row">
-          <LocalItem item={entry} mutate={mutate ? value=>mutate(value).catch(()=>{}) : undefined} />
-          {mutate ? <label>Menge<select value={entry.quantity} onChange={event=>void mutate({kind:'quantity',item:entry.id,
-            quantity:Number(event.target.value)}).catch(()=>{})}>
-            {Array.from({length:99},(_,index)=><option key={index}>{index+1}</option>)}
-          </select></label>:<span>× {entry.quantity}</span>}
-        </div>)}</fieldset>
-      </details>)}
-      {mutate ? <form onSubmit={event=>addItem(event,mutate,'pack')}><fieldset disabled={busy} className="travel-grid">
-        <label>Eigener Gegenstand<input name="text" required maxLength={120} /></label>
-        <label>Kategorie<select name="category">{packingCategories.map(category=><option key={category}>{category}</option>)}</select></label>
-        <label>Menge<input name="quantity" type="number" required defaultValue={1} min={1} max={99} /></label>
-        <button>Packstück hinzufügen</button>
-      </fieldset></form>:null}
+      {packingCategories.filter(category=>plan.packing.some(entry=>entry.category===category)).map(category=>{
+        const rows=plan.packing.filter(entry=>entry.category===category)
+        return <details key={category} className="travel-pack-group" open>
+          <summary><span>{category}</span><span className="travel-pack-count">{rows.filter(entry=>entry.done).length}/{rows.length}</span></summary>
+          <div className="travel-pack-list">{rows.map(entry=><PackRow key={entry.id} entry={entry} mutate={mutate} busy={busy}
+            wardrobe={wardrobe} temperature={plan.packingTemperature}/>)}</div>
+        </details>
+      })}
+      {mutate ? <details className="travel-add-activity travel-add-inline"><summary>+ Eigenen Gegenstand hinzufügen</summary>
+        <form onSubmit={event=>addItem(event,mutate,'pack')}><fieldset disabled={busy} className="travel-inline-form">
+          <input name="text" required maxLength={120} placeholder="z. B. Reiseadapter" aria-label="Eigener Gegenstand" />
+          <select name="category" aria-label="Kategorie">{packingCategories.map(category=><option key={category}>{category}</option>)}</select>
+          <input name="quantity" type="number" required defaultValue={1} min={1} max={99} aria-label="Menge" className="travel-qty-input" />
+          <button className="travel-small-button primary">Hinzufügen</button>
+        </fieldset></form></details>:null}
     </section>
     </> : null}
     {section==='Tipps' ? <section className="card travel-stack"><h2>Tipps</h2>
@@ -377,6 +530,8 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   const [preview,setPreview]=useState<TripPreview>()
   const [calendarOffer,setCalendarOffer]=useState(false)
   const [removing,setRemoving]=useState(false)
+  const [wardrobe,setWardrobe]=useState<WardrobeItem[]>([])
+  useEffect(()=>{void api<{wardrobe:WardrobeItem[]}>('/outfits').then(value=>setWardrobe(value.wardrobe)).catch(()=>{})},[api])
   function showPreview(preview:TripPreview) {
     localStorage.setItem('lifepilot-trip-draft',preview.id)
     setPreview(preview);setView('preview')
@@ -441,7 +596,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   const fire=(action:()=>Promise<void>)=>void perform(action).catch(()=>{})
   function startGuide(draft:TripPreview) {
     if (busy || draft.generating) return
-    fire(async()=>setPreview(await api<TripPreview>('/trips/guide',{preview:draft.id,confirm:true},105000)))
+    fire(async()=>setPreview(await api<TripPreview>('/trips/guide',{preview:draft.id,confirm:true},150000)))
   }
   function open(id:string) {
     fire(async()=>{setCurrent(await api('/trips/'+id));onSelect(id);setRemoving(false);setCalendarOffer(false);setView('trip')})
@@ -500,11 +655,23 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           localStorage.removeItem('lifepilot-trip-draft')
           setEntries(await api('/trips'));setFeedback('Reise und privater LifePilot-Kalenderblock gespeichert.')
         })}>Reise speichern</button><button type="button" disabled={busy} onClick={()=>setView('new')}>Angaben ändern</button></div>
-      <TripGuide plan={preview.plan} />
+      <TripGuide plan={preview.plan} api={api} wardrobe={wardrobe} />
       </>}
     </>:null}
     {view==='trip' && current ? <>
-      <button type="button" className="quiet" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
+      <div className="travel-trip-bar">
+        <button type="button" className="quiet travel-back" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
+        <TripActionsMenu
+          busy={busy}
+          showCalendar={!current.googleCalendar}
+          onCalendar={()=>setCalendarOffer(true)}
+          onWeather={()=>fire(async()=>{
+            const updated=await api<Trip>('/trips/packing-weather',{tripId:current.id,confirm:true},25000)
+            setCurrent(updated);setFeedback('Der Duftvorschlag berücksichtigt jetzt das Wetter am Reiseziel.')
+          })}
+          onRemove={()=>setRemoving(true)}
+        />
+      </div>
       {(calendarOffer || current.googleCalendar==='pending') ? <section className="card travel-stack">
         <p>Soll ich den privaten ganztägigen Reiseblock auch in Google Kalender eintragen?</p>
         <div className="actions">
@@ -514,7 +681,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           })}>Ja, in Google Kalender eintragen</button>
           {!current.googleCalendar ? <button type="button" disabled={busy} onClick={()=>setCalendarOffer(false)}>Nur LifePilot</button> : null}
         </div>
-      </section> : !current.googleCalendar ? <button type="button" className="quiet" onClick={()=>setCalendarOffer(true)}>Zu Google Kalender hinzufügen</button> : null}
+      </section> : null}
       {removing ? <section className="card travel-stack">
         <p>Reise und zugehörigen Kalenderblock {current.googleCalendar?'auch aus Google Kalender ':''}entfernen?</p>
         <div className="actions">
@@ -525,12 +692,8 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           })}>Reise und Kalenderblock entfernen</button>
           <button type="button" disabled={busy} onClick={()=>setRemoving(false)}>Abbrechen</button>
         </div>
-      </section> : <button type="button" className="quiet" onClick={()=>setRemoving(true)}>Reise entfernen</button>}
-      <button type="button" disabled={busy} className="quiet" onClick={()=>fire(async()=>{
-        const updated=await api<Trip>('/trips/packing-weather',{tripId:current.id,confirm:true},25000)
-        setCurrent(updated);setFeedback('Der Duftvorschlag berücksichtigt jetzt das Wetter am Reiseziel.')
-      })}>Wetter für Duftvorschlag abrufen</button>
-      <TripGuide key={current.id} plan={current} mutate={change} busy={busy} />
+      </section> : null}
+      <TripGuide key={current.id} plan={current} mutate={change} busy={busy} api={api} wardrobe={wardrobe} />
     </>:null}
   </div>
 }

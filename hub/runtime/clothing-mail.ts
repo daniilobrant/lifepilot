@@ -73,6 +73,12 @@ function selectedUrl(value:unknown) {
   const data=Array.isArray(value)?value[0]:value
   return typeof data==='string'?data:asRecord(data).url ?? asRecord(data).contentUrl
 }
+// Technik und Gerätezubehör gehören nicht in den Kleiderschrank, auch wenn „Tasche“ oder „Hülle“ im Namen steht.
+const technical=/\b(?:laptop|notebook|macbook|ipad|iphone|tablet|smartphone|handy|usb|usb-c|ladegerät|ladekabel|kabel|adapter|hub|powerbank|kopfhörer|earbuds|tastatur|maus|monitor|festplatte|ssd|hdmi|bildschirm|displayschutz|schutzhülle|ladeger)\w*/iu
+
+// Unterwäsche und Socken werden verfolgt, kommen aber nie in den Kleiderschrank.
+export const isUnderwear=(type:string)=>type==='Socken'||type==='Unterwäsche'
+
 function garment(name:string, details:Data={}, count=1, allowOther=false):ClothingProduct|undefined {
   const normalized=string(name)
   const detected=outfitGarment(normalized) ?? outfitFields(normalized,[],'')
@@ -81,7 +87,7 @@ function garment(name:string, details:Data={}, count=1, allowOther=false):Clothi
   const brand=typeof details.brand==='object'?asRecord(details.brand).name:details.brand
   return {sku:string(details.sku ?? details.productID,70),quantity:Number.isInteger(count) ? Math.min(20,Math.max(1,count)) : 1,
     image:publicLink(selectedUrl(details.image),true),
-    draft:{name:normalized,category:detected.category??'accessory',isClothing:Boolean(detected.category),...(typeof details.cents==='number' && details.cents>0 && {cents:details.cents}),garmentType:detected.garmentType ?? '',color:string(details.color ?? details.colour,100),
+    draft:{name:normalized,category:detected.category??'accessory',isClothing:Boolean(detected.category)&&!technical.test(normalized)&&!isUnderwear(detected.garmentType??''),...(typeof details.cents==='number' && details.cents>0 && {cents:details.cents}),garmentType:detected.garmentType ?? '',color:string(details.color ?? details.colour,100),
       size:string(asRecord(details.size).name ?? details.size,40),brand:string(brand,70)||inferred.brand,
       model:string(details.model,90),material:string(details.material,120)||inferred.material||'',fit:inferred.fit||'',
       season:inferred.season||'',tags:inferred.tags||'',source:publicLink(details.url)}}
@@ -189,6 +195,32 @@ function retailerItems(lines:string[],html:string,merchant:string) {
   return items
 }
 
+/** Amazon-Bestellmails: Artikel mit Menge und Preis aus dem Text, Produktbild aus dem zugehörigen <img alt>. */
+function amazonItems(text:string,html:string):ClothingProduct[] {
+  const images=[...html.matchAll(/<img\b[^>]*>/giu)].map(([tag])=>attributes(tag))
+    .filter(image=>/^https:\/\/m\.media-amazon\.com\/images\/I\//iu.test(image.get('src')??''))
+  const items:ClothingProduct[]=[]
+  // Amazon schreibt Preise auch mit einer Nachkommastelle („24.9 EUR“) und sehr lange Artikelnamen.
+  for (const match of text.matchAll(/^\s*\*\s+(.{3,600}?)\s*\n\s*Menge:\s*(\d{1,2})\s*\n\s*(\d{1,6}(?:[.,]\d{1,2})?)\s*EUR/gimu)) {
+    const name=match[1].trim()
+    const picture=images.find(image=>{
+      const alt=(image.get('alt')??'').trim()
+      return alt && (alt===name || name.startsWith(alt.replace(/…$/u,'')) || alt.startsWith(name))
+    })?.get('src')?.replace(/\._[A-Z]{2}\d+_\./u,'._SL800_.')
+    const product=garment(name,{image:picture,cents:Math.round(Number(match[3].replace(',','.'))*100)},Number(match[2]),true)
+    if (product) items.push(product)
+  }
+  return items.slice(0,30)
+}
+
+/** Absender werden auf die Shop-Domain zurückgeführt: mail2.weekday.com und weekday.com sind derselbe Shop. */
+export function shopDomain(sender:string) {
+  const parts=sender.toLowerCase().replace(/^.*@/u,'').split('.').filter(Boolean)
+  const compound=/^(?:co|com|org|net|ac)\.[a-z]{2}$/u.test(parts.slice(-2).join('.'))
+  return parts.slice(compound?-3:-2).join('.')
+}
+const shopName=(domain:string)=>{const base=domain.split('.')[0]??domain;return base.charAt(0).toUpperCase()+base.slice(1)}
+
 export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const sender=/@([a-z0-9.-]+\.[a-z]{2,})>?\s*$/iu.exec(mail.from)?.[1].toLowerCase()
   if (!sender || /newsletter|rabatt|sonderangebot|black friday/iu.test(mail.subject) ||
@@ -197,12 +229,16 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const text=(mail.text+'\n'+cleaned).slice(0,30_000)
   const lines=(cleaned.length>60?cleaned:mail.text).split(/\r?\n/u).map(line=>line.trim()).filter(Boolean)
   const asos=/(?:^|\.)asos\.com$/u.test(sender), uniqlo=/(?:^|\.)uniqlo\.(?:com|eu)$/u.test(sender)
-  const merchant=asos?'ASOS':uniqlo?'UNIQLO':''
+  const amazon=/(?:^|\.)amazon\.(?:de|com|co\.uk|fr|it|es|nl)$/u.test(sender)
+  const merchant=asos?'ASOS':uniqlo?'UNIQLO':amazon?'Amazon':''
   let kind:ClothingMail['kind']|undefined=cancelledSubject.test(mail.subject)?'cancel':refundSubject.test(mail.subject)?'refund':returnSubject.test(mail.subject)?'return':deliveredSubject.test(mail.subject)?'delivery':
     orderSubject.test(mail.subject)?'order':shippingSubject.test(mail.subject)?'shipping':undefined
   if(uniqlo && /rechnung von uniqlo/iu.test(mail.subject)) kind='order'
+  if(amazon) kind=/^\s*bestellt\s*:/iu.test(mail.subject)?'order':/^\s*versendet\s*:/iu.test(mail.subject)?'shipping':
+    /^\s*(?:zugestellt|geliefert)\s*:/iu.test(mail.subject)?'delivery':/storniert/iu.test(mail.subject)?'cancel':kind
   let code='', tracking=''
-  if(merchant){
+  if(amazon) code=reference(/\bBestellnr\.?\s*:?\s*(\d{3}-\d{7}-\d{7})/u.exec(mail.text+'\n'+cleaned)?.[1])
+  else if(merchant){
     const header=lines.findIndex(line=>uniqlo ? /^übergeordnete bestellnummer\s*:/iu.test(line) : /^bestell[- ]?nr\.?\s*:/iu.test(line))
     if(header>=0) code=reference(lines[header].split(':')[1]?.trim()||lines[header+1])
   }
@@ -250,7 +286,7 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   if (kind==='return' && !deadline && !receivedReturn.test(mail.subject)) return
   const htmlItems=structured.length?structured:linkedRows(html)
   const plain=plainItems(mail.text || text)
-  const retailer=merchant ? retailerItems(lines,html,merchant) : []
+  const retailer=amazon ? amazonItems(mail.text||text,html) : merchant ? retailerItems(lines,html,merchant) : []
   const items=retailer.length ? retailer : structured.length ? structured : htmlItems.length ? htmlItems.map(item=>{
     const fromText=plain.find(row=>row.draft.name.toLowerCase()===item.draft.name.toLowerCase())
     return {...item,quantity:fromText?.quantity??item.quantity,
@@ -271,6 +307,7 @@ export function parseClothingMail(mail:Mail, html=''):ClothingMail|undefined {
   const estimated=deliveryMonth && estimate ? date(estimate[3]+'-'+String(deliveryMonth).padStart(2,'0')+'-'+estimate[1].padStart(2,'0')) : undefined
   const dated=uniqlo && kind==='order'?fieldDate(/^bestellung erhalten:/iu):undefined
   const shipped=uniqlo && kind==='order'?fieldDate(/^bestellung versandt:/iu):undefined
-  return {reference:code,sender:(asos?'asos.com':uniqlo?'uniqlo.com':sender.replace(/^(?:www|mail|shop|orders|news|notifications|service|email)\./u,'')),merchant:merchant||vendor,kind,tracking,partial:/teillieferung|teil deiner bestellung|part of your order|split shipment|separat(?:e|en) paket/iu.test(text),
+  const domain=shopDomain(sender)
+  return {reference:code,sender:(asos?'asos.com':uniqlo?'uniqlo.com':amazon?'amazon.de':domain),merchant:merchant||(/\.[a-z]{2,}$/iu.test(vendor)?shopName(shopDomain(vendor)):vendor),kind,tracking,partial:/teillieferung|teil deiner bestellung|part of your order|split shipment|separat(?:e|en) paket/iu.test(text),
     items,...(estimated && {estimated}),...(totalCents && {totalCents}),...(refundCents && {refundCents}),...(shipped && {shipped}),day:dated ?? (mail.at && Number.isFinite(Date.parse(mail.at)) ? dateInBerlin(new Date(mail.at)) : dateInBerlin()),deadline}
 }

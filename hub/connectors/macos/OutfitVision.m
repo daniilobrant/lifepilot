@@ -135,7 +135,8 @@ int main(int argc, const char *argv[]) {
         CGImageDestinationRef file = CGImageDestinationCreateWithURL((__bridge CFURLRef)output, CFSTR("public.png"), 1, NULL);
         BOOL saved = NO;
         if (file) {
-            CGImageDestinationAddImage(file, product, NULL);
+            BOOL preserveFrame = argc == 4 && strcmp(argv[3], "product") == 0;
+            CGImageDestinationAddImage(file, preserveFrame ? image : product, NULL);
             saved = CGImageDestinationFinalize(file);
             CFRelease(file);
         }

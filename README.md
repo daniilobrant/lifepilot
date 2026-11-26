@@ -1,8 +1,8 @@
-# LifePilot 1.0.9
+# LifePilot 1.0.42
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
-[Aktueller Release](https://github.com/daniilobrant/lifepilot/releases/tag/v1.0.9) · [Installation](#installation) · [Screenshots](#lifepilot-im-einsatz) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](#roadmap-von-01-bis-10)
+[Aktueller Release](https://github.com/daniilobrant/lifepilot/releases/tag/v1.0.10) · [Installation](#installation) · [Screenshots](#lifepilot-im-einsatz) · [Funktionen](#funktionen) · [Skills](docs/SKILLS.md) · [Änderungsverlauf](CHANGELOG.md) · [Roadmap](#roadmap-von-01-bis-10)
 
 ## LifePilot im Einsatz
 
@@ -78,7 +78,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 
 Vorausgesetzt sind macOS, Node.js 24 ab 24.13, npm, Git und die Xcode Command Line Tools. Dieser Stand wurde auf einem Mac mit Apple Silicon geprüft. Der Download enthält Quellcode, aus dem auch die nativen Helfer gebaut werden.
 
-    git clone --branch v1.0.9 https://github.com/daniilobrant/lifepilot.git
+    git clone --branch v1.0.10 https://github.com/daniilobrant/lifepilot.git
     cd lifepilot
     xcode-select -p
     node --version
@@ -97,7 +97,54 @@ Fehlen die Xcode Command Line Tools, installiere sie mit **xcode-select --instal
 
     ./bin/lifepilot --acceptance stop
 
-Für das Hauptprofil verwende dieselben Befehle ohne **--acceptance**. Die App öffnet sich lokal auf Port 45137, das Testprofil auf Port 45138. Der Checkout enthält keine Berechtigung für den persönlichen Chat und keine Kontodaten. Google und Codex sind optionale Integrationen. [Einrichtung, Datenspeicher und Grenzen](docs/SICHERHEIT.md)
+Für das Hauptprofil verwende dieselben Befehle ohne **--acceptance**. Die App öffnet sich lokal auf Port 45137, das Testprofil auf Port 45138. Der Checkout enthält keine Berechtigung für den persönlichen Chat und keine Kontodaten. Google, Codex und Claude Code sind optionale Integrationen. [Einrichtung, Datenspeicher und Grenzen](docs/SICHERHEIT.md)
+
+## KI-Anbindung: Codex oder Claude Code
+
+Pilot, der Reiseguide und die Bildanalyse nutzen ein Sprachmodell über eine lokal installierte Kommandozeile. LifePilot unterstützt zwei Anbieter, umschaltbar unter **Einstellungen › Übersicht › Agenten-Chat**:
+
+| | Codex (Standard) | Claude Code |
+|---|---|---|
+| Anbieter | OpenAI | Anthropic |
+| Programm | Codex CLI aus der ChatGPT-App für macOS | Claude Code CLI |
+| Abrechnung | ChatGPT-Konto bzw. Codex-Kontingent | Claude-Abo (Pro/Max) |
+
+**So funktioniert die Anbindung:** Jede Pilot-Nachricht wird lokal vorbereitet – ein kompaktes Verzeichnis deiner Termine, Aufgaben, Projekte, Abos, Bestellungen, Bewerbungen und Reisen ([agent-directory.ts](hub/runtime/agent-directory.ts)) und eine Vorzerlegung langer, diktierter Nachrichten ([message-analysis.ts](hub/runtime/message-analysis.ts)). Zusammen mit den [Skills](agents/lifepilot/skills) und einer Entscheidungstabelle ([routing](agents/lifepilot/skills/routing/SKILL.md)) geht das an das Modell. Das Modell muss in einem festen JSON-Format antworten ([output.schema.json](agents/lifepilot/output.schema.json)); LifePilot prüft die Antwort ([validate.ts](agents/lifepilot/tools/validate.ts)) und speichert erst nach deiner Freigabe. Das Modell läuft ohne Werkzeuge, ohne Shell, Dateien, Web oder MCP-Server ([codex.ts](hub/adapters/codex.ts), [claude.ts](hub/adapters/claude.ts)).
+
+### Schritt 1: Privaten Chat freigeben
+
+Der Chat im Hauptprofil arbeitet nur mit einer lokalen Freigabe für genau den installierten Build: `user-data/local/private-chat-release.json` mit `version`, `approved: true`, `manifest` (SHA-256 der Datei `SHA256SUMS`) und `ui` (SHA-256 von `dist/app.js`). Ohne gültige Freigabe bleibt der Chat aus. [Details](docs/SICHERHEIT.md)
+
+### Schritt 2a: Codex anbinden
+
+1. ChatGPT-App für macOS installieren und anmelden. Die App bringt die Codex CLI mit (`/Applications/ChatGPT.app/Contents/Resources/codex-cli`).
+2. In LifePilot unter **Einstellungen › Übersicht** „Codex (ChatGPT)“ wählen. LifePilot prüft vor jedem Aufruf die Signatur der Codex CLI.
+
+### Schritt 2b: Claude Code anbinden
+
+1. Claude Code CLI installieren (offizieller Installer von Anthropic):
+
+       curl -fsSL https://claude.ai/install.sh | bash
+
+2. Den Installationsordner in den Suchpfad aufnehmen, falls `claude` danach „command not found“ meldet:
+
+       echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.zshrc && source ~/.zshrc
+
+3. `claude` starten, das Farbschema bestätigen und **„Claude account with subscription“** wählen; die Anmeldung im Browser bestätigen. Mit `/exit` beenden.
+4. In LifePilot unter **Einstellungen › Übersicht** „Claude (Claude Code CLI)“ wählen. LifePilot findet die CLI unter `~/.local/bin/claude` und nutzt deren Anmeldung aus dem macOS-Schlüsselbund.
+
+### Schritt 3: Anbindung prüfen
+
+    npm test                 # 219 Tests ohne Modell, u. a. Verzeichnis, Vorzerlegung, Bewertung
+    npm run eval:chat        # 48 Beispielsätze live gegen das eingestellte Modell
+
+`npm run eval:chat` läuft im installierten Hauptprofil mit Freigabe und verbraucht Modellkontingent. Es prüft einzelne Skills, Kombinationen aus zwei und drei Skills, Diktatfehler („Kai und Data Science“, „B2Bar.“), Fragen zu eigenen Daten und Rückfragen bei unklaren Aufträgen ([Testfälle](agents/lifepilot/evals/chat-cases.json)). Das Ergebnis steht in `agents/lifepilot/evals/LAST_RUN.md`.
+
+### Die Einrichtung einer KI überlassen
+
+Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das geklonte Repository in Codex bzw. Claude Code und gib diesen Auftrag:
+
+> Richte LifePilot auf diesem Mac mit **[Codex | Claude Code]** als Modell ein. Lies zuerst README.md und docs/SICHERHEIT.md. Führe `npm ci`, `npm run build` und `npm test` aus. Prüfe, ob die gewählte CLI installiert und angemeldet ist; falls nicht, nenne mir die Befehle, die ich selbst ausführe – Anmeldungen und Passwörter gebe ich selbst ein. Erstelle die private Chat-Freigabe für den gebauten Stand nur nach meiner Bestätigung, starte die App mit `./bin/lifepilot start`, stelle in den Einstellungen den Anbieter ein und führe danach `npm run eval:chat` aus. Fasse zusammen, welche Fälle bestanden haben und welche nicht.
 
 ## Funktionen
 
@@ -134,7 +181,7 @@ Wir haben LifePilot mit einem lokalen Kern begonnen und ihn im Chat anhand konkr
 | **0.25.13–0.25.16** | Wir überarbeiteten die Übersichten anhand der App-Ansichten. Einkauf wurde nach Kategorien gegliedert, Vorratsaktionen neu ausgerichtet und das Reiseformular um Ortssuche und auswählbare Interessen ergänzt. |
 | **1.0 · 24. November 2026** | Die öffentliche Ausgabe bündelt die Module mit einer Anleitung, der Screenshot-Galerie und detaillierten Skills. Die Sicherheitsprüfung führte zur Google-Kontobindung für Kalenderschreibzugriffe, zur Signaturprüfung privater Releases und zur Umstellung der modellgestützten Bildanalyse auf Codex CLI. |
 
-[Alle Einzelschritte im Changelog](CHANGELOG.md) · [Planungsentscheidungen und offene Vorhaben](docs/ROADMAP.md) · [Teststatus](TESTSTATUS.md)
+[Alle Einzelschritte im Changelog](CHANGELOG.md)
 
 ## Technik
 

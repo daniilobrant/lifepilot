@@ -20,6 +20,17 @@ export function quickReplyFor(questions:string[]):QuickReply|undefined {
     return choices('30 Minuten','60 Minuten','90 Minuten')
   }
   if(/\bbis (?:wann|zu welchem (?:tag|datum))\b/u.test(question))return
+  // „Meinst du mit „Raps“ Rapsöl oder Rapssamen?“ → beide Möglichkeiten plus „Keins von beiden“.
+  const original=questions[0].trim()
+  const either=/(?:^|[,:]\s*|\s)(?:meinst du|meinten sie|ist|sind|soll(?:st)? (?:es|ich)|möchtest du|willst du|nimmst du|brauchst du)\b[^?]*?\b([\p{L}\d][\p{L}\d\s'’-]{0,40}?)\s+oder\s+([\p{L}\d][\p{L}\d\s'’-]{0,40}?)\s*\?\s*$/iu.exec(original)
+  if(either) {
+    const tidy=(value:string)=>value.trim().replace(/^(?:mit\s+[„"»][^“"«]+[“"«]\s*|eher\s+|lieber\s+|ein(?:e|en)?\s+)/iu,'').replace(/^\p{Ll}/u,letter=>letter.toLocaleUpperCase('de'))
+    const first=tidy(either[1].split(/\s+/u).slice(-3).join(' ')), second=tidy(either[2])
+    if(first && second && first.length<=40) {
+      return /^etwas anderes|^was anderes|^anderes/iu.test(second) ? choices(first,'Etwas anderes') : choices(first,second,'Keins von beiden')
+    }
+  }
+  if(/^(?:soll ich|sollen wir|möchtest du|willst du|darf ich|kann ich|ist das|sind das|passt das|hast du|stimmt das|einverstanden)\b/iu.test(original))return choices('Ja','Nein')
   if(/\b(?:welches datum|an welchem tag|für welchen tag)\b/u.test(question)||
     /\bwann\b.{0,50}\bstattfinden\b/u.test(question)&&!/ferien|semester|urlaub|reise|serie/u.test(question)){
     return choices('Heute','Morgen','Übermorgen')
