@@ -21,3 +21,16 @@ test('A deadline naming a lecture on the same day is linked to it and reminded a
     assert.equal(other.related_id,null)
   }finally{store.db.close()}
 })
+
+test('A deadline with a timed reminder on its day appears once in the calendar week',()=>{
+  const store=new Store(':memory:')
+  try{
+    const ws=store.workspace
+    const lecture=ws.add(null,{title:'Statistik Übung',detail:'',date:'2099-11-26',kind:'appointment'},'test')
+    ws.addSchedule(lecture.id,'slot','2099-11-26T13:00:00.000Z','2099-11-26T14:30:00.000Z','test')
+    const talk=ws.add(null,{title:'Referat in Statistik halten',detail:'',date:'2099-11-26',kind:'task',link:lecture.id},'test')
+    const week=ws.week('2099-11-23','2099-11-23T00:00:00.000Z','2099-11-30T00:00:00.000Z')
+    assert.equal(week.entries.filter(entry=>entry.taskId===talk.id).length,1)
+    assert.equal(week.entries.find(entry=>entry.taskId===talk.id)!.kind,'reminder')
+  }finally{store.db.close()}
+})

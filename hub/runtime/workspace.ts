@@ -215,8 +215,11 @@ export class Workspace {
       CASE kind WHEN 'appointment' THEN 'appointment' ELSE 'deadline' END AS kind
       FROM tasks WHERE (status='open' OR (status='done' AND kind='task')) AND due_date BETWEEN ? AND ?`).all(start, end) as Omit<WeekEntry, 'at' | 'endsAt'>[]
     const timedAppointments = new Set(entries.filter(item => item.kind === 'slot').map(item => `${item.taskId}:${item.day}`))
+    // Eine Aufgabe mit Erinnerung zur Uhrzeit am Fristtag erscheint nur einmal, mit der Uhrzeit.
+    const timedReminders = new Set(entries.filter(item => item.kind === 'reminder').map(item => `${item.taskId}:${item.day}`))
     for (const entry of dated) {
       if (entry.kind === 'appointment' && timedAppointments.has(`${entry.taskId}:${entry.day}`)) continue
+      if (entry.kind === 'deadline' && timedReminders.has(`${entry.taskId}:${entry.day}`)) continue
       entries.push({ ...entry, at: null, endsAt: null })
     }
     for (const trip of this.travelBlocks(start,end)) {

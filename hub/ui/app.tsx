@@ -264,7 +264,7 @@ const shipmentLabels = { order: 'Bestellung', 'return-open': 'Retoure offen', 'r
   'return-closed': 'Retoure eingegangen oder erledigt', 'return-unknown': 'Retourenstatus unklar' }
 
 const inboxPollMs = 120_000
-type InboxFeed = { messages: AttentionMail[], loadedAt: string }
+type InboxFeed = { account?:string, incomplete?:boolean, rateLimited?:boolean, messages: AttentionMail[], loadedAt: string }
 const mailDate = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Berlin' })
 
 function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectures, sourceId }: {
@@ -311,8 +311,11 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
       return result
     }finally{setBusy(false)}
   }
-  return <section className="card settings" aria-label={heading}>
-    <h2>{heading}</h2>
+  const wrap=!lecturesOnly&&!sourceId
+  const Shell=(wrap?'details':'section') as 'section'
+  return <Shell className={wrap?'card settings mail-finance disclosure':'card settings'} aria-label={heading}>
+    {wrap ? <summary><strong>Mailvorschläge</strong><span className="count-badge">{pending.length} offen</span></summary> : <h2>{heading}</h2>}
+
     {error ? <p role="alert">{error}</p> : null}
     {visible.map(item => {
       const cancellation=item.lectureCancellation
@@ -356,7 +359,7 @@ function LiveInbox({ onDecision, batch, lecturesOnly=false, mailRefresh, onLectu
     <BulkApproval items={batchItems} disabled={busy} approve={approveAll} description={lecturesOnly?
       'LifePilot entfernt die zugeordneten Vorlesungstermine aus den angegebenen Kalendern.':
       'LifePilot übernimmt Aufgaben und Termine, ohne vorgeschlagene Zeitblöcke zu buchen. Eindeutig zugeordnete Vorlesungsausfälle entfernen den angezeigten Termin.'}/>
-  </section>
+  </Shell>
 }
 
 function RunRow({ run, onClick }: { run: Run, onClick: () => void }) {
@@ -1044,6 +1047,9 @@ function App() {
   const [lectureNotices,setLectureNotices]=useState<InboxProposal[]>([])
   const [lectureRefresh,setLectureRefresh]=useState(0)
   const [inboxFeed, setInboxFeed] = useState<InboxFeed>()
+  const [mailToTrash, setMailToTrash] = useState<{id:string,account:string}>()
+  const [trashingMail, setTrashingMail] = useState(false)
+  const [trashFeedback, setTrashFeedback] = useState<{text:string,error?:boolean}>()
   const [inboxFeedError, setInboxFeedError] = useState('')
   const [loadingInboxFeed, setLoadingInboxFeed] = useState(false)
   const inboxFeedRequest = useRef(false)
@@ -1485,18 +1491,20 @@ function App() {
     autoRead(focus)
   }, [snapshot?.chatMode, snapshot?.acceptance, snapshot?.directTestChat, focus, selected, skillBusy])
   const skillResult = skillOutput?.run === focus?.id && skillOutput?.turn === focus?.turn ? skillOutput : undefined
-  async function runInboxRefresh(restart = true) {
+  async function runInboxRefresh(restart = true, deep = false) {
     if (refreshingInbox || !snapshot || offline) return
     setRefreshingInbox(true); setRefreshError('')
     try {
-      setInboxBatch(await api<InboxRefresh>('/inbox/refresh', { confirm: true, restart }, 100000))
+      setInboxBatch(await api<InboxRefresh>('/inbox/refresh', { confirm: true, restart, deep }, 150000))
       await refresh()
+      if (deep) await loadInboxFeed()
     } catch (cause) {
       setRefreshError(cause instanceof Error ? cause.message : 'Aktualisieren fehlgeschlagen.')
     } finally { setRefreshingInbox(false) }
   }
   const refreshSummary = inboxBatch
     ? `${inboxBatch.checked} Mails geprüft · ${inboxBatch.added} neue Vorschläge · ${inboxBatch.plans.length} Zeitvorschläge` +
+      (inboxBatch.modelChecked ? ` · ${inboxBatch.modelChecked} vertieft geprüft` : '') +
       (inboxBatch.applications ? ` · ${inboxBatch.applications} Bewerbungsfunde` : '') +
       (inboxBatch.labelsAvailable ? ` · ${inboxBatch.labeled} Gmail-Labels bestätigt` : '') +
       (inboxBatch.limited ? ' · Weitere Mails oder Wiederholung möglich' : '')
@@ -1507,6 +1515,7 @@ function App() {
     {inboxBatch && !snapshot?.acceptance && !inboxBatch.labelsAvailable ?
       <p>Gmail-Sortieren braucht die vorhandene Label-Freigabe. <button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
     {refreshError || inboxBatch?.labelError ? <p role="alert">{refreshError || inboxBatch?.labelError}</p> : null}
+    {inboxBatch?.modelIncomplete ? <p role="status">Die Modellprüfung war unvollständig. Die regelbasierte Prüfung ist im Ergebnis enthalten.</p> : null}
     {inboxBatch?.calendar === 'unconnected' ? <p>Google-Kalender verbinden, um freie Zeitfenster zu prüfen.</p> : null}
     {inboxBatch?.calendar === 'unavailable' || inboxBatch?.calendar === 'incomplete' ?
       <p>Google-Kalender konnte nicht vollständig geprüft werden.</p> : null}
@@ -1526,8 +1535,16 @@ function App() {
     setLoadingInboxFeed(true)
     setInboxFeedError('')
     try {
-      const feed = await api<{ messages: AttentionMail[] }>('/inbox/feed', {confirm:true}, 60_000)
-      if (revision === inboxFeedRevision.current) setInboxFeed({ messages: feed.messages, loadedAt: new Date().toISOString() })
+      const feed = await api<Omit<InboxFeed,'loadedAt'>>('/inbox/feed', {confirm:true}, 60_000)
+      if (revision === inboxFeedRevision.current) setInboxFeed(current => {
+        if (feed.rateLimited && current && (!feed.account || feed.account === current.account)) {
+          const messages = new Map(current.messages.map(mail=>[mail.id,mail]))
+          for (const mail of feed.messages) messages.set(mail.id,mail)
+          return {...current, incomplete:true,rateLimited:true,
+            messages:[...messages.values()].sort((a,b)=>Number(b.important)-Number(a.important)||(b.at??'').localeCompare(a.at??''))}
+        }
+        return {...feed, loadedAt:feed.rateLimited && !feed.messages.length ? '' : new Date().toISOString()}
+      })
     } catch (reason) {
       if (revision === inboxFeedRevision.current) setInboxFeedError(reason instanceof Error ? reason.message : 'Gmail ist gerade nicht erreichbar.')
     } finally {
@@ -1539,7 +1556,7 @@ function App() {
   }
 
   const watchInbox = Boolean(snapshot && (page === 'Start' || page === 'Posteingang'))
-  const checkActiveInbox = useEffectEvent(() => { if (!document.hidden) void loadInboxFeed() })
+  const checkActiveInbox = useEffectEvent(() => { if (!document.hidden && !refreshingInbox) void loadInboxFeed() })
   useEffect(() => {
     if (!watchInbox) return
     checkActiveInbox()
@@ -1552,13 +1569,34 @@ function App() {
     }
   }, [watchInbox, page])
 
+  async function trashInboxMail(item: AttentionMail, account: string) {
+    if (!window.confirm(`„${item.subject}“ in den Gmail-Papierkorb verschieben?`)) return
+    setTrashingMail(true)
+    setTrashFeedback(undefined)
+    try {
+      await api('/inbox/trash', {message:item.id, account, confirm:true}, 20_000)
+      inboxFeedRevision.current++
+      inboxFeedRequest.current = false
+      setLoadingInboxFeed(false)
+      setInboxFeed(current => current?.account === account ?
+        {...current,messages:current.messages.filter(mail => mail.id !== item.id)} : current)
+      setMailToTrash(undefined)
+      setTrashFeedback({text:'E-Mail in den Gmail-Papierkorb verschoben.'})
+    } catch (reason) {
+      setTrashFeedback({text:reason instanceof Error ? reason.message : 'Die E-Mail konnte nicht verschoben werden.',error:true})
+    } finally { setTrashingMail(false) }
+  }
+
   function inboxFeedContents(compact: boolean) {
     const messages=compact ? inboxFeed?.messages.filter(item=>item.important).slice(0,3) : inboxFeed?.messages
+    const account = compact ? undefined : inboxFeed?.account
     return <>
+      {!compact && trashFeedback ? <p role={trashFeedback.error?'alert':'status'}>{trashFeedback.text}</p> : null}
       {loadingInboxFeed && !inboxFeed ? <Loading label="Gmail wird geladen …" /> : null}
       {inboxFeedError ? <p role="alert">Gmail konnte nicht aktualisiert werden. {inboxFeedError}
         {' '}<button className="quiet" onClick={() => navigate('Einstellungen')}>Verbindung prüfen</button></p> : null}
-      {inboxFeed ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
+      {inboxFeed?.loadedAt ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
+      {!compact && inboxFeed?.incomplete ? <p role="status">{inboxFeed.rateLimited ? 'Gmail begrenzt gerade die Anfragen. LifePilot zeigt bereits geladene Mails und versucht es später erneut.' : 'Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.'}</p> : null}
       {messages?.length ? <ul className="inbox-feed-list">
         {messages.map(item => <li key={item.id}>
           <span><strong>{item.subject}</strong><small>{item.from}</small>
@@ -1567,7 +1605,18 @@ function App() {
               {item.reply && <small>Antwort erbeten</small>}
               {item.shipment && <small>{shipmentLabels[item.shipment]}</small>}
             </span></span>
-          {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+          <div className="inbox-mail-actions">
+            {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+            {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?
+              <div className="actions">
+                <button type="button" className="quiet" disabled={trashingMail} onClick={() => setMailToTrash(undefined)}>Abbrechen</button>
+                <button type="button" className="inbox-trash-confirm" disabled={trashingMail} onClick={() => void trashInboxMail(item,account)}>In den Papierkorb</button>
+              </div> : <button type="button" className="quiet" disabled={trashingMail}
+                aria-label={`E-Mail löschen: ${item.subject}`} onClick={() => {
+                  setTrashFeedback(undefined)
+                  setMailToTrash({id:item.id,account})
+                }}>Löschen</button>)}
+          </div>
         </li>)}
       </ul> : inboxFeed ? <p className="empty">Keine relevanten Nachrichten gefunden.</p> : null}
     </>
@@ -1648,13 +1697,11 @@ function App() {
           {page === 'Posteingang' ? <>
             <ProjectMailSuggestions suggestions={projects?.suggestions??[]} decide={decideProject} approveAll={approveProjectMails} busy={busy||!!offline}/>
             <section className="card settings" aria-label="Relevante Nachrichten">
-              <div className="editor-title inbox-header"><h2>Wichtig für dich</h2>
+              <div className="editor-title inbox-header"><h2>Wichtig für dich · letzte 7 Tage</h2>
                 <div className="actions">
-                  <button disabled={loadingInboxFeed || !!offline} onClick={() => void loadInboxFeed()}>
-                    {loadingInboxFeed ? 'Wird aktualisiert …' : 'Aktualisieren'}
-                  </button>
-                  <button className="primary" disabled={refreshingInbox || !!offline} onClick={() => void runInboxRefresh()}>
-                    {refreshingInbox ? 'Wird sortiert …' : 'Mails sortieren'}
+                  <button className="primary" disabled={refreshingInbox || !!offline} onClick={() => void runInboxRefresh(true, true)}>
+                    {refreshingInbox ? 'Wird geprüft …' : snapshot.chatMode==='private' ?
+                      `Mails aktualisieren · ${snapshot.modelProvider==='claude'?'Claude':'Codex'}` : 'Mails aktualisieren'}
                   </button>
                 </div>
               </div>
@@ -1662,7 +1709,7 @@ function App() {
               {inboxFeedContents(false)}
               {refreshFeedback}
               {inboxBatch?.applications ? <button className="quiet" onClick={() => navigate('Bewerbungen')}>Bewerbungen ansehen →</button> : null}
-              {inboxBatch?.limited ? <button className="quiet" disabled={refreshingInbox} onClick={() => void runInboxRefresh(false)}>Weitere Mails sortieren</button> : null}
+              {inboxBatch?.limited ? <button className="quiet" disabled={refreshingInbox} onClick={() => void runInboxRefresh(false, true)}>Weitere Mails prüfen</button> : null}
             </section>
             <LiveInbox sourceId={boardSource?.source_type==='email'?boardSource.source_id:undefined} onLectures={setLectureNotices} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt} />
           </> : null}

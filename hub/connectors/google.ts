@@ -57,12 +57,18 @@ export function googleService(value: unknown): GoogleService {
   return value as GoogleService
 }
 
+export class GmailRateLimit extends Problem {
+  constructor() { super(503, 'Gmail begrenzt gerade die Anfragen. LifePilot wartet vor dem nächsten Abruf.') }
+}
+
 export class GoogleConnector {
   private readonly dir: string
   private readonly redirectUri: string
   private readonly request: typeof fetch
   private readonly attempts = new Map<string, OAuthAttempt>()
   private readonly epochs: Record<GoogleService, number> = { calendar: 0, 'calendar-write':0, gmail: 0, 'gmail-content': 0, 'calendar-test': 0, 'gmail-sort': 0 }
+  private gmailRetryAt = 0
+  private readonly inboxMailCache = new Map<string,{until:number,mail:MailContent}>()
   private readonly refreshing = new Map<GoogleService, Promise<string>>()
 
   constructor(data: string, origin: string, request = fetch) {
@@ -165,14 +171,26 @@ export class GoogleConnector {
   }
 
   private async json(url: string, args?: RequestInit): Promise<Record<string, unknown>> {
+    const gmail = new URL(url).hostname === 'gmail.googleapis.com'
+    if (gmail && Date.now() < this.gmailRetryAt) throw new GmailRateLimit()
     try {
       const response = await this.request(url, { ...args, redirect: 'error', signal: AbortSignal.timeout(6000) })
       if (!response.ok) {
+        const rateLimited = () => {
+          const hint = response.headers.get('retry-after')
+          const wait = hint && /^\d+$/u.test(hint) ? Number(hint)*1000 : Date.parse(hint ?? '')-Date.now()
+          this.gmailRetryAt = Math.max(this.gmailRetryAt, Date.now()+Math.max(60_000, Number.isFinite(wait)?wait:0))
+          return new GmailRateLimit()
+        }
+        if (gmail && response.status===429) {
+          await response.body?.cancel()
+          throw rateLimited()
+        }
         if (response.status===403) {
           const error=await response.json().catch(()=>({}))
           if (Array.isArray(error.error?.errors) && error.error.errors.some((entry:Record<string,unknown>)=>
             entry.reason==='rateLimitExceeded' || entry.reason==='userRateLimitExceeded')) {
-            throw new Problem(503,'Gmail hat das Anfragelimit erreicht. LifePilot versucht es beim nächsten Durchlauf erneut.')
+            throw gmail ? rateLimited() : new Problem(503, 'Google begrenzt gerade die Anfragen.')
           }
         } else await response.body?.cancel()
         if (response.status === 404 || response.status === 410) throw new Problem(404, 'Google konnte den Eintrag nicht finden.')
@@ -460,6 +478,21 @@ export class GoogleConnector {
     if (next && !matches(result,next)) throw new Problem(502, 'Google bestätigte die Änderung nicht eindeutig.')
   }
 
+  async trashInboxMessage(account: string, id: unknown) {
+    if (!validMessageId(id)) throw new Problem(400, 'Wähle eine gültige Gmail-Nachricht.')
+    const service = 'gmail-sort'
+    const epoch = this.epochs[service]
+    const token = await this.access(service)
+    this.ensureEpoch(service, epoch)
+    const headers = { Authorization: 'Bearer ' + token }
+    const profile = await this.json('https://gmail.googleapis.com/gmail/v1/users/me/profile?fields=emailAddress', { headers })
+    this.ensureEpoch(service, epoch)
+    const address = display(profile.emailAddress, 320).toLowerCase()
+    if (!address || createHash('sha256').update(address).digest('hex') !== account)
+      throw new Problem(409, 'Gmail-Lesen und Schreiben müssen mit demselben Konto verbunden sein.')
+    await this.json(gmailEndpoint + '/' + encodeURIComponent(id) + '/trash', { headers, method: 'POST' })
+  }
+
   async sortInboxPage(account: string, mails: MailContent[]) {
     const byCategory = new Map<InboxLabel,string[]>()
     for (const mail of mails) {
@@ -595,7 +628,7 @@ export class GoogleConnector {
     return /^[^@\s]+@[^@\s]+$/u.test(address) ? address : null
   }
 
-  async recentInbox(readPage: (account: string) => GmailPage | undefined, restart = false, range?:GmailRange) {
+  async recentInbox(readPage: (account: string) => GmailPage | undefined, restart = false, range?:GmailRange, inboxAfterEpoch?:number) {
     const service = 'gmail-content'
     const epoch = this.epochs[service]
     const token = await this.access(service)
@@ -608,7 +641,7 @@ export class GoogleConnector {
     const account = createHash('sha256').update(address).digest('hex')
     if(range?.account && account!==range.account) throw new Problem(409,'Automatische Gmail-Kategorien sind für ein anderes Konto eingerichtet.')
     const page = restart ? undefined : readPage(account)
-    const afterEpoch = range?.afterEpoch ?? page?.afterEpoch ?? Math.floor(Date.now() / 1000) - 30 * 86400
+    const afterEpoch = range?.afterEpoch ?? page?.afterEpoch ?? inboxAfterEpoch ?? Math.floor(Date.now() / 1000) - 30 * 86400
     const params = new URLSearchParams({q: 'after:' + afterEpoch +
       (range ? ' before:'+range.beforeEpoch+' -in:sent -in:drafts' : ''),
       ...(!range && {labelIds:'INBOX'}), maxResults: '10', fields: 'messages(id),nextPageToken' })
@@ -619,13 +652,27 @@ export class GoogleConnector {
       .map(value => object(value).id).filter(validMessageId))]
     const metadata=new URLSearchParams({format:'metadata',fields:'internalDate,snippet,payload(headers)'})
     for(const name of ['Subject','From','List-Id','List-Unsubscribe','To','Delivered-To','X-Forwarded-To','X-Original-To','X-Forwarded-For','In-Reply-To','References'])metadata.append('metadataHeaders',name)
-    const mails = await Promise.all(ids.map(async id => {
+    const mails: MailContent[] = []
+    const loadMail = async (id:string) => {
+      const key = account+':'+epoch+':'+id
+      const cached = this.inboxMailCache.get(key)
+      if (cached && cached.until>Date.now()) return cached.mail
       const row=await this.json(gmailEndpoint+'/'+encodeURIComponent(id)+'?'+metadata,{headers})
       this.ensureEpoch(service,epoch)
       const preview={...this.mailHeader(id,row),...this.mailThreadHeaders(row),text:display(row.snippet,500).replace(/\p{Cf}|\u034f/gu,''),
         mailingList:this.isMailingList(row),previewOnly:true,truncated:true,dates:[]}
-      return needsMailBody(preview)?this.mailContent(id):preview
-    }))
+      const mail = needsMailBody(preview) ? await this.mailContent(id) : preview
+      this.ensureEpoch(service, epoch)
+      if (this.inboxMailCache.size>=500) {
+        const oldest = this.inboxMailCache.keys().next()
+        if (!oldest.done) this.inboxMailCache.delete(oldest.value)
+      }
+      this.inboxMailCache.set(key,{until:Date.now()+10*60_000,mail})
+      return mail
+    }
+    for (let offset=0; offset<ids.length; offset+=3) {
+      mails.push(...await Promise.all(ids.slice(offset,offset+3).map(loadMail)))
+    }
     this.ensureEpoch(service, epoch)
     const next = credential(data.nextPageToken, 4096) ? { pageToken: data.nextPageToken, afterEpoch } : null
     if (next && next.pageToken === page?.pageToken) throw new Problem(502, 'Gmail lieferte dieselbe Seite erneut. Starte die Suche neu.')

@@ -20,6 +20,7 @@ const garmentTypes: [RegExp,WardrobeCategory,string][] = [
   [/unterwäsche|unterhose|boxershorts|boxer\b|\b(?:briefs|trunks|underwear)\b/iu,'accessory','Unterwäsche'],
   [/\b(?:socken?|strümpfe|socks?|sneakersocken)\b/iu,'accessory','Socken'],
   [/langarmshirt|long[ -]?sleeve/iu,'top','Langarmshirt'],
+  [/\b(?:trikot|jersey)\b|(?:heim|auswärts|auswaerts)trikot/iu,'top','T-Shirt'],
   [/\b(?:t[ -]?shirt|tee)\b/iu,'top','T-Shirt'],
   [/\b(?:pullover|sweater|strickpullover|jumper|cardigan)\b/iu,'top','Pullover & Strick'],
   [/\b(?:hemd|bluse|blouse)\b/iu,'top','Hemd & Bluse'],

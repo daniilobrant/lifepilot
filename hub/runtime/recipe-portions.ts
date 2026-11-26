@@ -68,11 +68,16 @@ export function recipeStockStatus(item:StockItem|undefined,request:GroceryInput,
   return have.value+1e-9>=need.value?'enough':'short'
 }
 
-function recipeStockKey(name:string){
+export function recipeStockKey(name:string){
   const key=groceryKey(name.replace(/\s*\((?:rot|gelb|grün|parboiled|frisch)\)/giu,'')
     .replace(/^(?:kleine[nrms]?|große[nrms]?|frische[nrms]?|tiefgefrorene[nrms]?)\s+/iu,''))
+  // Gleichwertige Zutaten: Nudelsorten, Speiseöle, Hackfleisch, passierte Tomaten.
+  if(/^(?:spaghetti|spaghettini|penne|fusilli|farfalle|tagliatelle|linguine|rigatoni|makkaroni|maccheroni|bandnudeln|spiralnudeln|hornchen|vollkornnudeln|vollkornspaghetti|pasta)$/u.test(key))return 'nudeln'
+  if(/^(?:oliven|raps|sonnenblumen|speise|pflanzen|erdnuss|sesam)?ol$/u.test(key)&&!/^sesamol$/u.test(key))return 'speiseol'
+  if(/^(?:gemischtes |rinder |rinder|schweine |gehacktes |)hack(?:fleisch)?$/u.test(key)||/^(?:rinder|schweine|gemischtes)hackfleisch$/u.test(key))return 'hackfleisch'
+  if(/^(?:passierte tomaten|tomaten passiert|tomatenpassata|passata|tomatensosse|tomatensauce|stuckige tomaten|gehackte tomaten|dosentomaten|tomaten (?:aus der )?dose)$/u.test(key))return 'passierte tomaten'
   if(/^paprikaschote[n]?$/u.test(key))return 'paprika'
-  if(/^hahnchenbrust(?:filet)?s?$/u.test(key))return 'hahnchen'
+  if(/^hahnchen(?:brust)?(?:filet|fleisch)?s?$|^hahnchenbrust(?:filet)?s?$/u.test(key))return 'hahnchen'
   if(/^(?:basmati|parboiled|jasmin) reis$/u.test(key))return 'reis'
   return key
 }
