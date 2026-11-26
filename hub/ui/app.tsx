@@ -1598,25 +1598,36 @@ function App() {
       {inboxFeed?.loadedAt ? <small>Zuletzt aktualisiert <time dateTime={inboxFeed.loadedAt}>{clockFormat.format(new Date(inboxFeed.loadedAt))} Uhr</time></small> : null}
       {!compact && inboxFeed?.incomplete ? <p role="status">{inboxFeed.rateLimited ? 'Gmail begrenzt gerade die Anfragen. LifePilot zeigt bereits geladene Mails und versucht es später erneut.' : 'Die letzten 7 Tage konnten noch nicht vollständig geprüft werden.'}</p> : null}
       {messages?.length ? <ul className="inbox-feed-list">
-        {messages.map(item => <li key={item.id}>
-          <span><strong>{item.subject}</strong><small>{item.from}</small>
-            <span className="inbox-row-meta">
-              <small className="inbox-category" data-category={item.label}>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category])}</small>
-              {item.reply && <small>Antwort erbeten</small>}
-              {item.shipment && <small>{shipmentLabels[item.shipment]}</small>}
-            </span></span>
-          <div className="inbox-mail-actions">
-            {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
-            {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?
-              <div className="actions">
-                <button type="button" className="quiet" disabled={trashingMail} onClick={() => setMailToTrash(undefined)}>Abbrechen</button>
-                <button type="button" className="inbox-trash-confirm" disabled={trashingMail} onClick={() => void trashInboxMail(item,account)}>In den Papierkorb</button>
-              </div> : <button type="button" className="quiet" disabled={trashingMail}
-                aria-label={`E-Mail löschen: ${item.subject}`} onClick={() => {
-                  setTrashFeedback(undefined)
-                  setMailToTrash({id:item.id,account})
-                }}>Löschen</button>)}
-          </div>
+        {messages.map(item => <li key={item.id} className="inbox-mail" data-important={item.important ? 'true' : undefined}>
+          <details>
+            <summary>
+              <span className="inbox-mail-main"><strong>{item.subject}</strong><small>{item.from}</small>
+                <span className="inbox-row-meta">
+                  <small className="inbox-category" data-category={item.label}>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category])}</small>
+                  {item.reply && <small>Antwort erbeten</small>}
+                  {item.shipment && <small>{shipmentLabels[item.shipment]}</small>}
+                </span></span>
+              {item.at ? <time dateTime={item.at}>{mailDate.format(new Date(item.at))}</time> : null}
+            </summary>
+            <div className="inbox-mail-detail">
+              {item.reasons.length ? <p className="inbox-why"><b>Warum hier:</b> {item.reasons.join(' · ')}</p> : null}
+              {item.preview ? <p className="inbox-preview">{item.preview}</p> : <p className="inbox-preview muted">Kein Textauszug verfügbar.</p>}
+              <dl>
+                <div><dt>Von</dt><dd>{item.from}</dd></div>
+                {item.at ? <div><dt>Eingang</dt><dd>{mailDate.format(new Date(item.at))}</dd></div> : null}
+                <div><dt>Bereich</dt><dd>{inboxLabelNames[item.label] || (item.category && mailCategoryNames[item.category]) || 'Allgemein'}</dd></div>
+              </dl>
+              {account && (mailToTrash?.id === item.id && mailToTrash.account === account ?
+                <div className="actions">
+                  <button type="button" className="quiet" disabled={trashingMail} onClick={() => setMailToTrash(undefined)}>Abbrechen</button>
+                  <button type="button" className="inbox-trash-confirm" disabled={trashingMail} onClick={() => void trashInboxMail(item,account)}>In den Papierkorb</button>
+                </div> : <button type="button" className="quiet" disabled={trashingMail}
+                  aria-label={`E-Mail löschen: ${item.subject}`} onClick={() => {
+                    setTrashFeedback(undefined)
+                    setMailToTrash({id:item.id,account})
+                  }}>Löschen</button>)}
+            </div>
+          </details>
         </li>)}
       </ul> : inboxFeed ? <p className="empty">Keine relevanten Nachrichten gefunden.</p> : null}
     </>

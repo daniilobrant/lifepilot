@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.61 · 26. November 2026
+
+- Posteingang: Mails unter „Wichtig für dich“ lassen sich aufklappen und zeigen Grund, Textauszug, Absender, Eingang und Bereich. Löschen steht im aufgeklappten Bereich.
+
 ## v1.0.60 · 26. November 2026
 
 - Posteingang: Weitergeleitete Mails vom Studierendenkonto der HfWU werden wie Hochschulmails erkannt. Anmeldefristen und Terminänderungen erscheinen unter „Wichtig für dich“, Einladungen zu Veranstaltungen und Zustellfehler nicht.

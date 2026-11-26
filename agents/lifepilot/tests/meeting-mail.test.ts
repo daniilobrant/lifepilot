@@ -43,3 +43,10 @@ test('A forwarded course mail with an English agenda becomes one presentation ap
   const event=readMeetingMail(forwarded)!
   assert.deepEqual([event.title,event.date,event.time],['B2B-Sales Management · Präsentation · Zoom','2026-11-26','12:00'])
 })
+
+test('The expanded inbox mail shows a short preview without quotes, headers and links',async()=>{
+  const {mailPreview}=await import('../../../hub/runtime/refresh-inbox.ts')
+  const preview=mailPreview('Von: Absender\nGesendet: Montag\nBetreff: Test\n\nHallo, wir starten um 12:00 Uhr.\n> altes Zitat\nLink: https://example.org/x\nBis gleich')
+  assert.equal(preview,'Hallo, wir starten um 12:00 Uhr. Link: Bis gleich')
+  assert.ok(mailPreview('Wort '.repeat(200)).length<=320)
+})

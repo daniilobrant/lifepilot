@@ -18,7 +18,15 @@ import { financeFromMail, scanMailFinances } from './mail-finance.ts'
 import { triageMails, triagedImportant } from './mail-triage.ts'
 
 export const refreshPageLimit = 3
-export type AttentionMail = MailClassification & { from: string, at: string | null, label:InboxLabel }
+export type AttentionMail = MailClassification & { from: string, at: string | null, label:InboxLabel, preview?: string }
+
+/** Kurzer Textauszug für die aufgeklappte Mail: ohne Zitate, Kopfzeilen weitergeleiteter Mails und Links. */
+export function mailPreview(text: string, limit = 320) {
+  const clean = text.split(/\r?\n/u).map(line => line.trim())
+    .filter(line => line && !line.startsWith('>') && !/^(?:von|from|gesendet|sent|an|to|cc|betreff|subject|datum|date)\s*:/iu.test(line) && !/^_{5,}$/u.test(line))
+    .join(' ').replace(/https?:\/\/\S+/gu, '').replace(/\p{Cf}|\u034f/gu, '').replace(/\s+/gu, ' ').trim()
+  return clean.length > limit ? clean.slice(0, limit - 1).trimEnd() + '…' : clean
+}
 
 function needsAttention(item:MailClassification,mail?:MailContent) {
   if (!mail) return item.category!=='newsletter' && item.category!=='spam' && item.category!=='jobs' && (item.important || Boolean(item.shipment))
@@ -47,7 +55,7 @@ export async function readInboxFeed(google: GoogleConnector, synthetic: boolean,
       if (seen.has(mail.id)) continue
       seen.add(mail.id)
       const classified = modelImportant.has(mail.id) ? { ...classifyMail(mail), important: true, reasons: ['Vom Modell als wichtig eingestuft'] } : classifyMail(mail)
-      if (modelImportant.has(mail.id) || needsAttention(classified,mail)) relevant.push({ ...classified, from:classified.university?.sender??mail.from, at:mail.at,label:inboxLabel(mail,classified) })
+      if (modelImportant.has(mail.id) || needsAttention(classified,mail)) relevant.push({ ...classified, from:classified.university?.sender??mail.from, at:mail.at,label:inboxLabel(mail,classified),preview:mailPreview(mail.text) })
     }
   }
   if (synthetic) {
