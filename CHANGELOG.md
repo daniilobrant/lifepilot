@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.49 · 26. November 2026
+
+- Styling-Studio: Oberteile werden mit Blick auf passende Hosen, Jacken und Schuhe gewählt (Farbvorausschau), unruhige Paare wie Blau und Weinrot fallen heraus; mehr Abwechslung bei „Neu“; im Text genannte Farben und Anlässe (Vorstellungsgespräch, Hochzeit …) fließen in die Auswahl ein.
+
 ## v1.0.48 · 26. November 2026
 
 - Bestellungstracker: Bestellmails mit Warenkorb-Blöcken (adidas) liefern Bestellnummer, Artikel mit Größe, Farbe, Preis und Bild sowie die voraussichtliche Lieferung; Trikots zählen als Oberteile. Ohne lesbare Angaben bleibt der Platzhalter.
