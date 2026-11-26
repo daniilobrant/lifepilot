@@ -32,6 +32,7 @@ import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTri
 import { travelWindows } from './trip-windows.ts'
 import { tripCalendarTitle } from './trip-types.ts'
 import {searchTripAddresses,searchTripPlaces} from '../connectors/trip-places.ts'
+import { weatherFromChat } from './weather-chat.ts'
 import { fetchOutfitWeather, outfitLocation } from '../connectors/outfit-weather.ts'
 import { outfitGarment, productWardrobeFields, textProductColor } from './outfit-fields.ts'
 import { matchProductPhoto } from './outfit-catalog.ts'
@@ -392,6 +393,14 @@ async function work() {
   active = { id: next.id, controller }
   try {
     const latest=next.payload.messages.at(-1)?.input??''
+    if (!acceptance) {
+      const weather = await weatherFromChat(latest, personalProfile(store).fields.location,
+        next.payload.messages.at(-1)?.referenceDay ?? dateInBerlin())
+      if (weather) {
+        if (!stopping && !controller.signal.aborted) store.finish(next.id, weather, null, offlineMetrics)
+        return
+      }
+    }
     const previous=store.previousRecipePlan(next.id)
     const stated=localRecipePreference(latest)
     const refinement=previous&&Boolean(stated.include?.length||stated.side||stated.mode||stated.excluded.length)&&
