@@ -1794,7 +1794,7 @@ function App() {
                 <OrderApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey}
                   onOpen={id=>{navigate('Bestellungstracker');setBoardSource({source_type:'order',source_id:id} as never)}} onUpdate={()=>void refresh()}/>
                 <ApplicationApprovals api={api} refreshKey={inboxFeed?.loadedAt+':'+briefingVersion+':'+orderRefreshKey} onOpen={()=>navigate('Bewerbungen')} onUpdate={()=>void refresh()}/>
-                <LiveInbox silent onLectures={setLectureNotices} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
+                <LiveInbox onLectures={setLectureNotices} batch={inboxBatch} mailRefresh={inboxFeed?.loadedAt+':'+briefingVersion} onDecision={()=>{setLectureRefresh(value=>value+1);void refresh()}}/>
                 <BulkApproval items={pendingAdoptions} disabled={busy||!!offline} approve={approvePilotProposals}
                   description="LifePilot übernimmt die angezeigten Pilot-Vorschläge. Kalenderänderungen werden lokal ausgeführt."/>
               </Section>

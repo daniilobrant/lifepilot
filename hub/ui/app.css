@@ -1931,7 +1931,7 @@ input[type=file]::file-selector-button {
 .proposal-details > summary { color:var(--muted); font-size:.8rem; cursor:pointer; min-height:0; }
 .proposal-details p, .proposal-note { margin:4px 0 0; font-size:.84rem; line-height:1.4; color:var(--muted); }
 .proposal-actions { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
-.proposal-actions button, .proposal-wide { border-radius:8px; height:34px; min-height:34px; padding:0 8px; font-size:.82rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.proposal-actions button, .proposal-wide { border-radius:8px; height:auto; min-height:32px; padding:4px 8px; font-size:.82rem; line-height:1.15; white-space:normal; }
 .proposal-wide { width:100%; }
 
 /* Posteingang: Kategorien zum Anklicken */
@@ -1940,3 +1940,17 @@ input[type=file]::file-selector-button {
 .inbox-filter button svg { width:15px; height:15px; flex:none; }
 .inbox-filter button small { color:var(--muted); font-size:.74rem; }
 .inbox-filter button[aria-pressed="true"] { background:var(--mint-soft, #dcebe1); border-color:var(--mint, #2f6048); color:var(--ink); font-weight:650; }
+
+/* Einheitlich kompakte Freigabe-Karten (Terminvorschläge, Finanzen, Bestellungen, Bewerbungen, Projektmails) */
+.mail-finance { font-size:.88rem; padding-block:.35rem; }
+.mail-finance > summary strong { font-size:.95rem; }
+.mail-finance[open] > summary { margin-block-end:.3rem; }
+.mail-finance p { margin:0; line-height:1.35; }
+.mail-finance .application-source { display:grid; gap:6px; margin:0; padding:.55rem 0; border-top:1px solid var(--line); }
+.mail-finance .application-source strong { font-size:.9rem; font-weight:650; }
+.mail-finance .application-source p { color:var(--muted); font-size:.8rem; }
+.mail-finance .application-source .actions { display:grid; grid-template-columns:repeat(auto-fit,minmax(0,1fr)); gap:6px; }
+.mail-finance button { min-height:32px; height:32px; padding:0 10px; font-size:.82rem; border-radius:8px; }
+.mail-finance .bulk-approval, .mail-finance .bulk-approval button { font-size:.82rem; }
+.briefing-grid > .section { max-height:none; }
+.mail-finance .proposal-actions button, .mail-finance .proposal-wide { height:auto; min-height:32px; padding:4px 8px; white-space:normal; line-height:1.15; }

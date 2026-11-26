@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.80 · 26. November 2026
+
+- Startseite: Terminvorschläge, Fristen und Aufgabenvorschläge stehen wieder unter „Wartet auf dein OK“.
+- Oberfläche: Alle Freigabe-Karten dort (Terminvorschläge, Finanzen, Bestellungen, Bewerbungen, Projektmails) nutzen dieselbe kompakte Schrift, Abstände und Buttons. Die Spalte wird nicht mehr abgeschnitten.
+
 ## v1.0.79 · 26. November 2026
 
 - Oberfläche: „Mailvorschläge“ heißen jetzt „Terminvorschläge“ und stehen als aufklappbare Liste unter dem Kalender (wie Finanzen & Abos). Von der Startseite entfallen Block und Link „Mailvorschläge öffnen“.
