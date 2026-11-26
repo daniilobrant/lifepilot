@@ -1886,3 +1886,4 @@ input[type=file]::file-selector-button {
 .inbox-mail-footer .actions { margin: 0; }
 .inbox-mail-footer .inbox-trash-confirm { border-color: #b4483c; color: #b4483c; }
 .inbox-mail-detail > .inbox-mail-footer { justify-self: stretch; }
+.finance-head-actions { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }

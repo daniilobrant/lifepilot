@@ -189,11 +189,11 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
   function selectMonth(value:string) {
     setMonth(value);setEditor(undefined);setReview(false);setFilter('');setRemoving('');setError('')
   }
-  function section(kind:FinanceKind, title:string, button:string, children?:ReactNode,variable=false) {
+  function section(kind:FinanceKind, title:string, button:string, children?:ReactNode,variable=false,extra?:ReactNode) {
     const entries=view?.entries.filter(item=>item.kind===kind && (kind!=='income'||Boolean(item.date)===variable) && (kind!=='expense'||!filter||item.category===filter))??[]
     if(kind==='expense')entries.sort((a,b)=>(b.date??'').localeCompare(a.date??''))
     return <section className={"card settings finance-section"+(entries.length ? "" : " finance-section-empty")}>
-      <div className="editor-title"><h2>{title}</h2><button className="inline-action" type="button" onClick={()=>setEditor({draft:newDraft(kind,month,variable)})}>{button}</button></div>
+      <div className="editor-title"><h2>{title}</h2><div className="finance-head-actions"><button className="inline-action" type="button" onClick={()=>setEditor({draft:newDraft(kind,month,variable)})}>{button}</button>{extra}</div></div>
       {children}
       {!entries.length?<p className="empty">Keine Einträge.</p>:<ul className="finance-list">{entries.map(item=><li key={item.id}>
         <div className="finance-entry">
@@ -249,8 +249,8 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
             {[...new Set(view.entries.filter(item=>item.kind==='expense').map(item=>item.category))].map(category=><option key={category}>{category}</option>)}</select></label>:null)}
       </div>
       <div className="finance-columns finance-summary-columns"><BudgetChart view={view}/>
-        {section('subscription','Abos & Mitgliedschaften','+ Abo',
-          <>{reviewTools}<button type="button" className="secondary" aria-expanded={review} onClick={()=>setReview(value=>!value)}>{reviewTools?'Tarife manuell vergleichen':'Abos & Alternativen prüfen'}</button></>)}
+        {section('subscription','Abos & Mitgliedschaften','+ Abo',reviewTools,false,
+          <button className="inline-action" type="button" aria-expanded={review} onClick={()=>setReview(value=>!value)}>{reviewTools?'Tarife vergleichen':'Abos & Alternativen prüfen'}</button>)}
       </div>
       <section className="card settings finance-history"><h2>Sechsmonatsvergleich</h2><HistoryChart history={view.history}/></section>
     </>}

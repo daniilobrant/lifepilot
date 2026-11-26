@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.65 · 26. November 2026
+
+- Finanzen: Der Button „Abos & Alternativen prüfen“ steht jetzt direkt neben „+ Abo“ in der Kopfzeile des Abo-Bereichs und passt zu dessen Gestaltung. Die automatische Prüfung folgt später.
+
 ## v1.0.64 · 26. November 2026
 
 - Terminvorschläge aus Mails: Englische Uhrzeiten mit am und pm werden richtig umgerechnet (1 pm wird 13:00, 12 am wird 00:00), auch bei der Modellprüfung.
