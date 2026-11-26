@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.68 · 26. November 2026
+
+- Auslieferung: Die Oberfläche der Versionen 1.0.65 bis 1.0.67 (Abo-Button, Reisekästchen, Abo-Prüfung mit Übersichtsfenster) wurde nicht mit ausgeliefert. 1.0.68 enthält sie.
+
 ## v1.0.67 · 26. November 2026
 
 - Finanzen: „Abos & Alternativen prüfen“ startet einen Suchauftrag mit Websuche (einzige Ausnahme der gesperrten Websuche, in SICHERHEIT.md dokumentiert). Ein Übersichtsfenster zeigt je Abo die Empfehlung (kündigen, wechseln, behalten), Alternativen mit Preis, Vor- und Nachteilen, Jahresersparnis und Link. Fitnessstudios werden im Wohnort aus dem Profil gesucht. Die Zahlen rechnet LifePilot selbst, es wird nichts gekündigt oder gebucht.
