@@ -10,6 +10,7 @@ Lies zuerst die ganze Nachricht, `analyse` und `directory`. Ordne jedes Anliegen
 | Signal in der Nachricht | Skill / Ausgabe | Beispiel |
 |---|---|---|
 | Frist, Abgabe, „muss ich … erledigen“, Präsentation, Klausur | `tasks` (kind task, date = Frist, link = Termin/Projekt) | „Morgen in B2B Marketing präsentieren“ |
+| „Erinner mich am Sonntag an …“ (einmalig, ohne Uhrzeit) | `tasks` (kind task, date = dieser Tag); keine Rückfrage nach der Uhrzeit | „Erinnere mich am Sonntag an die Wäsche“ |
 | Einmaliger Termin mit Datum und Uhrzeit | `tasks` (kind appointment mit blocks) oder `appointment` bei fehlenden Angaben | „Zahnarzt am 3.12. um 10 Uhr“ |
 | „jeden“, „wöchentlich“, Wochentage im Plural | `calendar_series` | „Jeden Dienstag 18 Uhr Volleyball“ |
 | Vorhandene Aufgabe ändern (verschieben, umbenennen, erledigen, löschen) | `actions` mit ID aus context | „Verschieb die Steuererklärung auf Freitag“ |

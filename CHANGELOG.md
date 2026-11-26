@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.42 · 26. November 2026
+
+- Entscheidungstabelle: einmalige Erinnerung ohne Uhrzeit wird eine Aufgabe ohne Rückfrage.
+
 ## v1.0.41 · 26. November 2026
 
 - Claude Code CLI vollständig angebunden und live geprüft; zu lange Zusammenfassungen werden gekürzt, Hinweise außerhalb des Kontexts verworfen statt die Antwort abzulehnen.
