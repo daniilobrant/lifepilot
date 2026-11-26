@@ -76,12 +76,12 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
     const instruction = prompt + '\n\nAntworte ausschließlich mit einem JSON-Objekt, das genau diesem JSON-Schema entspricht, ohne Erklärung davor oder danach:\n' + schema
     const args = ['-p', '--input-format', 'stream-json', '--output-format', 'stream-json', '--verbose']
     if (known.has('--json-schema')) args.push('--json-schema', schema)
-    // Nur die Websuche-Ausnahme (Abo-Prüfung) bekommt Suche und Seitenabruf, sonst bleibt alles gesperrt.
-    if (known.has('--tools')) args.push('--tools', options.web ? 'WebSearch,WebFetch' : '')
+    // Nur die Websuche-Ausnahme (Abo-Prüfung) bekommt nur die Suche, keinen Seitenabruf, sonst bleibt alles gesperrt.
+    if (known.has('--tools')) args.push('--tools', options.web ? 'WebSearch' : '')
     else if (known.has('--disallowedTools')) args.push('--disallowedTools', 'Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,NotebookEdit,Task,TodoWrite')
     if (known.has('--strict-mcp-config')) args.push('--strict-mcp-config')
     if (known.has('--max-turns')) args.push('--max-turns', options.web ? '12' : '2')
-    if (options.web && known.has('--allowedTools')) args.push('--allowedTools', 'WebSearch', 'WebFetch')
+    if (options.web && known.has('--allowedTools')) args.push('--allowedTools', 'WebSearch')
     if (known.has('--no-session-persistence')) args.push('--no-session-persistence')
     const content: object[] = [{ type: 'text', text: instruction }]
     if (image) content.push({ type: 'image', source: { type: 'base64', media_type: 'image/' + image.format, data: image.photo.toString('base64') } })
@@ -115,7 +115,7 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
               for (const block of event.message?.content ?? []) {
                 if (block.type === 'text' && typeof block.text === 'string') text += block.text
                 // StructuredOutput ist der interne Weg der CLI für --json-schema; jedes andere Werkzeug ist gesperrt.
-                if (block.type === 'tool_use' && block.name !== 'StructuredOutput' && !(options.web && (block.name === 'WebSearch' || block.name === 'WebFetch'))) stop('Claude wollte ein Werkzeug verwenden, das für LifePilot gesperrt ist.')
+                if (block.type === 'tool_use' && block.name !== 'StructuredOutput' && !(options.web && block.name === 'WebSearch')) stop('Claude wollte ein Werkzeug verwenden, das für LifePilot gesperrt ist.')
               }
               if (typeof event.message?.model === 'string' && /^[\w.-]{1,80}$/u.test(event.message.model)) metrics.model = event.message.model
             }

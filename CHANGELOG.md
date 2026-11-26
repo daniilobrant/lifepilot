@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.73 · 26. November 2026
+
+- Abo-Prüfung: Auch mit Claude als Modell ist nur noch die Websuche erlaubt, kein Seitenabruf. Damit kann der Aufruf keine Abo-Daten an beliebige Adressen senden. Codex war bereits auf die Suche beschränkt.
+
 ## v1.0.72 · 26. November 2026
 
 - Abo-Prüfung: Während der Suche steht in der Karte nur noch „Pilot sucht nach alternativen Tarifen …“.
