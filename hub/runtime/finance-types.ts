@@ -1,22 +1,29 @@
 export const financeKinds = {income:'Einnahme', fixed:'Fixkosten', subscription:'Abo', expense:'Ausgabe'} as const
 export type FinanceKind = keyof typeof financeKinds
-export const expenseCategories = ['Lebensmittel & Einkauf','Essen & Trinken','Freizeit & Kultur','Transport & Mobilität','Shopping & Alltag','Freunde & Familie','Sonstiges'] as const
-export const budgetCategories = ['Wohnen & Haushalt','Lebensmittel','Mobilität','Freizeit & Abos','Versicherung & Verwaltung',
-  'Gesundheit & Pflege','Bildung & Arbeit','Freunde & Familie','Sonstiges'] as const
+/** Eine gemeinsame Kategorienliste für Formular, Verteilung und Auswertung. „Sonstiges“ steht immer zuletzt. */
+export const budgetCategories = ['Wohnen & Haushalt','Lebensmittel & Einkauf','Essen & Trinken','Transport & Mobilität','Shopping','Gesundheit & Pflege',
+  'Bildung & Arbeit','Versicherung & Verwaltung','Abos','Freunde & Familie','Sonstiges'] as const
 export type BudgetCategory = typeof budgetCategories[number]
-export const financeCategories = [...new Set<string>([...budgetCategories,...expenseCategories])]
+export const financeCategories:string[] = [...budgetCategories]
+const legacyCategories:Record<string,BudgetCategory> = {'Lebensmittel':'Lebensmittel & Einkauf','Mobilität':'Transport & Mobilität','Freizeit & Abos':'Abos',
+  'Freizeit & Kultur':'Sonstiges','Shopping & Alltag':'Shopping'}
+/** Ältere Kategorienamen werden auf die heutige Liste abgebildet. */
+export const canonicalCategory=(category:string)=>legacyCategories[category]??category
 
 export function budgetCategory(entry: Pick<FinanceDraft,'title'|'category'|'kind'>):BudgetCategory {
-  const match=budgetCategories.find(category=>category===entry.category)
+  const stated=canonicalCategory(entry.category)
+  const match=budgetCategories.find(category=>category===stated)
   if(match && match!=='Sonstiges')return match
   const label=(entry.title+' '+entry.category).toLocaleLowerCase('de-DE').normalize('NFD').replace(/\p{M}/gu,'')
   if(/versicherung|rundfunk|steuer|finanzamt|behorde|amtlich|gebuhr|passgebuhr|verwaltung/u.test(label))return 'Versicherung & Verwaltung'
   if(/kontaktlins|apotheke|gesundheit|medikament|zahnarzt|arzt|pflege|therapie|brille/u.test(label))return 'Gesundheit & Pflege'
   if(/miete|wohnung|strom|heiz|nebenkosten|haushalt|internet|wasserabschlag/u.test(label))return 'Wohnen & Haushalt'
-  if(/zug|bus|bahn|tanken|tank|tankstell|mobilitat|fahrkarte|park|auto/u.test(label))return 'Mobilität'
+  if(/zug|bus|bahn|tanken|tank|tankstell|mobilitat|fahrkarte|park|auto/u.test(label))return 'Transport & Mobilität'
   if(/semester|hochschule|studium|bildung|arbeitsmaterial|kurs|fortbildung/u.test(label))return 'Bildung & Arbeit'
-  if(/lebensmittel|supermarkt|essen|restaurant|kaffee|d[oö]ner|b[aä]cker|gastro/u.test(label))return 'Lebensmittel'
-  if(entry.kind==='subscription'||/fitness|gym|volleyball|freizeit|kino|konzert|sport|streaming|reise/u.test(label))return 'Freizeit & Abos'
+  if(/restaurant|essen|kaffee|d[oö]ner|b[aä]cker|gastro/u.test(label))return 'Essen & Trinken'
+  if(/lebensmittel|supermarkt|einkauf/u.test(label))return 'Lebensmittel & Einkauf'
+  if(entry.kind==='subscription'||/fitness|gym|volleyball|streaming|abo\b/u.test(label))return 'Abos'
+  if(/shopping|kleidung|zalando|amazon|bestellung|trikot|schuhe/u.test(label))return 'Shopping'
   return 'Sonstiges'
 }
 export type FinanceDraft = {

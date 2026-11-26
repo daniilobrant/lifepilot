@@ -1,7 +1,7 @@
 import { SubscriptionReviewPanel, startSubscriptionReview, useSubscriptionJob } from './subscription-review.tsx'
 import {DateInput,monthAtOffset as shiftMonth} from './presentation.tsx'
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
-import { budgetCategories, budgetCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceDraft, type FinanceEntry, type FinanceKind, type FinanceOverview } from '../runtime/finance-types.ts'
+import { budgetCategories, budgetCategory, canonicalCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceDraft, type FinanceEntry, type FinanceKind, type FinanceOverview } from '../runtime/finance-types.ts'
 import { dateInBerlin, shiftDay } from '../runtime/values.ts'
 import { PayPalList } from './mail-finance.tsx'
 
@@ -9,7 +9,7 @@ type Api=<T>(path:string,payload?:object)=>Promise<T>
 type Editor={draft:FinanceDraft, entry?:FinanceEntry}
 const monthLabel=new Intl.DateTimeFormat('de-DE',{month:'long',year:'numeric',timeZone:'UTC'})
 const compactMonth=new Intl.DateTimeFormat('de-DE',{month:'short',timeZone:'UTC'})
-const colors=['#53836a','#ad794e','#608fb0','#a476aa','#bf6370','#4f948b','#7b8a52','#87959d']
+const colors=['#53836a','#7b8a52','#c19a4a','#608fb0','#ad794e','#bf6370','#a476aa','#4f948b','#8e7cc3','#d08c9a','#87959d']
 const asAmount=(cents:number|null)=>cents===null?'':(cents/100).toFixed(2).replace('.',',')
 const errorText=(error:unknown)=>error instanceof Error?error.message:'Die Änderung konnte nicht gespeichert werden.'
 function asCents(input:FormDataEntryValue|null) {
@@ -55,9 +55,9 @@ export function FinanceForm({draft,save,cancel,label='Speichern'}: {
         <label>Betrag in €<input name="amount" inputMode="decimal" defaultValue={draft.cents?asAmount(draft.cents):''} required/></label>
         {dated?<label>Datum<DateInput name="date"  defaultValue={draft.date??''} required/></label>:
           <label>Abrechnung<select name="cycle" defaultValue={draft.cycle}><option value="monthly">Monatlich</option><option value="yearly">Jährlich</option></select></label>}
-        {draft.kind!=='income'&&<label>Kategorie<select name="category" defaultValue={draft.category||''}>
+        {draft.kind!=='income'&&<label>Kategorie<select name="category" defaultValue={canonicalCategory(draft.category||'')}>
           <option value="">Automatisch</option>
-          {[...new Set([...financeCategories,...(draft.category?[draft.category]:[])])].map(option=><option key={option}>{option}</option>)}
+          {[...new Set([...financeCategories,...(draft.category?[canonicalCategory(draft.category)]:[])])].map(option=><option key={option}>{option}</option>)}
         </select></label>}
       </div>
       <details>

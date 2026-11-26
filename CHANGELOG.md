@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.0.88 · 27. November 2026
+
+- Finanzen & Abos: Eine gemeinsame, gekürzte Kategorienliste für Formular und Verteilung: Wohnen & Haushalt, Lebensmittel & Einkauf, Essen & Trinken, Transport & Mobilität, Shopping, Gesundheit & Pflege, Bildung & Arbeit, Versicherung & Verwaltung, Abos, Freunde & Familie, Sonstiges (immer zuletzt). Doppelungen wie „Mobilität“, „Lebensmittel“, „Freizeit & Kultur“ und „Freizeit & Abos“ entfallen; bestehende Einträge werden automatisch der passenden neuen Kategorie zugeordnet.
+
 ## v1.0.87 · 26. November 2026
 
 - Bestellungen: Wer ein Teil behält, bekommt die Ausgabe automatisch in Finanzen eingetragen (Summe der behaltenen Teile, wächst mit jedem weiteren behaltenen Teil). Der Gesamtbetrag steht bei adidas unter „Gesamt“ und wird jetzt erkannt.

@@ -101,6 +101,6 @@ export function readMerchantPayment(mail:MailContent){
   const route=/([\p{Lu}][\p{L}]+(?: [\p{L}]+)? - [\p{Lu}][\p{L}]+(?: [\p{L}]+)?) ｜/u.exec(text)?.[1]
   const description=(route?'Flug '+route:place)?.slice(0,80)
   const category=/eats|lieferando|wolt|restaurant/iu.test(subject+' '+text.slice(0,300))?'Essen & Trinken':/park|bahn|flug|flight|ticket|taxi|uber|ryanair|eurowings|trip\.com|bolt|scooter|fahrt/iu.test(subject+' '+mail.from+' '+(description??''))?'Transport & Mobilität':
-    /booking|unterkunft|hotel|airbnb|accommodation|majorelle|museum|eintritt/iu.test(subject+' '+mail.from+' '+text.slice(0,600))?'Freizeit & Kultur':undefined
+    /booking|unterkunft|hotel|airbnb|accommodation|majorelle|museum|eintritt/iu.test(subject+' '+mail.from+' '+text.slice(0,600))?'Sonstiges':undefined
   return {cents,counterparty,domain,description,reference,category,date:dateInBerlin(new Date(mail.at))}
 }

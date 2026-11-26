@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { bounded, dateInBerlin, isDate, shiftDay } from './values.ts'
-import { financeCategories, financeKinds, money, monthlyCents, type FinanceChange, type FinanceChat, type FinanceDraft, type FinanceEntry, type FinanceOverview, type FinanceSettings } from './finance-types.ts'
+import { canonicalCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceChange, type FinanceChat, type FinanceDraft, type FinanceEntry, type FinanceOverview, type FinanceSettings } from './finance-types.ts'
 
 type Row={id:string, month:string, until_month:string|null, revision:number, data:string}
 const emptySettings = {location:'', buffer:null, target:null, variablePlan:null, revision:0} satisfies FinanceSettings
@@ -44,7 +44,7 @@ export function financeDraft(value:unknown):FinanceDraft {
   const cycle=!dated && input.cycle==='yearly'?'yearly':'monthly'
   const renewal=kind==='subscription'?input.renewal ?? null:null
   if(dated && (typeof date!=='string' || !isDate(date)) || renewal!==null && !isDate(renewal)) throw new Problem(400,'Gib ein gültiges Datum ein.')
-  const category=optionalText(input.category,80)
+  const category=canonicalCategory(optionalText(input.category,80))
   return {
     kind, title:input.title.trim(), cents:integer(input.cents,1,maxCents)!, cycle,
     category:kind==='expense' && !financeCategories.includes(category)?'Sonstiges':category,
@@ -55,7 +55,8 @@ export function financeDraft(value:unknown):FinanceDraft {
   }
 }
 function decode(row:Row):FinanceEntry {
-  return {...JSON.parse(row.data) as FinanceDraft,id:row.id,month:row.month,until:row.until_month,revision:row.revision}
+  const data=JSON.parse(row.data) as FinanceDraft
+  return {...data,category:canonicalCategory(data.category??''),id:row.id,month:row.month,until:row.until_month,revision:row.revision}
 }
 function rows(store:Store, month:string) {
   return (store.db.prepare("SELECT * FROM finance_entries WHERE month<=? AND (until_month IS NULL OR ?<until_month) AND (json_extract(data,'$.date') IS NULL OR month=?) ORDER BY month DESC,rowid DESC")

@@ -144,7 +144,7 @@ export function bookOrderFinance(store:Store,key:string,kind:unknown,date:unknow
     if(matches.length>1) throw new Problem(409,'Mehrere ähnliche Buchungen gefunden. Prüfe Finanzen & Abos.')
     const entryId=matches.length ? String(matches[0].id) : saveFinance(store,{
       kind:'expense',title:(order.merchant+' · Bestellung '+order.reference).slice(0,120),cents,date,
-      category:'Shopping & Alltag',refund,note:'Im Bestellungstracker bestätigt.',
+      category:'Shopping',refund,note:'Im Bestellungstracker bestätigt.',
     },month).id
     store.db.prepare('INSERT INTO order_finance_entries VALUES (?,?,?)').run(key,kind,entryId)
     store.db.prepare(`UPDATE gmail_finance_suggestions SET state='accepted',entry_id=? WHERE account=? AND state='pending'
@@ -167,7 +167,7 @@ function bookKeptItems(store:Store,key:string) {
   const date=order.delivered_on ?? order.ordered_on
   const month=financeMonth(date.slice(0,7))
   const title=(order.merchant+' · '+priced.map(draft=>draft.name).join(', ')).slice(0,120)
-  const category=priced.every(draft=>isSportItem(draft)) ? 'Freizeit & Kultur' : 'Shopping & Alltag'
+  const category=priced.every(draft=>isSportItem(draft)) ? 'Shopping' : 'Shopping'
   const booked=store.db.prepare("SELECT f.entry_id AS id,e.revision,e.data FROM order_finance_entries f JOIN finance_entries e ON e.id=f.entry_id WHERE f.order_id=? AND f.kind='purchase'").get(key)
   if(booked){
     const data=JSON.parse(String(booked.data)) as {note?:string,cents:number}

@@ -64,7 +64,7 @@ test('Merchant payment confirmations outside PayPal become one expense with the 
   const draft=financeFromMail(booking)!.draft
   assert.equal(draft.cents,49931)
   assert.equal(draft.direction,'outgoing')
-  assert.equal(draft.category,'Freizeit & Kultur')
+  assert.equal(draft.category,'Sonstiges')
   const park=financeFromMail(mail('park','i-Park - Payment confirmation','<body><h3>Payment Receipt</h3><span>Payment Date: 26/08/2026</span><span><b>Amount: </b></span><span>4.00 €</span></body>','no-reply@mail.parkalot.example'))!.draft
   assert.equal(park.cents,400)
   assert.equal(park.title,'i-Park')

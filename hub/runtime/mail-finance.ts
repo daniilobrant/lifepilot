@@ -77,7 +77,7 @@ export function recategorizePersonal(store:Store,account:string) {
     if (!personalTransfer(legacy ? {...draft,paypal:{reference:''}} : draft)) continue
     store.db.prepare('UPDATE gmail_finance_suggestions SET draft=? WHERE id=?').run(JSON.stringify({...draft,category:'Freunde & Familie'}),row.id)
     if (row.entry_id) store.db.prepare(`UPDATE finance_entries SET data=json_set(data,'$.category','Freunde & Familie'),revision=revision+1
-      WHERE id=? AND coalesce(json_extract(data,'$.category'),'') IN ('','Shopping & Alltag','Sonstiges')`).run(row.entry_id)
+      WHERE id=? AND coalesce(json_extract(data,'$.category'),'') IN ('','Shopping & Alltag','Shopping','Sonstiges')`).run(row.entry_id)
   }
 }
 
@@ -104,7 +104,7 @@ export function financeFromMail(mail:MailContent){
     const sourceKey=hash(ticket.reference&&provider?['ticket-order',provider,ticket.reference]:
       ['ticket-expense',date,String(ticket.cents),eventIdentity(ticket.title),ticket.date,ticket.time])
     const draft:MailFinanceDraft={title:ticket.title,cents:ticket.cents,date,refund:false,mailDate:true,direction:'outgoing',sourceKey,
-      ticket:{reference:ticket.reference,merchants:ticket.merchants},category:'Freizeit & Kultur'}
+      ticket:{reference:ticket.reference,merchants:ticket.merchants},category:'Sonstiges'}
     return {draft,fingerprint:sourceKey,legacyFingerprint:undefined}
   }
   const merchantRefund=readMerchantRefund(mail)
@@ -339,12 +339,12 @@ export function decideMailFinance(store:Store,account:string,id:string,approved:
       if(active.length>1)throw new Problem(409,'Mehrere passende Abos gefunden. Prüfe Finanzen & Abos.')
       const current=active[0]
       entryId=saveFinance(store,{kind:'subscription',title:reviewedFields.title??original.title,cents:original.cents,cycle:subscription.cycle,
-        renewal:subscription.renewal,category:'Freizeit & Abos',note:financeMailNote(original),sourceKey:original.sourceKey},month,
+        renewal:subscription.renewal,category:'Abos',note:financeMailNote(original),sourceKey:original.sourceKey},month,
         current?{id:String(current.id),revision:Number(current.revision)}:undefined).id
     }else if(approved){
       const correction=reviewed && typeof reviewed==='object' ? reviewed as Record<string,unknown> : {}
       const draft=financeDraft({kind:original.direction==='incoming'?'income':'expense',title:correction.title??original.title,cents:original.cents,date:correction.date??original.date,
-        category:original.category??'Shopping & Alltag',refund:original.refund,note:financeMailNote(original),sourceKey:original.sourceKey})
+        category:original.category??'Shopping',refund:original.refund,note:financeMailNote(original),sourceKey:original.sourceKey})
       const month=financeMonth(draft.date?.slice(0,7))
       const knownOrder=original.orderReference?store.db.prepare(`SELECT f.entry_id AS id FROM order_finance_entries f
         JOIN clothing_orders o ON o.id=f.order_id WHERE o.account=? AND o.reference=? AND f.kind='purchase'`)

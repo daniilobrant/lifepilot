@@ -3,14 +3,14 @@ import assert from 'node:assert/strict'
 import { Store } from '../../../hub/runtime/store.ts'
 import {ingredientStock} from '../../../hub/runtime/recipe-portions.ts'
 import {groceryOverview} from '../../../hub/runtime/grocery.ts'
-import { budgetCategory } from '../../../hub/runtime/finance-types.ts'
+import { budgetCategory, budgetCategories, canonicalCategory } from '../../../hub/runtime/finance-types.ts'
 import { markedExpiry, stockRowsFromLabelText } from '../../../hub/runtime/grocery-scan.ts'
 import { listRecipes, saveRecipe, checkRecipe, groceryIdeas, putGrocery, updateRecipePortions } from '../../../hub/runtime/grocery.ts'
 
 test('Budget categories include recurring bills, fitness and health with explicit classification',()=>{
   assert.equal(budgetCategory({title:'Kfz-Versicherung',category:'',kind:'fixed'}),'Versicherung & Verwaltung')
   assert.equal(budgetCategory({title:'Kontaktlinsen',category:'',kind:'fixed'}),'Gesundheit & Pflege')
-  assert.equal(budgetCategory({title:'Fitnessstudio',category:'',kind:'subscription'}),'Freizeit & Abos')
+  assert.equal(budgetCategory({title:'Fitnessstudio',category:'',kind:'subscription'}),'Abos')
   assert.equal(budgetCategory({title:'Apothekenbedarf',category:'Bildung & Arbeit',kind:'fixed'}),'Bildung & Arbeit')
 })
 
@@ -72,4 +72,11 @@ test('Recipe portions retain the source quantities and compare only compatible m
     assert.equal(listRecipes(store)[0].baseServings,3)
     assert.equal(listRecipes(store)[0].servings,3)
   }finally{store.db.close()}
+})
+
+test('Alte Kategorienamen werden auf die gekürzte Liste abgebildet, Sonstiges steht zuletzt',()=>{
+  assert.equal(budgetCategories.at(-1),'Sonstiges')
+  assert.equal(new Set(budgetCategories).size,budgetCategories.length)
+  for(const [old,next] of [['Mobilität','Transport & Mobilität'],['Lebensmittel','Lebensmittel & Einkauf'],['Freizeit & Abos','Abos'],['Shopping & Alltag','Shopping'],['Freizeit & Kultur','Sonstiges']])
+    assert.equal(canonicalCategory(old),next)
 })
