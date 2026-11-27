@@ -76,6 +76,7 @@ Themenwünsche der Person je Kategorie (nur Auswahl der Schwerpunkte, mische die
 ${wishes(preferences)}
 Kategorien: wirtschaft (Konjunktur, Unternehmen, Arbeitsmarkt, Preise, Zinsen), technik (IT, KI, Geräte, Netzpolitik, Sicherheit), politik (Deutschland, EU, Weltlage), aktien (DAX, Leitindizes, Anleihen, Zinsen, auffällige Kursbewegungen und Unternehmensmeldungen; nur Berichterstattung, keine Empfehlung zu Kauf oder Verkauf), regional, sport (Fußball, Bundesliga, große Turniere, Formel 1, Tennis, Wintersport je nach Saison).
 ${region}
+Arbeite effizient: höchstens 12 Suchanfragen insgesamt, jede möglichst so formuliert, dass sie mehrere Meldungen oder Quellen liefert (zum Beispiel „Nachrichten heute Wirtschaft tagesschau handelsblatt“). Beende die Suche rechtzeitig und antworte dann.
 Pro Kategorie 3 bis 5 aktuelle Meldungen der letzten zwei Tage (bei Sport und Regional bis zu vier Tage), wichtigste zuerst, keine Dubletten, keine Anzeigen und keine Paywall-Köder ohne Aussage.
 Felder je Meldung: headline (knappe, sachliche Schlagzeile, höchstens 110 Zeichen, kein Clickbait), summary (ein Satz mit höchstens 200 Zeichen), details (drei bis fünf Sätze mit Zahlen, Hintergrund und Einordnung, eigene Worte, keine wörtlichen Zitate aus dem Artikel), source (Name des Mediums), url (https-Adresse des konkreten Artikels, nie eine erfundene Adresse), published (Datum als JJJJ-MM-TT oder null).
 Schreibe in Texten keine Links und kein Markdown. overview ist eine Zusammenfassung des Tages in höchstens zwei Sätzen.

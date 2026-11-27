@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.3.2 · 27. November 2026
+
+- News-Briefing im Claude-Modus: Schrittlimit für Aufträge mit Websuche von 12 auf 30 erhöht, der Auftrag begrenzt die Zahl der Suchanfragen selbst. Erreicht eine Suche das Limit, nennt die Fehlermeldung jetzt den Grund.
+
 ## v1.3.1 · 27. November 2026
 
 - Behoben: Im Claude-Modus wurde die Websuche nie freigegeben, weil die Erkennung der CLI-Optionen `--allowedTools` übersah. Dadurch lieferten News-Briefing und Abo-Prüfung nur leere Ergebnisse („unvollständig“). Die Erkennung berücksichtigt jetzt Großbuchstaben; ein Test sichert das ab.

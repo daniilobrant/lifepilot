@@ -83,7 +83,7 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
     if (known.has('--tools')) args.push('--tools', options.web ? 'WebSearch' : '')
     else if (known.has('--disallowedTools')) args.push('--disallowedTools', 'Bash,Edit,Write,Read,Glob,Grep,WebFetch,WebSearch,NotebookEdit,Task,TodoWrite')
     if (known.has('--strict-mcp-config')) args.push('--strict-mcp-config')
-    if (known.has('--max-turns')) args.push('--max-turns', options.web ? '12' : '2')
+    if (known.has('--max-turns')) args.push('--max-turns', options.web ? '30' : '2')
     if (options.web && known.has('--allowedTools')) args.push('--allowedTools', 'WebSearch')
     if (known.has('--no-session-persistence')) args.push('--no-session-persistence')
     const content: object[] = [{ type: 'text', text: instruction }]
@@ -142,7 +142,8 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
     if (code !== 0 || !final || final.is_error === true) {
       const said = typeof final?.result === 'string' ? final.result.replace(/\s+/gu, ' ').slice(0, 240) : ''
       const detail = /login|auth|anmeld|credit|limit/iu.test(said) ? ' Prüfe Anmeldung oder Nutzungslimit der Claude Code CLI.' : said ? ' Meldung: ' + said : ''
-      throw new Error('Claude konnte den Auftrag nicht abschließen.' + detail)
+      const turns = final?.subtype === 'error_max_turns' ? ' Die Suche hat das Schrittlimit erreicht.' : ''
+      throw new Error('Claude konnte den Auftrag nicht abschließen.' + (turns || detail))
     }
     const structured = final.structured_output
     const value = structured && typeof structured === 'object' ? structured : jsonFromText(typeof final.result === 'string' && final.result ? final.result : text)
