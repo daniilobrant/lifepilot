@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.1.2 · 27. November 2026
+
+- Urlaubsplaner-Export: Google My Maps lehnte die CSV ab („Spaltennamen … nicht zulässig“). Ursache war ein Anführungszeichen direkt hinter dem BOM der Kopfzeile. Die Kopfzeile steht jetzt ohne Anführungszeichen, Zellen werden nur bei Bedarf gequotet, und die von My Maps verbotenen Zeichen " < > { } | werden aus Zelltexten entfernt.
+
 ## v1.1.1 · 27. November 2026
 
 - Urlaubsplaner-Export: Ortsname vor Beschreibungstext, mehr portugiesische, spanische und italienische Ortsbegriffe, breitere Kategorieauswahl.

@@ -1,6 +1,6 @@
 # Entwicklungsverlauf von LifePilot
 
-Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.1.1 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die kompakte Zeitleiste steht in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
+Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.1.2 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die kompakte Zeitleiste steht in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
 
 Quellen sind zwei Arbeitsprotokolle: ein Chat mit ChatGPT und Codex (Version 0.1 bis 1.0.57) und eine Sitzung mit Claude Code (Version 1.0.11 bis 1.0.59). Die frühen Versionen 0.x sind im Protokoll nicht datiert und nach Reihenfolge und Versionsbereich eingeordnet.
 
@@ -216,7 +216,7 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 - *Outfit:* Farbvorausschau, damit Blau und Weinrot nicht kombiniert werden, mehr Abwechslung, nur Teile, die zum Anlass passen.
 - *Postfach:* Terminvorschläge aus persönlichen Mails und weitergeleiteten Kursmails, einmalige Prüfung unklarer Mails durch das Modell, aufklappbare Mailvorschläge (ab 1.0.79 „Terminvorschläge“ unter dem Kalender). Parallel lieferte Codex tiefere Mailprüfung, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, die wichtigen Mails der letzten sieben Tage und schonenderen Mailabruf (1.0.53 bis 1.0.57).
 
-**Ergebnis.** Die Version 1.0.58 führte beide Entwicklungsstränge zusammen. In 1.1.1 folgte eine Präsentation, in der Pilot nach einer Terminfrage ein neues Anliegen nicht erkannte. Daraus entstanden Dialogfälle in der Live-Auswertung, Kurzantworten zum Anklicken und eine einmalige Selbstkorrektur bei abgelehnten Entwürfen.
+**Ergebnis.** Die Version 1.0.58 führte beide Entwicklungsstränge zusammen. In 1.1.2 folgte eine Präsentation, in der Pilot nach einer Terminfrage ein neues Anliegen nicht erkannte. Daraus entstanden Dialogfälle in der Live-Auswertung, Kurzantworten zum Anklicken und eine einmalige Selbstkorrektur bei abgelehnten Entwürfen.
 
 ## 5. Dokumente im Projekt
 
@@ -246,7 +246,7 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 - **Mehrere KIs mit klaren Rollen** ergänzen sich: Planung und Analyse in Antigravity und Gemini, Umsetzung in Codex und Claude Code, Prüfung durch Tests und statische Analyse.
 - **Dokumentation entsteht mit der Entwicklung.** Skill-Dateien, README und dieses Dokument wurden laufend gepflegt, nicht erst am Ende.
 
-## 8. Kennzahlen (Stand 1.1.1)
+## 8. Kennzahlen (Stand 1.1.2)
 
 | Merkmal | Wert |
 |---|---|

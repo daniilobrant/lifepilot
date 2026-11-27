@@ -45,6 +45,8 @@ test('CSV mit BOM, Emoji-Kategorien und Schutz vor Formeln',()=>{
   const file=buildExport('Barcelona 🇪🇸',places,'csv')
   assert.deepEqual([...file.bytes.slice(0,3)],[0xEF,0xBB,0xBF])
   const text=new TextDecoder().decode(file.bytes)
+  assert.ok(text.startsWith('Name,Adresse,Kategorie,Beschreibung,Tag\r\n'))
+  assert.ok(!text.split('\r\n')[0].includes('"'))
   assert.ok(text.includes('👁️ Sehenswürdigkeiten')&&text.includes('☕ Cafés'))
   assert.ok(!text.includes('👀'))
   assert.equal(file.name,'Barcelona 🇪🇸.csv')

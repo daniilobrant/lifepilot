@@ -144,7 +144,12 @@ export function defaultMapName(plan:TripPlan) {
 const BOM='﻿'
 /** Zellen, die mit =, +, -, @ oder Steuerzeichen beginnen, würden Tabellenprogramme als Formel lesen. */
 export const safeCell=(value:string)=>/^[=+\-@\t\r]/u.test(value)?"'"+value:value
-const csvCell=(value:string)=>'"'+safeCell(value.replace(/\r?\n/gu,' ')).replace(/"/gu,'""')+'"'
+// Zellen werden nur bei Bedarf in Anführungszeichen gesetzt. Besonders die Kopfzeile bleibt unquotiert: Steht ein Anführungszeichen direkt
+// hinter dem BOM, liest My Maps es als Teil des Spaltennamens und lehnt die Datei ab („Spaltennamen … nicht zulässig: " < > { } |“).
+const csvCell=(value:string)=>{
+  const text=safeCell(value.replace(/\r?\n/gu,' ')).replace(/[<>{}|]/gu,' ')
+  return /[",;]/u.test(text)||/^\s|\s$/u.test(text)?'"'+text.replace(/"/gu,'""')+'"':text
+}
 const header=['Name','Adresse','Kategorie','Beschreibung','Tag']
 function csvRows(places:MapPlace[]) {
   return [header,...places.map(place=>[place.name,place.address,categoryTitle(place.category),place.description,place.day])].map(row=>row.map(csvCell).join(',')).join('\r\n')+'\r\n'
