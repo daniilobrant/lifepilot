@@ -4,7 +4,7 @@ import { mkdtemp, rm, stat } from 'node:fs/promises'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir, userInfo } from 'node:os'
 import { join } from 'node:path'
-import { data, MODEL_MS, WEB_MS, type ModelOptions } from '../runtime/settings.ts'
+import { data, MODEL_MS, WEB_MS, budget, type ModelOptions } from '../runtime/settings.ts'
 import { MAX_MODEL_PAYLOAD_BYTES } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
 
@@ -99,7 +99,7 @@ export async function runStructuredClaude<T>(prompt: string, contract: object, s
       if (command.pid) { try { process.kill(-command.pid, 'SIGKILL') } catch { /* schon beendet */ } }
     }
     const abort = () => stop('Vorgang abgebrochen.')
-    const timer = setTimeout(() => stop('Das Zeitbudget für Claude wurde überschritten.'), options.web ? WEB_MS : MODEL_MS)
+    const timer = setTimeout(() => stop('Das Zeitbudget für Claude wurde überschritten.'), budget(options, options.web ? WEB_MS : MODEL_MS))
     signal.addEventListener('abort', abort, { once: true })
     let bytes = 0, pending = '', final: Record<string, unknown> | undefined, text = ''
     let code: number | null

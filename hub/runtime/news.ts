@@ -76,7 +76,7 @@ Themenwünsche der Person je Kategorie (nur Auswahl der Schwerpunkte, mische die
 ${wishes(preferences)}
 Kategorien: wirtschaft (Konjunktur, Unternehmen, Arbeitsmarkt, Preise, Zinsen), technik (IT, KI, Geräte, Netzpolitik, Sicherheit), politik (Deutschland, EU, Weltlage), aktien (DAX, Leitindizes, Anleihen, Zinsen, auffällige Kursbewegungen und Unternehmensmeldungen; nur Berichterstattung, keine Empfehlung zu Kauf oder Verkauf), regional, sport (Fußball, Bundesliga, große Turniere, Formel 1, Tennis, Wintersport je nach Saison).
 ${region}
-Arbeite effizient: höchstens 12 Suchanfragen insgesamt, jede möglichst so formuliert, dass sie mehrere Meldungen oder Quellen liefert (zum Beispiel „Nachrichten heute Wirtschaft tagesschau handelsblatt“). Beende die Suche rechtzeitig und antworte dann.
+Arbeite effizient: höchstens 10 Suchanfragen insgesamt, jede möglichst so formuliert, dass sie mehrere Meldungen oder Quellen liefert (zum Beispiel „Nachrichten heute Wirtschaft tagesschau handelsblatt“). Beende die Suche rechtzeitig und antworte dann.
 Pro Kategorie 3 bis 5 aktuelle Meldungen der letzten zwei Tage (bei Sport und Regional bis zu vier Tage), wichtigste zuerst, keine Dubletten, keine Anzeigen und keine Paywall-Köder ohne Aussage.
 Felder je Meldung: headline (knappe, sachliche Schlagzeile, höchstens 110 Zeichen, kein Clickbait), summary (ein Satz mit höchstens 200 Zeichen), details (drei bis fünf Sätze mit Zahlen, Hintergrund und Einordnung, eigene Worte, keine wörtlichen Zitate aus dem Artikel), source (Name des Mediums), url (https-Adresse des konkreten Artikels, nie eine erfundene Adresse), published (Datum als JJJJ-MM-TT oder null).
 Schreibe in Texten keine Links und kein Markdown. overview ist eine Zusammenfassung des Tages in höchstens zwei Sätzen.
@@ -123,7 +123,7 @@ export function readNews(raw:unknown,location:string,created=new Date().toISOStr
 export async function collectNews(location:string,preferences:NewsPreferences,signal:AbortSignal) {
   let last='Das News-Briefing war unvollständig. Bitte starte es erneut.'
   for(let round=0;round<2&&!signal.aborted;round++){
-    const outcome=await runStructuredCodex(newsRules(location,preferences),contract,signal,raw=>readNews(raw,location),undefined,{web:true})
+    const outcome=await runStructuredCodex(newsRules(location,preferences),contract,signal,raw=>readNews(raw,location),undefined,{web:true,budgetMs:290_000})
     if(outcome.result) return outcome.result
     last=outcome.error??last
     if(!/unvollständig/u.test(last)) break
@@ -148,7 +148,7 @@ export const newsState=(store:Store):NewsState=>({briefing:loadNews(store),runni
 export function startNews(store:Store,location:string,collect:typeof collectNews=collectNews) {
   if(running) throw new Problem(409,'Das News-Briefing wird bereits erstellt.')
   running=true;lastError=null
-  void collect(location,loadPreferences(store),AbortSignal.timeout(175_000)).then(
+  void collect(location,loadPreferences(store),AbortSignal.timeout(295_000)).then(
     briefing=>{saveNews(store,briefing)},
     reason=>{lastError=reason instanceof Error?reason.message:'Das News-Briefing ist fehlgeschlagen.'}).finally(()=>{running=false})
 }

@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.3.3 · 27. November 2026
+
+- News-Briefing: eigenes Zeitbudget von 290 Sekunden (bisher 170, ein Lauf dauerte bis zu 170 Sekunden), höchstens 10 Suchanfragen. Andere Suchaufträge (Abo-Prüfung) behalten 170 Sekunden.
+
 ## v1.3.2 · 27. November 2026
 
 - News-Briefing im Claude-Modus: Schrittlimit für Aufträge mit Websuche von 12 auf 30 erhöht, der Auftrag begrenzt die Zahl der Suchanfragen selbst. Erreicht eine Suche das Limit, nennt die Fehlermeldung jetzt den Grund.

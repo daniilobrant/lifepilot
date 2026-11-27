@@ -6,7 +6,7 @@ import { constants } from 'node:fs'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 import { outfitPlanFormatError, projectPlanFormatError, schemaFile, verifyOutput } from '../../agents/lifepilot/tools/validate.ts'
-import { cloudModel, MODEL_MS, WEB_MS, type ModelOptions } from '../runtime/settings.ts'
+import { cloudModel, MODEL_MS, WEB_MS, budget, type ModelOptions } from '../runtime/settings.ts'
 import { MAX_CHAT_INPUT, MAX_CHAT_APPROVAL_BYTES, MAX_MODEL_PAYLOAD_BYTES, splitLongInput, modelDialogue, dialogueOrderInstruction, type ModelPayload } from '../runtime/model-payload.ts'
 import type { ModelMetrics } from '../runtime/store.ts'
 import { modelProvider, runStructuredClaude } from './claude.ts'
@@ -249,7 +249,7 @@ export async function runStructuredCodex<T>(prompt: string, contract: object, si
       }
     }
     const abort = () => stop('Vorgang abgebrochen.')
-    const timer = setTimeout(() => stop('Das Zeitbudget für Codex wurde überschritten.'), options.web ? WEB_MS : MODEL_MS)
+    const timer = setTimeout(() => stop('Das Zeitbudget für Codex wurde überschritten.'), budget(options, options.web ? WEB_MS : MODEL_MS))
     signal.addEventListener('abort', abort, { once: true })
     let events = 0
     let pending = ''
