@@ -430,6 +430,7 @@ export function removeSavedTrip(store:Store,id:string) {
   return store.transaction(()=>{
     store.db.prepare('DELETE FROM trip_google_events WHERE trip_id=?').run(id)
     store.db.prepare('DELETE FROM wardrobe_travel WHERE trip_id=?').run(id)
+    store.db.prepare('DELETE FROM trip_maps WHERE trip_id=?').run(id)
     store.db.prepare('DELETE FROM trip_revisions WHERE trip_id=?').run(id)
     store.db.prepare('DELETE FROM trips WHERE id=?').run(id)
     return {removed:true}

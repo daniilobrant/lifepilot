@@ -22,6 +22,7 @@ import { transcribeDictation, maxDictationBytes } from '../connectors/local-dict
 import { validRecipeServings } from './recipe-portions.ts'
 import { acceptGroceryRows, adoptGrocery, checkout, checkGrocery, groceryAnswer, groceryIdeas, groceryOverview, normalizeGrocery, putGrocery, removeGrocery, listRecipes, saveRecipe, checkRecipe, removeRecipe, updateRecipePortions } from './grocery.ts'
 import { scanGroceries } from './grocery-scan.ts'
+import { loadMapState, saveMapState } from './trip-maps-store.ts'
 import { decideMailFinance, decidePayPal, paypalOverview, pendingMailFinances } from './mail-finance.ts'
 import { confirmedMailAccount, enableMailCategorization, mailAccountKey, syncCategorizedMail } from './mail-sync.ts'
 import { deleteFinance, financeMonth, financeOverview, saveFinance, saveFinanceSettings } from './finance.ts'
@@ -690,10 +691,16 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if (acceptance) return reply(res,200,{from:'EUR',to:'USD',rate:1.08,date:'2026-01-01',source:'Testprofil',fetched:new Date().toISOString()})
     return reply(res,200,await exchangeRate(url.searchParams.get('from'),url.searchParams.get('to'),url.searchParams.get('refresh')==='1'))
   }
+  if (path === '/api/trips/map' && method === 'GET') return reply(res,200,loadMapState(store,id(url.searchParams.get('trip'))))
   if (path === '/api/trips' && method === 'GET') return reply(res,200,trips(store))
   const tripDetail = /^\/api\/trips\/([a-f0-9-]{36})$/iu.exec(path)
   if (tripDetail && method === 'GET') return reply(res,200,trip(store,id(tripDetail[1])))
   if (method === 'POST' && path.startsWith('/api/trips/')) {
+    if (path === '/api/trips/map') {
+      const input = await body(req,['tripId','state','confirm'],65_536)
+      confirmLocalChange(input.confirm)
+      return reply(res,200,saveMapState(store,id(input.tripId),input.state))
+    }
     if (path === '/api/trips/windows') {
       const input = await body(req,['start','end','weekdays','state','maxLeave','approved','shiftWork','includeCalendar','tripId','confirm'])
       confirmLocalChange(input.confirm)

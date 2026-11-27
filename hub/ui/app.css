@@ -1997,3 +1997,34 @@ input[type=file]::file-selector-button {
 @media (max-width: 720px) { .finance-paypal-row { grid-template-columns: minmax(0,1fr) auto; } .finance-paypal-actions { grid-column: 1 / -1; } .finance-paypal-actions button { flex: 1; } }
 .finance-paypal-actions button.finance-chosen { background: #2f5d46; color: #fff; border-color: #2f5d46; font-weight: 650; }
 .finance-paypal-actions button.finance-chosen:hover:not(:disabled) { background: #264c39; }
+
+/* Urlaubsplaner: Export für Google My Maps */
+.travel-bar-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.travel-bar-actions > .travel-small-button { min-height: 2.2rem; padding: 0 .9rem; }
+.travel-maps { gap: 14px; }
+.travel-maps-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.travel-maps-head h2 { margin: 0; }
+.travel-maps-name { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: end; gap: 8px; }
+.travel-maps-name label { display: grid; gap: 4px; }
+.travel-maps-name .travel-small-button, .travel-maps-bulk .travel-small-button { min-height: 2.4rem; }
+.travel-maps-summary { margin: 0; font-size: .86rem; opacity: .8; }
+.travel-maps-chips, .travel-maps-bulk { display: flex; flex-wrap: wrap; gap: 6px; }
+.travel-maps-chips button { min-height: 2.1rem; padding: 0 .75rem; border-radius: 999px; font-size: .84rem; }
+.travel-maps-chips button small { margin-left: 4px; opacity: .75; }
+.travel-maps-list { list-style: none; margin: 0; padding: 0; display: grid; }
+.travel-maps-list li { display: grid; grid-template-columns: minmax(0,1fr) minmax(10rem,12.5rem) auto; align-items: center; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
+.travel-maps-list li:first-child { border-top: 0; }
+.travel-maps-check { display: grid; grid-template-columns: auto minmax(0,1fr); gap: 10px; align-items: start; }
+.travel-maps-check span { display: grid; min-width: 0; }
+.travel-maps-check strong, .travel-maps-check small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.travel-maps-list select { min-height: 2.2rem; font-size: .84rem; }
+.travel-maps-add { display: grid; grid-template-columns: repeat(auto-fit,minmax(10rem,1fr)); gap: 8px; align-items: end; padding-top: 8px; }
+.travel-maps-options { display: grid; gap: 6px; }
+.travel-maps-formats { display: grid; gap: 6px; border: 0; padding: 0; margin: 0; }
+.travel-maps-formats legend { font-weight: 650; margin-bottom: 4px; }
+.travel-maps-formats label span { display: grid; }
+.travel-maps-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.travel-maps-actions > * { min-height: 2.4rem; }
+.travel-maps-link { display: inline-flex; align-items: center; padding: 0 1rem; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); text-decoration: none; font-weight: 600; }
+.travel-maps-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; font-size: .88rem; }
+@media (max-width: 640px) { .travel-maps-list li { grid-template-columns: minmax(0,1fr) auto; } .travel-maps-list select { grid-column: 1 / -1; } .travel-maps-name { grid-template-columns: 1fr; } }

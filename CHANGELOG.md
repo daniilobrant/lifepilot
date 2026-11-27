@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.1.0 · 27. November 2026
+
+- Urlaubsplaner: Neuer Export „Für Google My Maps exportieren“ in der Reiseansicht. LifePilot sammelt die Orte der Reise (Tagespunkte mit Ort, Sehenswürdigkeiten-Tipps, Aktivitätsbuchungen, Unterkunft) und ordnet sie Kategorien zu: 👁️ Sehenswürdigkeiten, 🍴 Restaurants, ☕ Cafés, 🍸 Bars, 🏠 Unterkunft, 💃 Clubs sowie Strände, Natur, Shopping, Aktivitäten und Sonstiges. Der Ortsname entscheidet zuerst über die Kategorie, erst dann der Beschreibungstext; Unsichere Zuordnungen sind markiert.
+- Auswahl: Kategorie-Filter, einzelne Orte an- und abwählen, Kategorie ändern, Orte entfernen oder selbst hinzufügen. Die Auswahl wird pro Reise lokal gespeichert (neue Tabelle `trip_maps`, Schema 42).
+- Ausgabe: eine CSV-Datei (UTF-8 mit BOM, Schutz vor Formeln), ZIP mit einer CSV je Kategorie oder KML mit Ordnern. Kartenname mit Landesflagge und Kopieren-Knopf, Link zu Google My Maps und Kurzanleitung. Die Unterkunftsadresse wird nur nach ausdrücklicher Freigabe exportiert. Es werden keine Koordinaten erfunden und keine Google-Maps-API genutzt.
+
 ## v1.0.88 · 27. November 2026
 
 - Finanzen & Abos: Eine gemeinsame, gekürzte Kategorienliste für Formular und Verteilung: Wohnen & Haushalt, Lebensmittel & Einkauf, Essen & Trinken, Transport & Mobilität, Shopping, Gesundheit & Pflege, Bildung & Arbeit, Versicherung & Verwaltung, Abos, Freunde & Familie, Sonstiges (immer zuletzt). Doppelungen wie „Mobilität“, „Lebensmittel“, „Freizeit & Kultur“ und „Freizeit & Abos“ entfallen; bestehende Einträge werden automatisch der passenden neuen Kategorie zugeordnet.

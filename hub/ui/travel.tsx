@@ -1,5 +1,6 @@
 import {TripAddressField,TripDateField,TripPlaceField,TravelChoices} from './travel-fields.tsx'
 import {DateInput,TimeInput} from './presentation.tsx'
+import {MapExportPanel} from './travel-maps.tsx'
 import {tripIntakeExtras} from '../runtime/trip-intake.ts'
 import { mapProviders, mapRoute, type MapProvider } from '../runtime/trip-routes.ts'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from 'react'
@@ -530,6 +531,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   const [preview,setPreview]=useState<TripPreview>()
   const [calendarOffer,setCalendarOffer]=useState(false)
   const [removing,setRemoving]=useState(false)
+  const [mapOpen,setMapOpen]=useState(false)
   const [wardrobe,setWardrobe]=useState<WardrobeItem[]>([])
   useEffect(()=>{void api<{wardrobe:WardrobeItem[]}>('/outfits').then(value=>setWardrobe(value.wardrobe)).catch(()=>{})},[api])
   function showPreview(preview:TripPreview) {
@@ -668,6 +670,8 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
     {view==='trip' && current ? <>
       <div className="travel-trip-bar">
         <button type="button" className="quiet travel-back" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
+        <div className="travel-bar-actions">
+        <button type="button" className="travel-small-button" aria-pressed={mapOpen} onClick={()=>setMapOpen(open=>!open)}>Für Google My Maps exportieren</button>
         <TripActionsMenu
           busy={busy}
           showCalendar={!current.googleCalendar}
@@ -678,7 +682,9 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
           })}
           onRemove={()=>setRemoving(true)}
         />
+        </div>
       </div>
+      {mapOpen ? <MapExportPanel api={api} trip={current} onClose={()=>setMapOpen(false)} /> : null}
       {(calendarOffer || current.googleCalendar==='pending') ? <section className="card travel-stack">
         <p>Soll ich den privaten ganztägigen Reiseblock auch in Google Kalender eintragen?</p>
         <div className="actions">

@@ -1,0 +1,5 @@
+CREATE TABLE trip_maps (
+  trip_id TEXT PRIMARY KEY REFERENCES trips(id) ON DELETE CASCADE,
+  data TEXT NOT NULL,
+  changed_at TEXT NOT NULL
+) STRICT;
