@@ -38,12 +38,15 @@ async function claudeBinary() {
 }
 export async function claudeAvailable() { return Boolean(await claudeBinary()) }
 
+/** Liest die Optionsnamen aus der CLI-Hilfe, auch mit Großbuchstaben (--allowedTools), sonst fehlt die Freigabe der Websuche. */
+export const parseFlags = (help: string) => new Set(help.match(/--[A-Za-z][A-Za-z-]+/gu) ?? [])
+
 let flags: Set<string> | undefined
 async function supported(binary: string) {
   if (flags) return flags
   try {
     const { stdout } = await execute(binary, ['--help'], { timeout: 15000, maxBuffer: 256 * 1024, env: { HOME: process.env.HOME, PATH: '/usr/bin:/bin' } })
-    flags = new Set(stdout.match(/--[a-z][a-z-]+/gu) ?? [])
+    flags = parseFlags(stdout)
   } catch { flags = new Set() }
   return flags
 }

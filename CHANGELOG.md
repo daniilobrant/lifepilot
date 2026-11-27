@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.3.1 · 27. November 2026
+
+- Behoben: Im Claude-Modus wurde die Websuche nie freigegeben, weil die Erkennung der CLI-Optionen `--allowedTools` übersah. Dadurch lieferten News-Briefing und Abo-Prüfung nur leere Ergebnisse („unvollständig“). Die Erkennung berücksichtigt jetzt Großbuchstaben; ein Test sichert das ab.
+
 ## v1.3.0 · 27. November 2026
 
 - Neuer Bereich „News“ (Übersicht): ein Klick auf „News aktualisieren“ startet einen Pilot-Auftrag mit Websuche, der je Kategorie drei bis fünf aktuelle Meldungen sammelt. Der Auftrag läuft im Hintergrund weiter, während man andere Bereiche öffnet, und das fertige Briefing wird lokal gespeichert.
