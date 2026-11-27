@@ -47,7 +47,7 @@ const stamp=(iso:string)=>new Intl.DateTimeFormat('de-DE',{weekday:'short',day:'
 const day=(value:string)=>value.split('-').reverse().join('.')
 const hint:Record<NewsCategory,string> = {wirtschaft:'Konjunktur, Unternehmen, Märkte',technik:'IT, KI, Geräte',politik:'Deutschland, EU, Welt',aktien:'Börse & Depot-Umfeld',regional:'',sport:'Fußball & mehr'}
 
-function Story({item,open,toggle}:{item:NewsItem,open:boolean,toggle:()=>void}) {
+function Story({item,open,toggle}:{item:NewsItem,open:boolean,toggle:() => void}) {
   return <li className="news-story" data-open={open||undefined}>
     <button type="button" className="news-headline" aria-expanded={open} onClick={toggle}>
       <span>{item.headline}</span><span className="news-chevron" aria-hidden="true">{open?'–':'+'}</span>
@@ -56,16 +56,17 @@ function Story({item,open,toggle}:{item:NewsItem,open:boolean,toggle:()=>void}) 
       <p>{item.details}</p>
       <div className="news-meta"><span>{item.source}{item.published?' · '+day(item.published):''}</span>
         <a href={item.url} target="_blank" rel="noreferrer noopener">Zur Quelle ↗</a></div>
-    </div>:<p className="news-summary">{item.summary}<a className="news-quick" href={item.url} target="_blank" rel="noreferrer noopener" aria-label={'Quelle öffnen: '+item.source} title={item.source}>↗</a></p>}
+    </div>:null}
   </li>
 }
 
-function Category({id,items,subtitle,missing}:{id:NewsCategory,items:NewsItem[],subtitle:string,missing:boolean}) {
+function Category({id,items,subtitle,missing,loaded}:{id:NewsCategory,items:NewsItem[],subtitle:string,missing:boolean,loaded:boolean}) {
   const [open,setOpen]=useState(-1)
   return <section className="card news-card" aria-labelledby={'news-'+id} data-category={id}>
     <header><h2 id={'news-'+id}>{newsTitles[id]}</h2>{subtitle?<small>{subtitle}</small>:null}</header>
     {items.length?<ul>{items.map((item,index)=><Story key={item.url} item={item} open={open===index} toggle={()=>setOpen(open===index?-1:index)}/>)}</ul>
-      :<p className="news-empty">{missing?'Hier konnte gerade nichts geladen werden. Starte die Aktualisierung erneut.':id==='regional'?'Trage deinen Wohnort im Profil ein, dann erscheinen hier Meldungen aus deiner Region.':'Keine Meldungen.'}</p>}
+      :<p className="news-empty">{!loaded?'Noch keine Infos geladen.':missing?'Hier konnte gerade nichts geladen werden. Starte die Aktualisierung erneut.'
+        :id==='regional'?'Trage deinen Wohnort im Profil ein, dann erscheinen hier Meldungen aus deiner Region.':'Keine Meldungen.'}</p>}
     {missing&&items.length?<p className="news-empty">Aktualisierung fehlgeschlagen, hier steht der letzte Stand.</p>:null}
   </section>
 }
@@ -122,10 +123,10 @@ export function NewsPage({api}:{api:Api}) {
     {settings&&state?<NewsSettings api={api} preferences={state.preferences} close={()=>setSettings(false)}/>:null}
     {running?<div className="loading news-status" role="status"><span>Pilot sucht aktuelle Meldungen. Du kannst solange in andere Bereiche wechseln, das Briefing läuft weiter.</span><progress aria-label="Suche läuft"/></div>:null}
     {error&&!running?<p className="news-status news-error" role="alert">{error}</p>:null}
-    {briefing?<div className="news-grid">
-      {newsCategories.map(id=><Category key={id} id={id} items={briefing.categories[id]??[]} missing={briefing.missing?.includes(id)===true} subtitle={id==='regional'?(briefing.location?briefing.location+' · Landkreis · Baden-Württemberg':''):hint[id]}/>)}
-    </div>:state&&!running?<section className="card news-intro"><h2>Dein News-Briefing</h2>
-      <p>Ein Klick auf „News aktualisieren“ sammelt je Bereich drei bis fünf aktuelle Meldungen aus festen, seriösen Quellen und sortiert sie wie ein Briefing.</p></section>:null}
+    <div className="news-grid">
+      {newsCategories.map(id=><Category key={id} id={id} items={briefing?.categories[id]??[]} loaded={briefing!==null} missing={briefing?.missing?.includes(id)===true}
+        subtitle={id==='regional'?(briefing?.location?briefing.location+' · Landkreis · Baden-Württemberg':'Wohnort · Landkreis · Bundesland'):hint[id]}/>)}
+    </div>
     <p className="news-footnote">Zusammenfassungen werden von Pilot aus Websuche-Ergebnissen erstellt und können Fehler enthalten; maßgeblich ist die verlinkte Quelle. Es wird nur dein Wohnort übermittelt, keine weiteren Profildaten.</p>
   </div>
 }

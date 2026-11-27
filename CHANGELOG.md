@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.3.5 · 27. November 2026
+
+- News: Die sechs Kacheln stehen von Anfang an da und zeigen „Noch keine Infos geladen.“, bis das erste Briefing vorliegt. Ein geladenes Briefing bleibt bis zur nächsten Aktualisierung bestehen.
+- Zugeklappt erscheint nur die fette Schlagzeile; Einordnung, Quelle und der Link zur Quelle stehen erst nach dem Aufklappen.
+
 ## v1.3.4 · 27. November 2026
 
 - News-Briefing: statt eines großen Suchauftrags laufen sechs kleine Aufträge (je Kategorie) parallel mit jeweils höchstens vier Suchanfragen. Das ist deutlich schneller. Fällt eine Kategorie aus, bleibt dort der letzte Stand sichtbar und ein Hinweis erscheint; die übrigen Kategorien werden trotzdem aktualisiert.
