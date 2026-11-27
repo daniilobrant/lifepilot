@@ -29,6 +29,7 @@ import { deleteFinance, financeMonth, financeOverview, saveFinance, saveFinanceS
 import { personalProfile, savePersonalProfile } from './personal-profile.ts'
 import { createTripGuide } from './trip-guide.ts'
 import { reviewSubscriptions } from './subscription-review.ts'
+import { newsState, savePreferences, startNews } from './news.ts'
 import { previewTripChange, decideTripChange } from './trip-chat-change.ts'
 import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTrip, changeTrip, tripDateChange, readTripPreview, removeSavedTrip } from './trips.ts'
 import { travelWindows } from './trip-windows.ts'
@@ -670,6 +671,21 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     if(!address)throw new Problem(409,'Das Gmail-Konto ist nicht verbunden.')
     decideProjectMail(store,id(suggestion),acceptance?address:mailAccountKey(address),revision,approved)
     return reply(res,200,{ok:true,revision:approved?revision+1:revision})
+  }
+  if (path === '/api/news' && method === 'GET') return reply(res, 200, newsState(store))
+  if (path === '/api/news/preferences' && method === 'POST') {
+    const input=await body(req,['preferences','confirm'])
+    confirmLocalChange(input.confirm)
+    savePreferences(store,input.preferences)
+    return reply(res, 200, newsState(store))
+  }
+  if (path === '/api/news/refresh' && method === 'POST') {
+    const input=await body(req,['confirm'])
+    confirmLocalChange(input.confirm)
+    if (!cloudModel) throw new Problem(423,'Das News-Briefing mit Websuche ist in diesem Profil gesperrt.')
+    const place=personalProfile(store).fields.location
+    startNews(store,outfitLocation(place)?String(place).trim():'')
+    return reply(res, 202, newsState(store))
   }
   if (path === '/api/profile' && method === 'GET') return reply(res, 200, personalProfile(store))
   if (path === '/api/profile' && method === 'POST') {

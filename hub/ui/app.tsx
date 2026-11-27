@@ -16,6 +16,7 @@ import { OrderApprovals, OrderTracker } from './clothing-orders.tsx'
 import { ChatRecipe, ChatRecipeOptions, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
 import { FinanceForm, FinancePanel } from './finance.tsx'
+import { NewsPage } from './news.tsx'
 import { financeKinds, money, type FinanceChange } from '../runtime/finance-types.ts'
 import type { TripChangeResult, TripChatPlan } from '../runtime/trip-types.ts'
 import { TravelPlanner } from './travel.tsx'
@@ -63,7 +64,7 @@ const proposalNames = { rename:'Titel ändern', description:'Beschreibung änder
 const inFlight = new Set<State>(['queued', 'running'])
 const openStates = new Set<State>(['permission', 'queued', 'running', 'review'])
 const navigation = [
-  { title: 'Übersicht', links: [['Start', 'home'], ['Kalender', 'calendar'], ['Aufgaben & Fristen','listtodo'], ['Posteingang', 'inbox']] },
+  { title: 'Übersicht', links: [['Start', 'home'], ['Kalender', 'calendar'], ['Aufgaben & Fristen','listtodo'], ['Posteingang', 'inbox'], ['News', 'news']] },
   { title: 'Planen', links: [['Projekte','folder'], ['Bewerbungen', 'briefcase'], ['Urlaubsplaner', 'plane']] },
   { title: 'Persönlich', links: [['Finanzen & Abos','wallet'], ['Vorrat & Einkauf','basket'], ['Outfit-Assistent', 'shirt'], ['Bestellungstracker', 'basket']] },
   { title: 'Werkzeuge', links: [['Skills', 'wand']] },
@@ -83,6 +84,7 @@ const iconPaths = {
   leaf: 'M20 4c-4 3-9 0-13 4a7 7 0 0 0 10 10c4-4 1-9 3-14ZM3 21l8-8',
   home: 'm3 10 9-7 9 7v10H3z M9 20v-7h6v7',
   calendar: 'M4 5h16v16H4z M8 3v4m8-4v4M4 10h16m-12 5h2m4 0h2',
+  news: 'M4 4h13v16H6a2 2 0 0 1-2-2zM17 8h3v10a2 2 0 0 1-2 2M8 8h5M8 12h5M8 16h5',
   inbox: 'M3 13 6 5h12l3 8v6H3z M3 13h5l2 3h4l2-3h5',
   briefcase: 'M8 7V5h8v2M3 7h18v13H3z M3 12h18m-11 0v2h4v-2',
   paperclip: 'm9 13 6-6a2 2 0 0 1 3 3l-8 8a4 4 0 0 1-6-6l9-9',
@@ -1866,6 +1868,7 @@ function App() {
             </div>
           </> : null}
           {page==='Vorrat & Einkauf' ? <GroceryPanel cloudImages={snapshot.cloudModel === true} api={api} recipeVersion={recipeVersion} onAsk={servings=>openDraft('Was kann ich heute mit meinem Vorrat für '+servings+' '+(servings===1?'Portion':'Portionen')+' kochen?')} refreshKey={skillRefresh('grocery')}/> : null}
+          {page==='News' ? <NewsPage api={api} /> : null}
           {page==='Finanzen & Abos' ? <>
             <MailFinance api={api} refreshKey={inboxFeed?.loadedAt??''} onUpdate={financeMailUpdated} />
             <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')+':'+financeMailRevision} />

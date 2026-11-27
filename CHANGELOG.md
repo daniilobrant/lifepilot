@@ -2,6 +2,15 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.3.0 · 27. November 2026
+
+- Neuer Bereich „News“ (Übersicht): ein Klick auf „News aktualisieren“ startet einen Pilot-Auftrag mit Websuche, der je Kategorie drei bis fünf aktuelle Meldungen sammelt. Der Auftrag läuft im Hintergrund weiter, während man andere Bereiche öffnet, und das fertige Briefing wird lokal gespeichert.
+- Sechs Kategorien im 3×2-Raster: Wirtschaft, Technik, Politik, Aktien & Depot, Regional, Sport. Schlagzeilen lassen sich aufklappen (Einordnung in eigenen Worten), jede Meldung hat einen Link zur Originalquelle.
+- Regional richtet sich nach dem Wohnort im Profil (Ort, nahe Großstadt, Landkreis, Bundesland).
+- „Einstellungen“ im News-Bereich: kleiner Fragebogen je Kategorie mit Kästchen (z. B. Sportarten, Themenfelder), „Allgemeiner Überblick“ und einem Freitext für Vereine, Werte oder Begriffe. Die Auswahl fließt in den Auftrag ein.
+- Sicherheit: zweite Websuche-Ausnahme neben der Abo-Prüfung, nur nach Klick, nur ein Auftrag gleichzeitig, nur Wohnort und Themenwünsche werden übermittelt, Antwort wird gegen ein Schema geprüft (nur https-Links). Details in docs/SICHERHEIT.md.
+- Datenbank: Migration 043 (`news_briefing`, `news_preferences`).
+
 ## v1.2.1 · 27. November 2026
 
 - Outfit-Vorschlag im Urlaub: kurze Anlassbezeichnung („Urlaubstag in Lissabon“ bzw. der erste Satzteil der Aktivität), damit Looktitel und Anlasserkennung lesbar bleiben.
