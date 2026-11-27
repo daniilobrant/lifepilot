@@ -73,3 +73,13 @@ test('Kartenzustand wird pro Reise gespeichert und validiert',()=>{
     assert.throws(()=>saveMapState(store,randomUUID(),{}),{status:404})
   } finally {store.db.close()}
 })
+
+test('Outfit-Vorschlag nur ab einem Tag vor der Reise bis zum Reiseende',async()=>{
+  const {outfitWindow}=await import('../../../hub/runtime/trip-types.ts')
+  const trip={draft:{start:'2026-11-10',end:'2026-11-15'}}
+  assert.equal(outfitWindow(trip,'2026-11-08'),false)
+  assert.equal(outfitWindow(trip,'2026-11-09'),true)
+  assert.equal(outfitWindow(trip,'2026-11-12'),true)
+  assert.equal(outfitWindow(trip,'2026-11-15'),true)
+  assert.equal(outfitWindow(trip,'2026-11-16'),false)
+})

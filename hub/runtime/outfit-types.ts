@@ -36,10 +36,10 @@ export const outfitDayparts = ['Morgens','Mittags','Abends'] as const
 export type OutfitDaypart = typeof outfitDayparts[number]
 export type FragranceChatPlan = {fragrances:string[]}
 export type OutfitChatPlan = { place: string | null, date: string | null, occasion: string | null,
-  anchorStep?:'decision'|'name'|'ready', anchor?:string|null, daypart?:OutfitDaypart|null }
+  anchorStep?:'decision'|'name'|'ready', anchor?:string|null, daypart?:OutfitDaypart|null, vacation?:string }
 export type OutfitWeather = { place:string, date:string, min:number, max:number, current?:number, feels?:number, rain?:number, wind?:number, snow?:number }
-export type OutfitQuery = { mode: 'occasion' | 'anchor' | 'inspiration', occasion: string, style: OutfitStyle, required: string[], variant: number, temperature?: number, place?: string, date?: string, time?:string, daypart?:OutfitDaypart, tripId?:string }
-export type Outfit = { title: string, occasion: string, style: OutfitStyle, itemIds: string[], rationale: string, tips: string[], prompt: string, weather?: OutfitWeather, date?: string, fragrance?:ScentChoice }
+export type OutfitQuery = { mode: 'occasion' | 'anchor' | 'inspiration', occasion: string, style: OutfitStyle, required: string[], variant: number, temperature?: number, place?: string, date?: string, time?:string, daypart?:OutfitDaypart, tripId?:string, vacation?:string }
+export type Outfit = { trip?:{id:string,destination:string}, title: string, occasion: string, style: OutfitStyle, itemIds: string[], rationale: string, tips: string[], prompt: string, weather?: OutfitWeather, date?: string, fragrance?:ScentChoice }
 export type OutfitOverview = { wardrobe: WardrobeItem[], profile: StyleProfile, profilePhoto: boolean, looks: (Outfit & {id: string, savedAt: string, photoIds: string[]})[] }
 export type OutfitChoice = { look: Outfit, proposal: string }
 

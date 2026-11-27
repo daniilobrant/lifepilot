@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.2.0 · 27. November 2026
+
+- Urlaubsplaner: Neue Aktion „Outfit-Vorschlag abrufen“ im Menü „Aktionen“. Sie ist ab einem Tag vor der Abreise bis zum Reiseende verfügbar. Man wählt das Datum und entweder „Für den ganzen Tag“ oder eine einzelne Aktivität. LifePilot stellt aus dem Kleiderschrank (bei einer Packauswahl der Reise daraus) passend zu Programm und Wetter am Reiseziel einen Look zusammen und öffnet ihn im Styling-Studio. „Variante neu würfeln“ funktioniert dort wie gewohnt.
+- Gespeicherte Looks, die zu einer Reise gehören, erscheinen in „Meine Looks“ im eigenen Bereich „Urlaub“ und tragen im Studio ein Etikett mit dem Reiseziel.
+- Kartenexport: Ausgewählte Orte sind grün umrandet und leicht hinterlegt, abgewählte treten zurück.
+
 ## v1.1.2 · 27. November 2026
 
 - Urlaubsplaner-Export: Google My Maps lehnte die CSV ab („Spaltennamen … nicht zulässig“). Ursache war ein Anführungszeichen direkt hinter dem BOM der Kopfzeile. Die Kopfzeile steht jetzt ohne Anführungszeichen, Zellen werden nur bei Bedarf gequotet, und die von My Maps verbotenen Zeichen " < > { } | werden aus Zelltexten entfernt.

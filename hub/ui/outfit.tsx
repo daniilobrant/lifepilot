@@ -96,7 +96,7 @@ function Board({ look, wardrobe, imageVersion, actions }: { look: Outfit, wardro
   const pieces = look.itemIds.map(id => wardrobe.find(item => item.id === id)).filter((item): item is WardrobeItem => Boolean(item))
   if (!pieces.length && !look.rationale) return <div className="outfit-actions">{actions}</div>
   return <article className="outfit-board">
-    <header className="outfit-board-head">{look.occasion && !/^(?:rund um |freie inspiration)/iu.test(look.occasion) ? <small>{look.occasion}</small> : null}
+    <header className="outfit-board-head">{look.trip ? <span className="outfit-vacation-tag">Urlaub · {look.trip.destination.split(',')[0]}</span> : null}{look.occasion && !/^(?:rund um |freie inspiration)/iu.test(look.occasion) ? <small>{look.occasion}</small> : null}
       <h2>{/^rund um /iu.test(look.title) ? 'Dein Outfit' : look.title.replace(/\s+·\s+(?:Schlicht|Auffällig|Eleganz|Streetwear)$/u,'')}</h2>{look.rationale ? <p>{look.rationale}</p> : null}</header>
     {look.date ? <div className="outfit-weather">
       <strong>{new Intl.DateTimeFormat('de-DE',{dateStyle:'long',timeZone:'UTC'}).format(new Date(look.date+'T12:00Z'))}</strong>
@@ -579,7 +579,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
   const [notice,setNotice] = useState('')
   const [error,setError] = useState(initialError ?? '')
   const [query,setQuery] = useState<Omit<OutfitQuery,'mode'|'style'> & {style?:OutfitQuery['style']}>({
-    occasion:initialPlan?.occasion ?? '', daypart:initialPlan?.daypart??undefined, required:initialRequired??[],
+    occasion:initialPlan?.occasion ?? '', daypart:initialPlan?.daypart??undefined, vacation:initialPlan?.vacation, required:initialRequired??[],
     style:initialChoice?.look.style,variant:0 })
   const today=dateInBerlin()
   const [weatherInput,setPlace] = useState(initialPlan?.place ?? undefined)
@@ -786,7 +786,7 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
           <button type="button" disabled={busy || !ready} onClick={()=>generate(true)}>Variante neu würfeln</button>
           <button type="button" className="outfit-primary" disabled={busy || saved} onClick={()=>void perform(async ()=>{
             await api('/outfits/save',{proposal:choice.proposal,confirm:true})
-            await reload(); setSaved(true); setNotice('Outfit gespeichert.')
+            await reload(); setSaved(true); setNotice(choice.look.trip?'Outfit gespeichert, du findest es unter „Meine Looks“ im Bereich „Urlaub“.':'Outfit gespeichert.')
           })}>{saved?'Gespeichert':'Outfit speichern'}</button>
         </>} /> : null}
       </> : null}
@@ -863,9 +863,10 @@ export function OutfitAssistant({ api, initialPlan, initialChoice, initialError,
             </article>
           }
           // Vom Styling-Studio erzeugte Looks haben eine Begründung oder einen Auftrag; eigene Looks entstehen aus Fotos.
-          const generated=looks.filter(look=>Boolean(look.rationale||look.prompt))
-          const own=looks.filter(look=>!(look.rationale||look.prompt))
-          return <>{[['Vorgeschlagene Looks','Aus dem Styling-Studio gespeichert',generated],['Eigene Looks','Von dir mit Foto hinzugefügt',own]].map(([title,hint,list])=>
+          const vacation=looks.filter(look=>Boolean(look.trip))
+          const generated=looks.filter(look=>!look.trip&&Boolean(look.rationale||look.prompt))
+          const own=looks.filter(look=>!look.trip&&!(look.rationale||look.prompt))
+          return <>{[['Urlaub','Für eine Reise aus dem Styling-Studio gespeichert',vacation],['Vorgeschlagene Looks','Aus dem Styling-Studio gespeichert',generated],['Eigene Looks','Von dir mit Foto hinzugefügt',own]].map(([title,hint,list])=>
             (list as typeof looks).length ? <section key={title as string} className="look-section">
               <header><h2>{title as string}</h2><span>{hint as string} · {(list as typeof looks).length}</span></header>
               <div className="look-grid">{(list as typeof looks).map(tile)}</div>

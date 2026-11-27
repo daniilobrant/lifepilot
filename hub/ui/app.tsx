@@ -1871,7 +1871,8 @@ function App() {
             <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')+':'+financeMailRevision} />
           </> : null}
           {page==='Urlaubsplaner' ? <TravelPlanner key={travelRequest?.run ?? 'travel'} api={api} plan={travelRequest?.plan} handoff={travelRequest?.run}
-            initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection} /> : null}
+            initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection}
+            onOutfit={request=>{setOutfitRequest(request);openFromPilot('Outfit-Assistent')}} /> : null}
           {page === 'Outfit-Assistent' ? <OutfitAssistant cloudImages={snapshot.cloudModel === true} key={outfitRequest?.run ?? 'studio'} api={api} initialPlan={outfitRequest?.plan} initialChoice={outfitRequest?.choice} initialError={outfitRequest?.error} fragranceNames={outfitRequest?.fragranceNames} initialRequired={outfitRequest?.required} onOpenPlanner={()=>navigate('Urlaubsplaner')} /> : null}
           {page === 'Bewerbungen' ? <Applications initialId={boardSource?.source_type==='application'?boardSource.source_id:undefined} api={api} onBack={() => setPage('Skills')} /> : null}
           {page === 'Einstellungen' ? <>

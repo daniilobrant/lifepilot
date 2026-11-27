@@ -1,6 +1,8 @@
 import {TripAddressField,TripDateField,TripPlaceField,TravelChoices} from './travel-fields.tsx'
 import {DateInput,TimeInput} from './presentation.tsx'
 import {MapExportPanel} from './travel-maps.tsx'
+import {TripOutfitPanel,type OutfitHandoff} from './travel-outfit.tsx'
+import {outfitWindow} from '../runtime/trip-types.ts'
 import {tripIntakeExtras} from '../runtime/trip-intake.ts'
 import { mapProviders, mapRoute, type MapProvider } from '../runtime/trip-routes.ts'
 import { useEffect, useRef, useState, type FormEvent, type KeyboardEvent, type RefObject } from 'react'
@@ -43,8 +45,8 @@ function ChevronIcon({ size = 12 }: { size?: number }) {
     <path d="M3 4.5 6 7.5 9 4.5" />
   </svg>
 }
-function TripActionsMenu({ busy, showCalendar, onCalendar, onWeather, onRemove }: {
-  busy: boolean, showCalendar: boolean, onCalendar: () => void, onWeather: () => void, onRemove: () => void,
+function TripActionsMenu({ busy, showCalendar, outfitReady, onCalendar, onWeather, onOutfit, onRemove }: {
+  busy: boolean, showCalendar: boolean, outfitReady: boolean, onCalendar: () => void, onWeather: () => void, onOutfit: () => void, onRemove: () => void,
 }) {
   const menu = useRef<HTMLDetailsElement>(null)
   const [open, setOpen] = useState(false)
@@ -61,6 +63,8 @@ function TripActionsMenu({ busy, showCalendar, onCalendar, onWeather, onRemove }
     <div className="travel-trip-menu-panel">
       {showCalendar ? <button type="button" onClick={() => choose(onCalendar)}>Zu Google Kalender hinzufügen</button> : null}
       <button type="button" disabled={busy} onClick={() => choose(onWeather)}>Wetter für Duftvorschlag abrufen</button>
+      <button type="button" disabled={busy||!outfitReady} title={outfitReady?undefined:'Verfügbar ab einem Tag vor der Reise bis zum Reiseende'} onClick={() => choose(onOutfit)}>Outfit-Vorschlag abrufen</button>
+      {!outfitReady ? <small className="travel-menu-hint">Outfit-Vorschlag ab einem Tag vor der Reise</small> : null}
       <button type="button" className="travel-danger-action" onClick={() => choose(onRemove)}>Reise entfernen</button>
     </div>
   </details>
@@ -520,8 +524,8 @@ function TripGuide({ plan,mutate,busy,api,wardrobe=[] }: { plan:TripPlan,mutate?
   </div>
 }
 
-export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSelect }: {
-  api:Api, plan?:TripChatPlan,handoff?:string, initialId?:string, cloudGuide:boolean, onSelect:(id:string|undefined)=>void,
+export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSelect, onOutfit }: {
+  api:Api, plan?:TripChatPlan,handoff?:string, initialId?:string, cloudGuide:boolean, onSelect:(id:string|undefined)=>void, onOutfit?:(request:OutfitHandoff)=>void,
 }) {
   const [startId]=useState(initialId)
   const [view,setView]=useState<'list'|'new'|'windows'|'trip'|'preview'>(plan?.intent==='windows'?'windows':plan?.intent==='draft'?'new':initialId?'trip':'list')
@@ -532,6 +536,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
   const [calendarOffer,setCalendarOffer]=useState(false)
   const [removing,setRemoving]=useState(false)
   const [mapOpen,setMapOpen]=useState(false)
+  const [outfitOpen,setOutfitOpen]=useState(false)
   const [wardrobe,setWardrobe]=useState<WardrobeItem[]>([])
   useEffect(()=>{void api<{wardrobe:WardrobeItem[]}>('/outfits').then(value=>setWardrobe(value.wardrobe)).catch(()=>{})},[api])
   function showPreview(preview:TripPreview) {
@@ -671,9 +676,11 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
       <div className="travel-trip-bar">
         <button type="button" className="quiet travel-back" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
         <div className="travel-bar-actions">
-        <button type="button" className="travel-small-button" aria-pressed={mapOpen} onClick={()=>setMapOpen(open=>!open)}>Für Google My Maps exportieren</button>
+        <button type="button" className="travel-small-button" aria-pressed={mapOpen} onClick={()=>{setMapOpen(open=>!open);setOutfitOpen(false)}}>Für Google My Maps exportieren</button>
         <TripActionsMenu
           busy={busy}
+          outfitReady={outfitWindow(current,dateInBerlin())}
+          onOutfit={()=>{setOutfitOpen(true);setMapOpen(false)}}
           showCalendar={!current.googleCalendar}
           onCalendar={()=>setCalendarOffer(true)}
           onWeather={()=>fire(async()=>{
@@ -684,6 +691,7 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
         />
         </div>
       </div>
+      {outfitOpen&&onOutfit ? <TripOutfitPanel api={api} trip={current} onResult={onOutfit} onClose={()=>setOutfitOpen(false)} /> : null}
       {mapOpen ? <MapExportPanel api={api} trip={current} onClose={()=>setMapOpen(false)} /> : null}
       {(calendarOffer || current.googleCalendar==='pending') ? <section className="card travel-stack">
         <p>Soll ich den privaten ganztägigen Reiseblock auch in Google Kalender eintragen?</p>

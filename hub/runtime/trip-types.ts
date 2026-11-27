@@ -46,6 +46,13 @@ export function tripCalendarTitle(destination:string) {
   return /\burlaub$/iu.test(name) ? name : name+' Urlaub'
 }
 
+/** Der Outfit-Vorschlag ist ab einem Tag vor der Abreise bis zum Reiseende möglich. */
+export function outfitWindow(trip:{draft:{start:string,end:string}},today:string) {
+  const before=new Date(trip.draft.start+'T12:00:00Z')
+  before.setUTCDate(before.getUTCDate()-1)
+  return today>=before.toISOString().slice(0,10)&&today<=trip.draft.end
+}
+
 export function bookingOutsideTrip(entry:TripBooking,draft:TripDraft) {
   return entry.status!=='cancelled' && (entry.date<draft.start || (entry.until??entry.date)>draft.end)
 }

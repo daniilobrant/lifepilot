@@ -74,7 +74,7 @@ export function MapExportPanel({api,trip,onClose}:{api:Api,trip:Trip|TripPlan,on
       <button type="button" className="travel-small-button" onClick={()=>selectMany(place=>visible.includes(place))}>Nur sichtbare auswählen</button>
     </div>
     {!places.length?<p className="empty">Noch keine Orte. Trage bei Tagespunkten einen Ort ein oder füge unten einen hinzu.</p>:
-      <ul className="travel-maps-list">{visible.map(place=><li key={place.key}>
+      <ul className="travel-maps-list">{visible.map(place=><li key={place.key} className={isSelected(place,current)?'is-selected':''}>
         <label className="travel-maps-check"><input type="checkbox" checked={isSelected(place,current)} onChange={event=>select(place,event.target.checked)}/>
           <span><strong>{place.name}</strong><small>{place.address}{place.guess?' · Kategorie bitte prüfen':''}</small></span></label>
         <select aria-label={'Kategorie für '+place.name} value={place.category} onChange={event=>recategorize(place,event.target.value)}>

@@ -421,3 +421,25 @@ test('Pieces are only offered for occasions they are meant for',async()=>{
   assert.equal(fitsOccasion('Sport','Sport · Freizeit'),true)
   assert.equal(fitsOccasion('Unbekannt','Alltag'),true)
 })
+
+test('Urlaubs-Looks tragen die Reise, Sportteile bleiben bei Reiseprogramm draußen',()=>{
+  const store=new Store(':memory:')
+  const studio=new OutfitStudio()
+  try {
+    saveWardrobe(store,{name:'Weißes T-Shirt',category:'top',garmentType:'T-Shirt',color:'Weiß'})
+    saveWardrobe(store,{name:'Deutschland Heimtrikot',category:'top',garmentType:'T-Shirt',color:'Weiß'})
+    saveWardrobe(store,{name:'Blaue Jeans',category:'bottom',garmentType:'Jeans',color:'Blau'})
+    saveWardrobe(store,{name:'Weiße Sneaker',category:'shoes',garmentType:'Sneaker',color:'Weiß'})
+    const trip=randomUUID()
+    store.db.prepare('INSERT INTO trips (id,revision,plan,updated) VALUES (?,?,?,?)').run(trip,1,JSON.stringify({draft:{destination:'Los Angeles, USA'}}),'2026-11-01')
+    assert.throws(()=>studio.generate(store,{...query,mode:'occasion',occasion:'Strand',vacation:randomUUID()}),{status:404})
+    for (let variant=0;variant<4;variant++) {
+      const result=studio.generate(store,{...query,mode:'occasion',occasion:'Santa Monica Pier besuchen',vacation:trip,variant})
+      assert.deepEqual(result.look.trip,{id:trip,destination:'Los Angeles, USA'})
+      const names=outfitOverview(store).wardrobe.filter(item=>result.look.itemIds.includes(item.id)).map(item=>item.name)
+      assert.ok(!names.includes('Deutschland Heimtrikot'))
+      studio.save(store,result.proposal)
+    }
+    assert.ok(outfitOverview(store).looks.every(look=>look.trip?.destination==='Los Angeles, USA'))
+  } finally { store.db.close() }
+})

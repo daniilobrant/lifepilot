@@ -255,7 +255,12 @@ export class OutfitStudio {
       throw new Problem(400,'Wähle eine gültige Uhrzeit.')
     }
     if (input.tripId!==undefined && (typeof input.tripId!=='string' || !idPattern.test(input.tripId))) throw new Problem(400,'Wähle eine Reise.')
-    const packed=typeof input.tripId==='string' ? new Set(travelWardrobe(store,input.tripId)) : undefined
+    if (input.vacation!==undefined && (typeof input.vacation!=='string' || !idPattern.test(input.vacation))) throw new Problem(400,'Wähle eine Reise.')
+    // Urlaubslooks gehören zu einer gespeicherten Reise. Hat die Reise eine gepackte Auswahl, kommen die Teile daraus, sonst der ganze Kleiderschrank.
+    const vacationRow=typeof input.vacation==='string' ? store.db.prepare("SELECT json_extract(plan,'$.draft.destination') AS destination FROM trips WHERE id=?").get(input.vacation) : undefined
+    if (typeof input.vacation==='string' && !vacationRow) throw new Problem(404,'Reise nicht gefunden.')
+    const vacationPacked=typeof input.vacation==='string' ? travelWardrobe(store,input.vacation) : []
+    const packed=typeof input.tripId==='string' ? new Set(travelWardrobe(store,input.tripId)) : vacationPacked.length ? new Set(vacationPacked) : undefined
     const wardrobe=overview.wardrobe.filter(item=>!item.orderState && !item.saleState && (!packed || packed.has(item.id)))
     if (packed && !wardrobe.length) throw new Problem(409,'Wähle zuerst Kleidung für diese Reise aus.')
     const preferredStyle = outfitStyles.find(style=>style===profile.preferredStyle)
@@ -413,7 +418,7 @@ export class OutfitStudio {
     const rationale=paletteDescription(chosen.map(item=>item.color).filter(Boolean)) || (materials.length>1?`Materialmix aus ${materials.join(', ')}.`:'')
     const prompt=`Editorial wardrobe lookbook, charcoal studio backdrop, full outfit and detail panels. Anlass: ${occasion}. Stil: ${query.style}. Exakt diese Stücke und keine weiteren: ${chosen.map(item=>[item.name,item.brand,item.model,item.color,item.material,item.fit].filter(Boolean).join(' / ')).join('; ')}.`
     const fragrance=recommendFragrance(fragranceList(store),{occasion,date,time:query.time,daypart:query.daypart,temperature})
-    const look:Outfit={title,occasion:statedOccasion,style:query.style,itemIds:chosen.map(item=>item.id),rationale,tips,prompt,...(fragrance && {fragrance}), ...(date && {date}), ...(weather && {weather})}
+    const look:Outfit={...(typeof input.vacation==='string'&&vacationRow&&{trip:{id:input.vacation,destination:String(vacationRow.destination??'').slice(0,120)}}),title,occasion:statedOccasion,style:query.style,itemIds:chosen.map(item=>item.id),rationale,tips,prompt,...(fragrance && {fragrance}), ...(date && {date}), ...(weather && {weather})}
     for(const [key,value] of this.proposals) if(Date.now()-value.at>proposalTtl)this.proposals.delete(key)
     if(this.proposals.size>=80) this.proposals.delete(this.proposals.keys().next().value!)
     const proposal=randomUUID()

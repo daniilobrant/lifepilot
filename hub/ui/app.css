@@ -2028,3 +2028,23 @@ input[type=file]::file-selector-button {
 .travel-maps-link { display: inline-flex; align-items: center; padding: 0 1rem; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink); text-decoration: none; font-weight: 600; }
 .travel-maps-steps { margin: 0; padding-left: 1.2rem; display: grid; gap: 4px; font-size: .88rem; }
 @media (max-width: 640px) { .travel-maps-list li { grid-template-columns: minmax(0,1fr) auto; } .travel-maps-list select { grid-column: 1 / -1; } .travel-maps-name { grid-template-columns: 1fr; } }
+
+/* Urlaubsplaner: sichtbare Auswahl im Kartenexport, Outfit-Vorschlag */
+.travel-maps-list { gap: 8px; }
+.travel-maps-list li { border: 1.5px solid var(--line); border-radius: 14px; padding: 10px 12px; background: transparent; transition: border-color .15s, background-color .15s, opacity .15s; }
+.travel-maps-list li:first-child { border-top: 1.5px solid var(--line); }
+.travel-maps-list li.is-selected { border-color: #2f5d46; background: color-mix(in srgb, #2f5d46 7%, transparent); }
+.travel-maps-list li:not(.is-selected) { opacity: .62; }
+.travel-maps-list li:not(.is-selected):hover { opacity: .9; }
+.travel-maps-check input[type=checkbox] { accent-color: #2f5d46; width: 1.1rem; height: 1.1rem; margin-top: .1rem; }
+.travel-maps-check strong { color: var(--ink); }
+.travel-outfit label:not(.travel-outfit-choice) { display: grid; gap: 4px; }
+.travel-outfit-targets { display: grid; gap: 8px; border: 0; padding: 0; margin: 0; }
+.travel-outfit-targets legend { font-weight: 650; margin-bottom: 6px; }
+.travel-outfit-choice { display: grid; grid-template-columns: auto minmax(0,1fr); align-items: start; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--line); border-radius: 14px; cursor: pointer; transition: border-color .15s, background-color .15s; }
+.travel-outfit-choice.is-selected { border-color: #2f5d46; background: color-mix(in srgb, #2f5d46 7%, transparent); }
+.travel-outfit-choice input { accent-color: #2f5d46; margin-top: .2rem; }
+.travel-outfit-choice span { display: grid; min-width: 0; }
+.travel-outfit-choice small { opacity: .8; }
+.travel-menu-hint { display: block; padding: 2px 12px 6px; opacity: .7; font-size: .78rem; }
+.outfit-vacation-tag { display: inline-block; justify-self: start; border-radius: 999px; padding: .22rem .65rem; background: #2f5d46; color: #fff; font-size: .78rem; font-weight: 650; }
