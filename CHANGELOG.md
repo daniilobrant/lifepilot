@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.1.1 · 27. November 2026
+
+- Urlaubsplaner-Export: Ortsname vor Beschreibungstext, mehr portugiesische, spanische und italienische Ortsbegriffe, breitere Kategorieauswahl.
+
 ## v1.1.0 · 27. November 2026
 
 - Urlaubsplaner: Neuer Export „Für Google My Maps exportieren“ in der Reiseansicht. LifePilot sammelt die Orte der Reise (Tagespunkte mit Ort, Sehenswürdigkeiten-Tipps, Aktivitätsbuchungen, Unterkunft) und ordnet sie Kategorien zu: 👁️ Sehenswürdigkeiten, 🍴 Restaurants, ☕ Cafés, 🍸 Bars, 🏠 Unterkunft, 💃 Clubs sowie Strände, Natur, Shopping, Aktivitäten und Sonstiges. Der Ortsname entscheidet zuerst über die Kategorie, erst dann der Beschreibungstext; Unsichere Zuordnungen sind markiert.
