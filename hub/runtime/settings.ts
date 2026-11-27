@@ -15,7 +15,7 @@ export const database = join(data, 'memory.sqlite3')
 export const secretPath = join(data, 'adapter-token')
 export const probeSecretPath = join(data, 'probe-token')
 export const fixtures = JSON.parse(readFileSync(new URL('../templates/acceptance.json', import.meta.url), 'utf8')) as { ui: string, cli: string, memory: string }
-export const version = '1.3.3'
+export const version = '1.3.4'
 export const chatMode: ChatMode = acceptance ? 'synthetic' :
   hasPrivateChatRelease(root, join(data, 'private-chat-release.json'), version) ? 'private' : 'disabled'
 export const cloudModel = chatMode === 'private'
@@ -25,9 +25,7 @@ export const APPROVAL_MS = 30 * 60 * 1000
 export const MODEL_MS = 90_000
 /** Zeitbudget der einen Aufgabe mit Websuche (Abo-Prüfung). */
 export const WEB_MS = 170_000
-/** budgetMs verlängert nur das Zeitbudget einer Suche, höchstens auf 300 Sekunden (News-Briefing). */
-export type ModelOptions = { web?: boolean, budgetMs?: number }
-export const budget = (options: ModelOptions, fallback: number) => options.web && options.budgetMs ? Math.min(Math.max(options.budgetMs, fallback), 300_000) : fallback
+export type ModelOptions = { web?: boolean }
 
 export class Problem extends Error {
   readonly status: number

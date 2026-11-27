@@ -2,9 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
-## v1.3.3 · 27. November 2026
+## v1.3.4 · 27. November 2026
 
-- News-Briefing: eigenes Zeitbudget von 290 Sekunden (bisher 170, ein Lauf dauerte bis zu 170 Sekunden), höchstens 10 Suchanfragen. Andere Suchaufträge (Abo-Prüfung) behalten 170 Sekunden.
+- News-Briefing: statt eines großen Suchauftrags laufen sechs kleine Aufträge (je Kategorie) parallel mit jeweils höchstens vier Suchanfragen. Das ist deutlich schneller. Fällt eine Kategorie aus, bleibt dort der letzte Stand sichtbar und ein Hinweis erscheint; die übrigen Kategorien werden trotzdem aktualisiert.
+- Das in 1.3.3 eingeführte verlängerte Zeitbudget entfällt wieder, jede Teilaufgabe hat die üblichen 170 Sekunden.
 
 ## v1.3.2 · 27. November 2026
 
