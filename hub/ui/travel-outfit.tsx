@@ -22,8 +22,9 @@ export function TripOutfitPanel({api,trip,onResult,onClose}:{api:Api,trip:Trip,o
   const activity=day?.activities.find(entry=>entry.id===target)
   async function submit() {
     setBusy(true);setError('')
-    const names=(day?.activities??[]).map(entry=>entry.text).slice(0,3)
-    const occasion=(activity?activity.text:'Urlaubstag in '+city+(names.length?': '+names.join(', '):'')).slice(0,110)
+    // Kurze Anlassbezeichnung: ganzer Tag neutral, Aktivität auf den ersten Satzteil gekürzt (Titel und Anlassprüfung bleiben lesbar).
+    const short=(activity?.text??'').split(/[.:;!?]/u)[0].trim()
+    const occasion=activity?(short.length>64?short.slice(0,64).replace(/\s+\S*$/u,'')+' …':short):'Urlaubstag in '+city
     const plan:OutfitChatPlan={place:city,date,occasion,daypart:activity?daypart[activity.period]:null,vacation:trip.id}
     try {
       const choice=await api<OutfitChoice>('/outfits/generate',{query:{mode:'occasion',occasion,required:[],variant:0,place:city,date,vacation:trip.id,

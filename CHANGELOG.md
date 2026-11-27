@@ -2,6 +2,10 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.2.1 · 27. November 2026
+
+- Outfit-Vorschlag im Urlaub: kurze Anlassbezeichnung („Urlaubstag in Lissabon“ bzw. der erste Satzteil der Aktivität), damit Looktitel und Anlasserkennung lesbar bleiben.
+
 ## v1.2.0 · 27. November 2026
 
 - Urlaubsplaner: Neue Aktion „Outfit-Vorschlag abrufen“ im Menü „Aktionen“. Sie ist ab einem Tag vor der Abreise bis zum Reiseende verfügbar. Man wählt das Datum und entweder „Für den ganzen Tag“ oder eine einzelne Aktivität. LifePilot stellt aus dem Kleiderschrank (bei einer Packauswahl der Reise daraus) passend zu Programm und Wetter am Reiseziel einen Look zusammen und öffnet ihn im Styling-Studio. „Variante neu würfeln“ funktioniert dort wie gewohnt.
