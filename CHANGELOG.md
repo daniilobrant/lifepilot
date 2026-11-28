@@ -2,6 +2,11 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.4.0 · 28. November 2026
+
+- Finanzen & Abos: Einstellungen neben der Monatswahl mit einem Sparplan (Monatsbetrag für das Depot). Der Betrag zählt wie Fixkosten, mindert Restbudget und Saldo, erscheint in der Fixkostenliste und als „Sparplan“ im Kreisdiagramm. Er gilt ab dem Monat, in dem er gesetzt oder geändert wird; frühere Monate bleiben unverändert.
+- Umschalter „Finanzen / Depot“ über der Seite. Der Depot-Reiter ist vorerst ein Platzhalter; Screenshot-Erkennung, Kreisdiagramm und Verlauf folgen.
+
 ## v1.3.6 · 28. November 2026
 
 - Screenshot-Galerie vollständig aktualisiert (Version 1.3.6, neue Navigation) und um News, News-Einstellungen, Kartenexport für Google My Maps und den Outfit-Vorschlag im Urlaub erweitert.

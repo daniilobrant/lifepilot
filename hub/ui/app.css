@@ -2092,3 +2092,12 @@ input[type=file]::file-selector-button {
 .news-settings fieldset > input[type="text"] { margin-top: 6px; font-size: .82rem; }
 @media (max-width: 1100px) { .news-settings-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 700px) { .news-settings-grid { grid-template-columns: 1fr; } .news-settings-head { flex-direction: column; } }
+
+.finance-tabs {display:flex;gap:.45rem;margin:0 0 .75rem}
+.finance-tabs button {border-radius:1.55rem;padding:.55rem 1.2rem}
+.finance-tabs button[aria-pressed="true"] {background:var(--mint);color:#fff;border-color:transparent}
+.finance-toolbar .finance-settings-button {margin-left:auto;min-height:var(--control-height)}
+.finance-settings {display:grid;gap:.6rem;max-width:30rem}
+.finance-settings label {display:grid;gap:.3rem}
+.finance-savings-row {border-bottom:1px solid var(--line,rgba(0,0,0,.08));padding-bottom:.55rem;margin-bottom:.35rem}
+.finance-depot-soon p {margin:0;color:var(--muted,inherit);max-width:42rem}

@@ -87,6 +87,7 @@ function BudgetChart({view}:{view:FinanceOverview}) {
   const base=Math.max(view.totals.income,view.totals.spending)
   const groups:{label:string,cents:number,color:string}[]=budgetCategories.map((label,index)=>({label,cents:totals.get(label)??0,color:colors[index]}))
     .filter(group=>group.cents>0)
+  if(view.totals.savings>0)groups.push({label:'Sparplan',cents:view.totals.savings,color:'#2f5d50'})
   if(available)groups.push({label:'Übrig',cents:available,color:'#b5caba'})
   let offset=0
   return <section className="card settings finance-distribution"><h2>Wofür geht dein Geld weg?</h2>
@@ -146,6 +147,32 @@ function HistoryChart({history}:{history:FinanceOverview['history']}) {
   </>
 }
 
+export function FinanceTabs({tab,onTab}:{tab:'Finanzen'|'Depot',onTab:(tab:'Finanzen'|'Depot')=>void}) {
+  return <div className="finance-tabs" role="group" aria-label="Bereich wählen">
+    {(['Finanzen','Depot'] as const).map(name=><button key={name} type="button" aria-pressed={tab===name} onClick={()=>onTab(name)}>{name}</button>)}
+  </div>
+}
+
+function SavingsSettings({api,settings,onSaved,onClose}:{api:Api,settings:FinanceOverview['settings'],onSaved:()=>void,onClose:()=>void}) {
+  const [error,setError]=useState('')
+  return <form className="card settings finance-settings" onSubmit={async event=>{
+    event.preventDefault()
+    const raw=String(new FormData(event.currentTarget).get('savings')??'').trim().replace(',','.')
+    const euros=raw===''?0:Number(raw)
+    if(!Number.isFinite(euros)||euros<0||euros>1_000_000){setError('Gib einen Betrag zwischen 0 und 1.000.000 € ein.');return}
+    try {
+      await api('/finance/settings',{settings:{...settings,savingsPlan:Math.round(euros*100)},revision:settings.revision,confirm:true})
+      onSaved();onClose()
+    } catch(reason){setError(errorText(reason))}
+  }}>
+    <h2>Sparplan</h2>
+    <label>Monatlich investieren (€)<input name="savings" inputMode="decimal" defaultValue={settings.savingsPlan?String(settings.savingsPlan/100).replace('.',','):''} placeholder="0"/></label>
+    <small>Der Betrag zählt wie Fixkosten und geht vom Monatsbudget ab. Er gilt ab dem Monat, in dem du ihn änderst; frühere Monate bleiben unverändert. 0 schaltet den Sparplan aus.</small>
+    {error?<p role="alert">{error}</p>:null}
+    <div className="actions"><button type="submit" className="primary">Speichern</button><button type="button" onClick={onClose}>Abbrechen</button></div>
+  </form>
+}
+
 export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refreshKey:string,reviewTools?:ReactNode,focus?:{id?:string,month?:string}}) {
   const [month,setMonth]=useState(()=>focus?.month??dateInBerlin().slice(0,7))
   const [view,setView]=useState<FinanceOverview>()
@@ -153,6 +180,7 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
   const [error,setError]=useState('')
   const [editor,setEditor]=useState<Editor>()
   const [filter,setFilter]=useState('')
+  const [settingsOpen,setSettingsOpen]=useState(false)
   const reviewJob=useSubscriptionJob()
   const [removing,setRemoving]=useState('')
   const url='/finance?'+new URLSearchParams({month})
@@ -202,14 +230,16 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
       </select>
       <button type="button" aria-label="Nächster Monat" onClick={()=>selectMonth(shiftMonth(month,1))}>›</button>
     </div>
+    <button type="button" className="finance-settings-button" aria-expanded={settingsOpen} disabled={!view} onClick={()=>setSettingsOpen(value=>!value)}>Einstellungen</button>
     </header>
+    {settingsOpen&&view?<SavingsSettings api={api} settings={view.settings} onSaved={reload} onClose={()=>setSettingsOpen(false)}/>:null}
     {error?<p role="alert">{error}</p>:null}
     {!isCurrent||!view?<p role="status">Monatsübersicht wird geladen …</p>:<>
       <div className="finance-metrics">
         <section className="card settings"><h2>Festes Einkommen</h2><strong>{money(view.totals.base)}</strong>
           <small>Gehalt und andere feste Einnahmen</small></section>
         <section className="card settings"><h2>Nach Fixkosten &amp; Abos</h2><strong>{money(view.totals.room)}</strong>
-          <small>Fix {money(view.totals.fixed)} · Abos {money(view.totals.subscriptions)}</small></section>
+          <small>Fix {money(view.totals.fixed)} · Abos {money(view.totals.subscriptions)}{view.totals.savings>0&&' · Sparplan '+money(view.totals.savings)}</small></section>
         <section className={'card settings finance-balance '+(view.totals.balance<0||view.totals.income&&view.totals.balance/view.totals.income<.1?'negative':
           view.totals.income&&view.totals.balance/view.totals.income<=.25?'warning':'')}><h2>Monatssaldo</h2><strong>{money(view.totals.balance)}</strong>
           <small>Variable Einnahmen {money(view.totals.variableIncome)} · Ausgaben {money(view.totals.variable)}</small>
@@ -225,7 +255,10 @@ export function FinancePanel({api,refreshKey,reviewTools,focus}:{api:Api,refresh
 
       <div className="finance-columns finance-detail-columns">
         {section('income','Fixe Einnahmen','+ Einnahme')}
-        {section('fixed','Fixkosten','+ Fixkosten')}
+        {section('fixed','Fixkosten','+ Fixkosten',view.totals.savings>0?<div className="finance-entry finance-savings-row">
+          <button className="quiet finance-entry-title" type="button" onClick={()=>setSettingsOpen(true)} aria-label="Sparplan bearbeiten">
+            <strong>Sparplan · Depot</strong><small>Monatlich investiert · ab {monthName(view.settings.savingsFrom??month)}</small></button>
+          <strong>{money(view.totals.savings)}</strong></div>:null)}
       </div>
       <div className="finance-columns finance-summary-columns"><BudgetChart view={view}/>
         {section('subscription','Abos & Mitgliedschaften','+ Abo',<>{reviewTools}<SubscriptionReviewPanel/></>,false,

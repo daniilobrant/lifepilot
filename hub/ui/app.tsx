@@ -15,7 +15,7 @@ import { MailFinance } from './mail-finance.tsx'
 import { OrderApprovals, OrderTracker } from './clothing-orders.tsx'
 import { ChatRecipe, ChatRecipeOptions, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
-import { FinanceForm, FinancePanel } from './finance.tsx'
+import { FinanceForm, FinancePanel, FinanceTabs } from './finance.tsx'
 import { NewsPage } from './news.tsx'
 import { financeKinds, money, type FinanceChange } from '../runtime/finance-types.ts'
 import type { TripChangeResult, TripChatPlan } from '../runtime/trip-types.ts'
@@ -1028,6 +1028,7 @@ function App() {
   const [boardSource,setBoardSource]=useState<BoardItem>()
   const [projectWork,setProjectWork]=useState<ProjectWork>()
   const [page, setPage] = useState<Page>(opensGoogle?'Einstellungen':opensProject?'Projekte':opensTasks?'Aufgaben & Fristen':'Start')
+  const [financeTab, setFinanceTab] = useState<'Finanzen'|'Depot'>('Finanzen')
   useEffect(()=>{
     if(page!=='Start')return
     let current=true
@@ -1870,8 +1871,12 @@ function App() {
           {page==='Vorrat & Einkauf' ? <GroceryPanel cloudImages={snapshot.cloudModel === true} api={api} recipeVersion={recipeVersion} onAsk={servings=>openDraft('Was kann ich heute mit meinem Vorrat für '+servings+' '+(servings===1?'Portion':'Portionen')+' kochen?')} refreshKey={skillRefresh('grocery')}/> : null}
           {page==='News' ? <NewsPage api={api} /> : null}
           {page==='Finanzen & Abos' ? <>
+            <FinanceTabs tab={financeTab} onTab={setFinanceTab}/>
+            {financeTab==='Depot'?<section className="card settings finance-depot-soon"><h2>Depot</h2>
+              <p>Hier entsteht deine Depot-Übersicht: Screenshot hochladen, Positionen erkennen lassen, Kreisdiagramm und Verlauf. Das folgt im nächsten Schritt.</p></section>:<>
             <MailFinance api={api} refreshKey={inboxFeed?.loadedAt??''} onUpdate={financeMailUpdated} />
             <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')+':'+financeMailRevision} />
+            </>}
           </> : null}
           {page==='Urlaubsplaner' ? <TravelPlanner key={travelRequest?.run ?? 'travel'} api={api} plan={travelRequest?.plan} handoff={travelRequest?.run}
             initialId={travelSelection} cloudGuide={snapshot.cloudModel === true} onSelect={setTravelSelection}

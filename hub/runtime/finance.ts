@@ -5,7 +5,7 @@ import { bounded, dateInBerlin, isDate, shiftDay } from './values.ts'
 import { canonicalCategory, financeCategories, financeKinds, money, monthlyCents, type FinanceChange, type FinanceChat, type FinanceDraft, type FinanceEntry, type FinanceOverview, type FinanceSettings } from './finance-types.ts'
 
 type Row={id:string, month:string, until_month:string|null, revision:number, data:string}
-const emptySettings = {location:'', buffer:null, target:null, variablePlan:null, revision:0} satisfies FinanceSettings
+const emptySettings = {location:'', buffer:null, target:null, variablePlan:null, savingsPlan:null, savingsFrom:null, revision:0} satisfies FinanceSettings
 const maxCents = 100_000_000
 
 export function financeMonth(value:unknown, fallback=dateInBerlin().slice(0,7)):string {
@@ -92,12 +92,14 @@ export function deleteFinance(store:Store,id:string,revision:number,month:string
 }
 export function financeSettings(store:Store):FinanceSettings {
   const row=store.db.prepare('SELECT data,revision FROM finance_settings WHERE singleton=1').get()
-  return row?{...JSON.parse(String(row.data)),revision:Number(row.revision)}:emptySettings
+  return row?{...emptySettings,...JSON.parse(String(row.data)),revision:Number(row.revision)}:emptySettings
 }
 export function saveFinanceSettings(store:Store,value:unknown,revision:unknown) {
   if(financeSettings(store).revision!==revision) throw new Problem(409,'Die Budgeteinstellungen wurden inzwischen geändert.')
-  const input=values(value)
-  const settings={ location:optionalText(input.location,100),buffer:integer(input.buffer,0,maxCents,true),
+  const input=values(value), before=financeSettings(store)
+  const savingsPlan=input.savingsPlan===undefined?before.savingsPlan:integer(input.savingsPlan,0,maxCents,true)
+  const savingsFrom=savingsPlan===null||savingsPlan===0?null:savingsPlan===before.savingsPlan&&before.savingsFrom?before.savingsFrom:dateInBerlin().slice(0,7)
+  const settings={ savingsPlan:savingsPlan||null,savingsFrom,location:optionalText(input.location,100),buffer:integer(input.buffer,0,maxCents,true),
     target:integer(input.target,0,maxCents,true),variablePlan:integer(input.variablePlan,0,maxCents,true) }
   store.db.prepare('INSERT INTO finance_settings VALUES (1,1,?) ON CONFLICT(singleton) DO UPDATE SET data=excluded.data,revision=finance_settings.revision+1')
     .run(JSON.stringify(settings))
@@ -105,20 +107,22 @@ export function saveFinanceSettings(store:Store,value:unknown,revision:unknown) 
 }
 
 export function financeOverview(store:Store,month:string,today=dateInBerlin()):FinanceOverview {
+  const plan=financeSettings(store)
   const calc=(key:string,entries:FinanceEntry[])=>{
     const sum=(kind:FinanceDraft['kind'])=>entries.filter(entry=>entry.kind===kind).reduce((total,entry)=>total+monthlyCents(entry),0)
     const income=sum('income'), fixed=sum('fixed'), subscriptions=sum('subscription'), variable=sum('expense')
     const base=entries.filter(entry=>entry.kind==='income'&&!entry.date).reduce((total,entry)=>total+monthlyCents(entry),0)
-    const spending=fixed+subscriptions+variable
-    return {month:key,hasEntries:entries.length>0,income,fixed,subscriptions,variable,spending,balance:income-spending,
-      base,variableIncome:income-base,room:base-fixed-subscriptions}
+    const savings=plan.savingsPlan&&plan.savingsFrom&&key>=plan.savingsFrom?plan.savingsPlan:0
+    const spending=fixed+subscriptions+variable+savings
+    return {month:key,hasEntries:entries.length>0,income,fixed,subscriptions,variable,savings,spending,balance:income-spending,
+      base,variableIncome:income-base,room:base-fixed-subscriptions-savings}
   }
-  const entries=rows(store,month), settings=financeSettings(store), totals=calc(month,entries)
+  const entries=rows(store,month), settings=plan, totals=calc(month,entries)
   const history=Array.from({length:5},(_,i)=>shiftFinanceMonth(month,i-5)).map(key=>calc(key,rows(store,key))).concat(totals)
   const days=month===today.slice(0,7)?Number(shiftDay(shiftFinanceMonth(month,1)+'-01',-1).slice(-2))-Number(today.slice(-2))+1:null
   const plannedVariable=settings.variablePlan===null?null:Math.max(settings.variablePlan,totals.variable)
   const investable=plannedVariable===null||settings.buffer===null||!totals.income?null:
-    Math.max(0,totals.income-totals.fixed-totals.subscriptions-plannedVariable-settings.buffer)
+    Math.max(0,totals.income-totals.fixed-totals.subscriptions-totals.savings-plannedVariable-settings.buffer)
   return {entries,settings,totals,history,plannedVariable,investable,perDay:days?Math.floor(Math.max(0,totals.balance)/days):null}
 }
 export function financeChatResult(store:Store,plan:FinanceChat,day:string) {

@@ -29,6 +29,28 @@ test('Budget uses integer cents, monthly recurrence, effective edits and isolate
   } finally {store.db.close()}
 })
 
+test('Sparplan zählt wie Fixkosten, gilt ab dem Setzmonat und bleibt bei anderen Einstellungen erhalten',()=>{
+  const store=new Store(':memory:')
+  try {
+    const current=dateInBerlin().slice(0,7)
+    saveFinance(store,{kind:'income',title:'Gehalt',cents:240000},'2026-01')
+    saveFinance(store,{kind:'fixed',title:'Miete',cents:80000},'2026-01')
+    saveFinanceSettings(store,{savingsPlan:25000},0)
+    const view=financeOverview(store,current)
+    assert.equal(view.settings.savingsFrom,current)
+    assert.equal(view.totals.savings,25000)
+    assert.equal(view.totals.spending,105000)
+    assert.equal(view.totals.room,135000)
+    assert.equal(financeOverview(store,'2026-01').totals.savings,0)
+    saveFinanceSettings(store,{buffer:10000},view.settings.revision)
+    assert.equal(financeOverview(store,current).totals.savings,25000)
+    const later=financeOverview(store,current).settings
+    saveFinanceSettings(store,{savingsPlan:0},later.revision)
+    assert.equal(financeOverview(store,current).totals.savings,0)
+    assert.throws(()=>saveFinanceSettings(store,{savingsPlan:-5},financeOverview(store,current).settings.revision),{status:400})
+  } finally {store.db.close()}
+})
+
 test('Finance chat requires intact confirmation and binds edits to the exact record revision',()=>{
   const store=new Store(':memory:','private')
   try {
