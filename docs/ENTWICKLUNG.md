@@ -1,6 +1,6 @@
 # Entwicklungsverlauf von LifePilot
 
-Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.2.1 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die kompakte Zeitleiste steht in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
+Dieses Dokument beschreibt, wie LifePilot von der ersten Idee bis Version 1.4 gemeinsam mit KI-Assistenten entstanden ist. Es ordnet die Entwicklung in Meilensteine, nennt zu jedem Anlass, Vorgehen und Ergebnis und erklärt die Arbeitsweise. Die kompakte Zeitleiste steht in der [Versionsübersicht der README](../README.md#versionsübersicht). Kleine Änderungen sind hier zu Meilensteinen zusammengefasst.
 
 Quellen sind zwei Arbeitsprotokolle: ein Chat mit ChatGPT und Codex (Version 0.1 bis 1.0.57) und eine Sitzung mit Claude Code (Version 1.0.11 bis 1.0.59). Die frühen Versionen 0.x sind im Protokoll nicht datiert und nach Reihenfolge und Versionsbereich eingeordnet.
 
@@ -218,6 +218,33 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 
 **Ergebnis.** Die Version 1.0.58 führte beide Entwicklungsstränge zusammen. In 1.2.1 folgte eine Präsentation, in der Pilot nach einer Terminfrage ein neues Anliegen nicht erkannte. Daraus entstanden Dialogfälle in der Live-Auswertung, Kurzantworten zum Anklicken und eine einmalige Selbstkorrektur bei abgelehnten Entwürfen.
 
+### Meilenstein 17: Urlaubsplaner-Export und News (1.1.0 bis 1.3.6, 27. und 28. November 2026)
+
+**Anlass.** Der Urlaubsplaner sollte seine Orte an Google My Maps weitergeben, und der Entwickler wollte täglich ein kurzes Nachrichtenbriefing im Programm.
+
+**Umsetzung (zusammengefasst).**
+
+- *Kartenexport:* Orte einer Reise lassen sich nach Kategorien auswählen und als CSV, ZIP oder KML herunterladen. Unterkunftsadressen werden nur nach ausdrücklicher Freigabe exportiert; der Kartenname trägt die Landesflagge und lässt sich kopieren.
+- *Outfit im Urlaub:* Ab einem Tag vor der Abreise bis zum Reiseende schlägt Pilot ein Outfit aus dem Kleiderschrank vor; gespeicherte Looks haben einen eigenen Bereich „Urlaub“.
+- *News:* Sechs Kacheln (Wirtschaft, Technik, Politik, Aktien, Regional, Sport), je drei bis fünf Meldungen mit Link zur Quelle. Sechs kleine Suchaufträge laufen parallel im Hintergrund, ein Ausfall betrifft nur eine Kachel. Einstellungen je Bereich per Kästchen und Freitext. Die Websuche ist die zweite dokumentierte Ausnahme der Sicherheitsgrenze.
+
+**Ergebnis.** Beide Bereiche nutzen dieselbe Bestätigungs- und Prüflogik wie die übrigen Module; die Galerie wurde um News, Einstellungen und Kartenexport erweitert.
+
+### Meilenstein 18: Sparplan und Depot (1.4, 28. November 2026)
+
+**Anlass.** Die Finanzübersicht kannte nur Einnahmen, Ausgaben und Abos. Der Entwickler wollte monatliches Sparen einplanen und sein Depot im Blick behalten.
+
+**Umsetzung (zusammengefasst).**
+
+- *Sparplan:* Ein Monatsbetrag in den Finanz-Einstellungen zählt wie Fixkosten und mindert Saldo und Restbudget, gültig ab dem Monat der Änderung.
+- *Depot als Bestandsmodell:* Positionen mit Stückzahl, Kaufkurs und Kaufdatum statt reiner Momentaufnahmen. Eine Suche per Websuche und die Erkennung aus Screenshots legen Positionen an; „Aktualisieren“ holt Kurse aus einer einzigen Quelle (finanzen.net), verwirft Ausreißer und behält bei fehlendem Kurs den alten Wert.
+- *Darstellung:* Kreisdiagramm nach Branche, Kategorie oder Position und ein Verlaufs-Chart im Stil von Broker-Apps mit Zeitraumwahl und Wertanzeige beim Darüberfahren. Der Verlauf speichert je Tag einen Stand.
+- *Meldungen und Ausblick:* Pro Depot ein Überblick mit höchstens sechs belegten Schlagzeilen und drei Themen; die Aktien-Kachel der News nutzt die Positionsnamen. Dabei gehen nur Namen, Kategorien und Branchen an das Modell, nie Beträge.
+- *Begleitende Überarbeitungen:* Rezepte mit Mengen-Editor und festen Produkt-IDs, größere Schnellsuche, überarbeitetes Profil mit anklickbaren Interessen, Bewerbung löschen und der Kartenexport im Aktionen-Menü.
+- *Dokumentation:* Galerie mit der erkennbar fiktiven Testperson Max Mustermann.
+
+**Ergebnis.** Das Depot wurde mit echten Modellaufrufen gegen Beispielwerte geprüft (Suche, Kursabruf, Screenshot-Erkennung, Meldungen). Die Kurse sind Websuche-Schätzungen und keine Anlageberatung; das steht im Programm und in der Sicherheitsdokumentation.
+
 ## 5. Dokumente im Projekt
 
 | Dokument | Zweck |
@@ -246,13 +273,13 @@ Aufgrund des knappen Modellkontingents wurde die Anbindung zusätzlich auf einen
 - **Mehrere KIs mit klaren Rollen** ergänzen sich: Planung und Analyse in Antigravity und Gemini, Umsetzung in Codex und Claude Code, Prüfung durch Tests und statische Analyse.
 - **Dokumentation entsteht mit der Entwicklung.** Skill-Dateien, README und dieses Dokument wurden laufend gepflegt, nicht erst am Ende.
 
-## 8. Kennzahlen (Stand 1.2.1)
+## 8. Kennzahlen (Stand 1.4)
 
 | Merkmal | Wert |
 |---|---|
 | Versionen seit der ersten Idee | über 100 |
 | Skills | 14 |
-| Datenbank-Migrationen | 40 |
-| Automatische Tests | 228 |
+| Datenbank-Migrationen | 45 |
+| Automatische Tests | 283 |
 | Beispielsätze für den Agenten | 48 |
 | Modellanbieter | Codex (OpenAI), Claude Code (Anthropic) |

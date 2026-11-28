@@ -1,6 +1,6 @@
 # LifePilot im Testprofil
 
-Alle Aufnahmen zeigen die Version 1.5.1 mit vollständig fiktiven Daten der Testperson Max Mustermann (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen. Das News-Briefing entstand am 28. November 2026 mit dem echten Modell und Websuche für die fiktive Person (Wohnort Freiburg); die Meldungen sind echt und über die Quelle prüfbar.
+Alle Aufnahmen zeigen die Version 1.4 mit vollständig fiktiven Daten der Testperson Max Mustermann (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen. Das News-Briefing entstand am 28. November 2026 mit dem echten Modell und Websuche für die fiktive Person (Wohnort Freiburg); die Meldungen sind echt und über die Quelle prüfbar.
 
 ## Planung und Pilot
 

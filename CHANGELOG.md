@@ -2,32 +2,26 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
-## v1.5.1 · 28. November 2026
+## v1.4.0 · 28. November 2026
 
-- **Depot vervollständigt:** „Überblick erstellen“ sucht aktuelle Meldungen zu den Positionen (höchstens sechs, mit Quelle) und drei Themen für den Ausblick. Gesendet werden nur Name, Kategorie und Branche, nie Stückzahlen, Kaufkurse oder Beträge. Ohne Positionen zeigen alle Bereiche „Noch keine Infos“ und „Position hinzufügen“.
-- News: Die Aktien-Kachel berücksichtigt die Namen deiner größten Depotpositionen (höchstens zehn, ohne Beträge).
-- **Rezepte:** Mengen-Editor mit Zahl und Einheit (Stück, g, kg, ml, l, EL, TL, Prise, Bund, Zehe, Dose, Scheibe), Umrechnung bei anderer Portionszahl, kleiner Button „Mengen bearbeiten“ neben den Portionen.
-- **Produkte:** Katalog um mehrere hundert Artikel erweitert; Synonyme (zum Beispiel Eier und Hühnereier) führen zur selben Produkt-ID, damit Vorrat, Einkaufsliste und Rezeptstatus übereinstimmen. Die Schnellsuche „Artikel schnell hinzufügen“ findet auch Zutaten eigener Rezepte.
-- **Profil überarbeitet:** Körpergröße als Auswahl, Wohnort und Studium mit Vorschlägen, Beruf als Auswahl plus Stellenbezeichnung, Interessen als anklickbare Chips nach Kategorien (eigene lassen sich ergänzen), neue Angaben zu Ernährung, Allergien, Haushalt, Tagesrhythmus, Verkehrsmitteln und Sprachen. Das einklappbare Erinnerungsfeld im Profil entfällt. Die Angaben bleiben lokal und gehen nicht an das Modell.
-- Neue Datenbankmigration 045 (depot_news). In docs/SICHERHEIT.md ist die Depot-Meldungssuche als vierte Nutzung der Websuche-Ausnahme beschrieben.
-- Dokumentation: Alle Aufnahmen zeigen jetzt die erkennbar fiktive Testperson Max Mustermann; Galerie um Sparplan, Depot, Depot-Meldungen, Rezept-Editor und Profil erweitert.
+Depot-Release (Version 1.4). Er fasst die Zwischenstände 1.4.0, 1.5.0 und 1.5.1 zusammen.
 
-## v1.5.0 · 28. November 2026
-
-- **Depot** (Finanzen & Abos, Umschalter „Finanzen / Depot“): Positionen mit Stückzahl, Kaufkurs und Kaufdatum, Gewinn und Verlust je Position und gesamt, Depotwert und investierter Betrag.
+- **Sparplan:** In den Finanz-Einstellungen legst du einen Monatsbetrag für das Depot fest. Er zählt wie Fixkosten, mindert Restbudget und Saldo, erscheint in der Fixkostenliste und als „Sparplan“ im Kreisdiagramm. Er gilt ab dem Monat, in dem er gesetzt oder geändert wird; frühere Monate bleiben unverändert.
+- **Depot** (Umschalter „Finanzen / Depot“): Positionen mit Stückzahl, Kaufkurs und Kaufdatum, Gewinn und Verlust je Position und gesamt, Depotwert und investierter Betrag.
 - Position hinzufügen über eine Suche nach Aktie, ETF oder Krypto (Name, Kürzel oder ISIN, Auflösung per Websuche); Positionen lassen sich einzeln bearbeiten und entfernen.
 - Screenshot hochladen (zum Beispiel aus Trade Republic): erkennt Positionen, Kategorie und Branche, zeigt sie zur Prüfung an und legt sie an. Bekannte Positionen werden aktualisiert und behalten ihren Kaufkurs; der Screenshot wird nicht gespeichert.
 - „Aktualisieren“ ruft im Hintergrund aktuelle Kurse ab. Einzige Quelle ist finanzen.net, Ausreißer werden verworfen, Positionen ohne Kurs behalten ihren Wert.
 - Kreisdiagramm nach Branche, Kategorie oder Position. Verlaufs-Chart mit Zeitraumwahl (1W bis Max), Wert beim Darüberfahren, Farbe nach Gewinn oder Verlust und gestrichelter Linie für den investierten Betrag. Der Verlauf entsteht aus dem Stand je Tag und beginnt mit dem ersten gespeicherten Tag.
-- Neue Datenbankmigration 044, dritte Websuche-Ausnahme in docs/SICHERHEIT.md.
+- **Schlagzeilen & Ausblick:** „Überblick erstellen“ sucht aktuelle Meldungen zu den Positionen (höchstens sechs, mit Quelle) und drei Themen für den Ausblick. Gesendet werden nur Name, Kategorie und Branche, nie Stückzahlen, Kaufkurse oder Beträge. Ohne Positionen zeigen alle Bereiche „Noch keine Infos“ und „Position hinzufügen“.
+- News: Die Aktien-Kachel berücksichtigt die Namen deiner größten Depotpositionen (höchstens zehn, ohne Beträge).
+- **Rezepte:** Mengen-Editor mit Zahl und Einheit (Stück, g, kg, ml, l, EL, TL, Prise, Bund, Zehe, Dose, Scheibe), Umrechnung bei anderer Portionszahl, kleiner Button „Mengen bearbeiten“ neben den Portionen.
+- **Produkte:** Katalog um mehrere hundert Artikel erweitert; Synonyme (zum Beispiel Eier und Hühnereier) führen zur selben Produkt-ID, damit Vorrat, Einkaufsliste und Rezeptstatus übereinstimmen. Die Schnellsuche „Artikel schnell hinzufügen“ findet auch Zutaten eigener Rezepte.
+- **Profil überarbeitet:** Körpergröße als Auswahl, Wohnort und Studium mit Vorschlägen, Beruf als Auswahl plus Stellenbezeichnung, Interessen als anklickbare Chips nach Kategorien (eigene lassen sich ergänzen), neue Angaben zu Ernährung, Allergien, Haushalt, Tagesrhythmus, Verkehrsmitteln und Sprachen. Das einklappbare Erinnerungsfeld im Profil entfällt. Die Angaben bleiben lokal und gehen nicht an das Modell.
 - Urlaubsplaner: „Für Google My Maps exportieren“ steht jetzt im Menü „Aktionen“ statt als eigener Button.
 - Posteingang: Der Button heißt „Mails aktualisieren“ ohne Anbieternamen und startet weiter den tieferen Modell-Durchlauf.
 - Bewerbungen: „Bewerbung löschen“ neben „Bewerbung speichern“, mit Rückfrage („Ja, löschen“); Statusverlauf wird mitgelöscht.
-
-## v1.4.0 · 28. November 2026
-
-- Finanzen & Abos: Einstellungen neben der Monatswahl mit einem Sparplan (Monatsbetrag für das Depot). Der Betrag zählt wie Fixkosten, mindert Restbudget und Saldo, erscheint in der Fixkostenliste und als „Sparplan“ im Kreisdiagramm. Er gilt ab dem Monat, in dem er gesetzt oder geändert wird; frühere Monate bleiben unverändert.
-- Umschalter „Finanzen / Depot“ über der Seite. Der Depot-Reiter ist vorerst ein Platzhalter; Screenshot-Erkennung, Kreisdiagramm und Verlauf folgen.
+- Neue Datenbankmigrationen 044 (Depot) und 045 (Depot-Meldungen). docs/SICHERHEIT.md beschreibt die Depot-Nutzung der Websuche (Kurse, Suche, Meldungen) als dritte und vierte Ausnahme sowie die lokale Speicherung der Profilangaben.
+- Dokumentation: Alle Aufnahmen zeigen die erkennbar fiktive Testperson Max Mustermann; die Galerie enthält Sparplan, Depot, Depot-Meldungen, Rezept-Editor und Profil. Entwicklungsverlauf um zwei Meilensteine ergänzt.
 
 ## v1.3.6 · 28. November 2026
 

@@ -1,4 +1,4 @@
-# LifePilot 1.5.1
+# LifePilot 1.4
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -242,8 +242,8 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
 | **1.0.58–1.0.88 · 26./27. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. Die Finanzen bekamen ein festes Einkommen als Grundlage, eine Zahlungsliste und eine gekürzte, einheitliche Kategorienliste; behaltene Bestellartikel werden automatisch gebucht. |
 | **1.1.0–1.2.1 · 27. November 2026** | Urlaubsplaner: Export der Reiseorte für Google My Maps (CSV, ZIP, KML) mit sichtbarer Auswahl, Outfit-Vorschlag während der Reise mit eigenem Bereich „Urlaub“ bei den Looks. |
-| **1.4.0–1.5.1 · 28. November 2026** | Sparplan in den Finanz-Einstellungen (Monatsbetrag, zählt wie Fixkosten). Neues Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Branchen-Kreisdiagramm und Verlaufs-Chart. Außerdem Bewerbung löschen und Kartenexport im Aktionen-Menü. 1.5.1: Schlagzeilen und Ausblick zum Depot, Aktien-Kachel in den News aus den Depotwerten, Rezepte mit Mengen-Editor und Produkt-IDs, größere Schnellsuche, überarbeitetes Profil mit Interessen zum Anklicken. |
 | **1.3.0–1.3.6 · 27./28. November 2026** | Neuer Bereich „News“ mit sechs Kacheln, Hintergrund-Auftrag mit Websuche, Einstellungen für Themenwünsche und aktualisierter Screenshot-Galerie. Im Claude-Modus wird die Websuche nun korrekt freigegeben. |
+| **1.4 · 28. November 2026** | Depot und Sparplan. Finanzen & Abos hat einen Umschalter Finanzen/Depot: Positionen mit Kaufkurs und Kaufdatum, Suche nach Aktie, ETF oder Krypto, Screenshot-Erkennung, Kursaktualisierung (finanzen.net), Kreisdiagramm nach Branche, Verlaufs-Chart, Schlagzeilen und Ausblick zu den Positionen; die News-Kachel „Aktien“ richtet sich nach dem Depot. Der Sparplan zählt wie Fixkosten. Dazu: Rezepte mit Mengen-Editor (Zahl und Einheit) und Produkt-IDs, größere Schnellsuche, überarbeitetes Profil mit Interessen zum Anklicken, Bewerbung löschen, Kartenexport im Aktionen-Menü und eine Galerie mit der fiktiven Testperson Max Mustermann. |
 
 [Entwicklungsverlauf](docs/ENTWICKLUNG.md)
 
