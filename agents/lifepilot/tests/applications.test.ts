@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { Store } from '../../../hub/runtime/store.ts'
-import { applicationHistory, applicationOverview, applicationFromMail, extractApplicationFields, saveApplication, scanApplicationMails } from '../../../hub/runtime/applications.ts'
+import { deleteApplication, applicationHistory, applicationOverview, applicationFromMail, extractApplicationFields, saveApplication, scanApplicationMails } from '../../../hub/runtime/applications.ts'
 
 const draft = { company:'Beispiel GmbH', role:'Werkstudent IT', location:'Berlin' }
 test('Company and role are required while location is optional, outcomes count independently and prior revisions are blocked', () => {
@@ -93,4 +93,17 @@ test('Recruiting prose and scholarship signatures populate review fields without
   assert.equal(scholarship?.role,'Deutschlandstipendium (Nr. 709)')
   assert.equal(scholarship?.applied_on,null)
   assert.equal(applicationFromMail({...base,subject:'Bewerbung ist eingegangen',text:''})?.role,'')
+})
+
+test('Bewerbung löschen entfernt Eintrag und Verlauf, nur mit aktuellem Stand', () => {
+  const store = new Store(':memory:')
+  try {
+    const first = saveApplication(store,draft)
+    const changed = saveApplication(store,{...first,status:'reply'},first)
+    assert.throws(() => deleteApplication(store,first.id,first.revision),{status:409})
+    deleteApplication(store,changed.id,changed.revision)
+    assert.equal(applicationOverview(store).items.length,0)
+    assert.equal(applicationHistory(store,changed.id).length,0)
+    assert.throws(() => deleteApplication(store,changed.id,changed.revision),{status:409})
+  } finally { store.db.close() }
 })

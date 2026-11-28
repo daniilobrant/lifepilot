@@ -45,8 +45,8 @@ function ChevronIcon({ size = 12 }: { size?: number }) {
     <path d="M3 4.5 6 7.5 9 4.5" />
   </svg>
 }
-function TripActionsMenu({ busy, showCalendar, outfitReady, onCalendar, onWeather, onOutfit, onRemove }: {
-  busy: boolean, showCalendar: boolean, outfitReady: boolean, onCalendar: () => void, onWeather: () => void, onOutfit: () => void, onRemove: () => void,
+function TripActionsMenu({ busy, showCalendar, outfitReady, onCalendar, onWeather, onOutfit, onMaps, onRemove }: {
+  busy: boolean, showCalendar: boolean, outfitReady: boolean, onCalendar: () => void, onWeather: () => void, onOutfit: () => void, onMaps: () => void, onRemove: () => void,
 }) {
   const menu = useRef<HTMLDetailsElement>(null)
   const [open, setOpen] = useState(false)
@@ -62,6 +62,7 @@ function TripActionsMenu({ busy, showCalendar, outfitReady, onCalendar, onWeathe
     </summary>
     <div className="travel-trip-menu-panel">
       {showCalendar ? <button type="button" onClick={() => choose(onCalendar)}>Zu Google Kalender hinzufügen</button> : null}
+      <button type="button" onClick={() => choose(onMaps)}>Für Google My Maps exportieren</button>
       <button type="button" disabled={busy} onClick={() => choose(onWeather)}>Wetter für Duftvorschlag abrufen</button>
       <button type="button" disabled={busy||!outfitReady} title={outfitReady?undefined:'Verfügbar ab einem Tag vor der Reise bis zum Reiseende'} onClick={() => choose(onOutfit)}>Outfit-Vorschlag abrufen</button>
       {!outfitReady ? <small className="travel-menu-hint">Outfit-Vorschlag ab einem Tag vor der Reise</small> : null}
@@ -676,11 +677,11 @@ export function TravelPlanner({ api, plan, handoff, initialId, cloudGuide, onSel
       <div className="travel-trip-bar">
         <button type="button" className="quiet travel-back" onClick={()=>{setView('list');onSelect(undefined)}}>← Meine Reisen</button>
         <div className="travel-bar-actions">
-        <button type="button" className="travel-small-button" aria-pressed={mapOpen} onClick={()=>{setMapOpen(open=>!open);setOutfitOpen(false)}}>Für Google My Maps exportieren</button>
         <TripActionsMenu
           busy={busy}
           outfitReady={outfitWindow(current,dateInBerlin())}
           onOutfit={()=>{setOutfitOpen(true);setMapOpen(false)}}
+          onMaps={()=>{setMapOpen(open=>!open);setOutfitOpen(false)}}
           showCalendar={!current.googleCalendar}
           onCalendar={()=>setCalendarOffer(true)}
           onWeather={()=>fire(async()=>{

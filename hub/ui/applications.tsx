@@ -45,6 +45,7 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
   const [data, setData] = useState<ApplicationOverview>()
   const [editor, setEditor] = useState<Editor>()
   const [query, setQuery] = useState('')
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const [busy, setBusy] = useState(false)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
@@ -73,12 +74,21 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
   const visible = (data?.items ?? []).filter(item =>
     [item.company, item.role, item.location].join(' ').toLocaleLowerCase('de').includes(query.toLocaleLowerCase('de').trim()))
   function open(source?: ApplicationSource, existing?: Application) {
-    setImageText(''); setHistory([])
+    setImageText(''); setHistory([]); setConfirmDelete(false)
     setEditor({ source, existing, draft: applicationReviewDraft(source,existing) })
     if (existing) void api<typeof history>('/applications/' + existing.id + '/history').then(setHistory).catch(() => {})
   }
   function change<K extends keyof ApplicationDraft>(key: K, value: ApplicationDraft[K]) {
     setEditor(current => current ? { ...current, draft: { ...current.draft, [key]: value } } : current)
+  }
+  function remove() {
+    const target = editor?.existing
+    if (!target || busy) return
+    void act(async () => {
+      await api('/applications/delete', { existing: target.id, revision: target.revision, confirm: true })
+      await reload()
+      setEditor(undefined); setImageText(''); setConfirmDelete(false); setNotice('Bewerbung gelöscht.')
+    })
   }
   function save(event: FormEvent) {
     event.preventDefault()
@@ -161,7 +171,12 @@ export function Applications({ api, onBack, initialId }: { api: Api, onBack: () 
       <label>Notizen und nächste Schritte<textarea maxLength={1600} value={editor.draft.notes} onChange={event => change('notes', event.target.value)} /></label>
       {editor.existing && history.length ? <details><summary>Statusverlauf</summary><ul>{history.map((event,index) =>
         <li key={index}>{applicationStatuses[event.status]} · {new Date(event.changed_at).toLocaleDateString('de-DE',{timeZone:'Europe/Berlin'})}</li>)}</ul></details> : null}
-      <button className="primary" disabled={busy}>Bewerbung speichern</button>
+      <div className="actions"><button className="primary" disabled={busy}>Bewerbung speichern</button>
+        {editor.existing ? confirmDelete ? <>
+          <span role="alert">Bewerbung bei {editor.existing.company} wirklich löschen? Das lässt sich nicht rückgängig machen.</span>
+          <button type="button" className="travel-danger-action" disabled={busy} onClick={remove}>Ja, löschen</button>
+          <button type="button" disabled={busy} onClick={() => setConfirmDelete(false)}>Abbrechen</button>
+        </> : <button type="button" className="travel-danger-action" disabled={busy} onClick={() => setConfirmDelete(true)}>Bewerbung löschen</button> : null}</div>
     </form> : null}
     {(sources.length||batchReviewed) ? <details className="card settings mail-finance disclosure application-suggestions" open>
       <summary><strong>Bewerbungsvorschläge aus Mails</strong><span className="count-badge">{sources.length} offen</span></summary>

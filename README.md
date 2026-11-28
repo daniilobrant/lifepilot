@@ -1,4 +1,4 @@
-# LifePilot 1.4.0
+# LifePilot 1.5.0
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -179,7 +179,7 @@ Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das gekl
 | Posteingang | Relevante Nachrichten, per Klick nach Kategorie filterbar (falsche Zuordnung per Stift korrigierbar), gezielte Mail-Tiefenprüfung und Vorschläge für Folgeaktionen. Auf der Startseite stehen nur wichtige Nachrichten von echten Personen |
 | Terminvorschläge | Aus Mails abgeleitete Termine, Fristen und Aufgaben als aufklappbare Liste unter dem Kalender |
 | Bestellungstracker | Lieferungen, Retouren, Behalten und Rückerstattungen je Artikel. Behaltene Kleidung kann in den Kleiderschrank übernommen werden |
-| Finanzen & Abos | Umschalter Finanzen/Depot, Sparplan als monatliche Rate (zählt wie Fixkosten), Monatsübersicht mit festem Einkommen als Grundlage, Zahlungsliste zum Zuordnen, vereinheitlichte Ausgabenkategorien, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
+| Finanzen & Abos | Umschalter Finanzen/Depot (Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Kreisdiagramm nach Branche, Verlaufs-Chart), Sparplan als monatliche Rate (zählt wie Fixkosten), Monatsübersicht mit festem Einkommen als Grundlage, Zahlungsliste zum Zuordnen, vereinheitlichte Ausgabenkategorien, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
 | Urlaubsplaner | Vorschau für Städte und Inseln, Reisezeiträume, Buchungen, Vorbereitung und Packlisten, Orte-Export für Google My Maps (CSV, ZIP, KML) und Outfit-Vorschlag während der Reise |
 | Outfit-Assistent | Styling, Kleiderschrank, Produktlink- und Fotoimport, Looks (auch im Bereich „Urlaub“), Urlaubsgarderobe, Verkauf und Parfüm; Sportkleidung wird nur für Training vorgeschlagen |
 | Vorrat & Einkauf | Vorratsverwaltung, kategorisierte Einkaufsliste, Belegscan und Rezeptideen |
@@ -233,7 +233,7 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
 | **1.0.58–1.0.88 · 26./27. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. Die Finanzen bekamen ein festes Einkommen als Grundlage, eine Zahlungsliste und eine gekürzte, einheitliche Kategorienliste; behaltene Bestellartikel werden automatisch gebucht. |
 | **1.1.0–1.2.1 · 27. November 2026** | Urlaubsplaner: Export der Reiseorte für Google My Maps (CSV, ZIP, KML) mit sichtbarer Auswahl, Outfit-Vorschlag während der Reise mit eigenem Bereich „Urlaub“ bei den Looks. |
-| **1.4.0 · 28. November 2026** | Sparplan in den Finanz-Einstellungen: ein Monatsbetrag, der wie Fixkosten vom Budget abgeht. Neuer Umschalter „Finanzen / Depot“, das Depot folgt im nächsten Schritt. |
+| **1.4.0–1.5.0 · 28. November 2026** | Sparplan in den Finanz-Einstellungen (Monatsbetrag, zählt wie Fixkosten). Neues Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Branchen-Kreisdiagramm und Verlaufs-Chart. Außerdem Bewerbung löschen und Kartenexport im Aktionen-Menü. |
 | **1.3.0–1.3.6 · 27./28. November 2026** | Neuer Bereich „News“ mit sechs Kacheln, Hintergrund-Auftrag mit Websuche, Einstellungen für Themenwünsche und aktualisierter Screenshot-Galerie. Im Claude-Modus wird die Websuche nun korrekt freigegeben. |
 
 [Entwicklungsverlauf](docs/ENTWICKLUNG.md)

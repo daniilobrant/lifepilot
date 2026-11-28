@@ -91,6 +91,17 @@ export function saveApplication(store: Store, value: unknown, existing?: { id: s
   })
 }
 
+/** Löscht eine Bewerbung samt Statusverlauf. Zugeordnete Mailvorschläge bleiben als erledigt bestehen, damit sie nicht erneut vorgeschlagen werden. */
+export function deleteApplication(store: Store, id: string, revision: number) {
+  return store.transaction(() => {
+    if (!store.db.prepare('SELECT 1 FROM applications WHERE id=? AND revision=?').get(id, revision)) throw new Problem(409, 'Die Bewerbung wurde inzwischen geändert oder gelöscht.')
+    store.db.prepare('UPDATE application_sources SET application_id=NULL WHERE application_id=?').run(id)
+    store.db.prepare('DELETE FROM application_history WHERE application_id=?').run(id)
+    store.db.prepare('DELETE FROM applications WHERE id=?').run(id)
+    return { id }
+  })
+}
+
 export function denyApplicationSource(store: Store, id: string) {
   if (!store.db.prepare("UPDATE application_sources SET state='denied' WHERE id=? AND state='pending'").run(id).changes) {
     throw new Problem(409, 'Der Terminvorschlag ist nicht mehr offen.')

@@ -15,6 +15,7 @@ import { MailFinance } from './mail-finance.tsx'
 import { OrderApprovals, OrderTracker } from './clothing-orders.tsx'
 import { ChatRecipe, ChatRecipeOptions, GroceryAnswerCard, GroceryPanel, scanGroceryFile } from './grocery.tsx'
 import type { GroceryAnswer } from '../runtime/grocery-types.ts'
+import { DepotPage } from './depot.tsx'
 import { FinanceForm, FinancePanel, FinanceTabs } from './finance.tsx'
 import { NewsPage } from './news.tsx'
 import { financeKinds, money, type FinanceChange } from '../runtime/finance-types.ts'
@@ -1780,8 +1781,7 @@ function App() {
               <div className="editor-title inbox-header"><h2>Wichtig für dich · letzte 7 Tage</h2>
                 <div className="actions">
                   <button className="primary" disabled={refreshingInbox || !!offline} onClick={() => void runInboxRefresh(true, true)}>
-                    {refreshingInbox ? 'Wird geprüft …' : snapshot.chatMode==='private' ?
-                      `Mails aktualisieren · ${snapshot.modelProvider==='claude'?'Claude':'Codex'}` : 'Mails aktualisieren'}
+                    {refreshingInbox ? 'Wird geprüft …' : 'Mails aktualisieren'}
                   </button>
                 </div>
               </div>
@@ -1872,8 +1872,7 @@ function App() {
           {page==='News' ? <NewsPage api={api} /> : null}
           {page==='Finanzen & Abos' ? <>
             <FinanceTabs tab={financeTab} onTab={setFinanceTab}/>
-            {financeTab==='Depot'?<section className="card settings finance-depot-soon"><h2>Depot</h2>
-              <p>Hier entsteht deine Depot-Übersicht: Screenshot hochladen, Positionen erkennen lassen, Kreisdiagramm und Verlauf. Das folgt im nächsten Schritt.</p></section>:<>
+            {financeTab==='Depot'?<DepotPage api={api}/>:<>
             <MailFinance api={api} refreshKey={inboxFeed?.loadedAt??''} onUpdate={financeMailUpdated} />
             <FinancePanel focus={boardSource?.source_type==='finance'?{id:boardSource.source_id,month:boardSource.originalDue?.slice(0,7)}:undefined} api={api} refreshKey={skillRefresh('finance')+':'+financeMailRevision} />
             </>}

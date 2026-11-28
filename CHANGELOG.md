@@ -2,6 +2,18 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.5.0 · 28. November 2026
+
+- **Depot** (Finanzen & Abos, Umschalter „Finanzen / Depot“): Positionen mit Stückzahl, Kaufkurs und Kaufdatum, Gewinn und Verlust je Position und gesamt, Depotwert und investierter Betrag.
+- Position hinzufügen über eine Suche nach Aktie, ETF oder Krypto (Name, Kürzel oder ISIN, Auflösung per Websuche); Positionen lassen sich einzeln bearbeiten und entfernen.
+- Screenshot hochladen (zum Beispiel aus Trade Republic): erkennt Positionen, Kategorie und Branche, zeigt sie zur Prüfung an und legt sie an. Bekannte Positionen werden aktualisiert und behalten ihren Kaufkurs; der Screenshot wird nicht gespeichert.
+- „Aktualisieren“ ruft im Hintergrund aktuelle Kurse ab. Einzige Quelle ist finanzen.net, Ausreißer werden verworfen, Positionen ohne Kurs behalten ihren Wert.
+- Kreisdiagramm nach Branche, Kategorie oder Position. Verlaufs-Chart mit Zeitraumwahl (1W bis Max), Wert beim Darüberfahren, Farbe nach Gewinn oder Verlust und gestrichelter Linie für den investierten Betrag. Der Verlauf entsteht aus dem Stand je Tag und beginnt mit dem ersten gespeicherten Tag.
+- Neue Datenbankmigration 044, dritte Websuche-Ausnahme in docs/SICHERHEIT.md.
+- Urlaubsplaner: „Für Google My Maps exportieren“ steht jetzt im Menü „Aktionen“ statt als eigener Button.
+- Posteingang: Der Button heißt „Mails aktualisieren“ ohne Anbieternamen und startet weiter den tieferen Modell-Durchlauf.
+- Bewerbungen: „Bewerbung löschen“ neben „Bewerbung speichern“, mit Rückfrage („Ja, löschen“); Statusverlauf wird mitgelöscht.
+
 ## v1.4.0 · 28. November 2026
 
 - Finanzen & Abos: Einstellungen neben der Monatswahl mit einem Sparplan (Monatsbetrag für das Depot). Der Betrag zählt wie Fixkosten, mindert Restbudget und Saldo, erscheint in der Fixkostenliste und als „Sparplan“ im Kreisdiagramm. Er gilt ab dem Monat, in dem er gesetzt oder geändert wird; frühere Monate bleiben unverändert.

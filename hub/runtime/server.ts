@@ -29,6 +29,7 @@ import { deleteFinance, financeMonth, financeOverview, saveFinance, saveFinanceS
 import { personalProfile, savePersonalProfile } from './personal-profile.ts'
 import { createTripGuide } from './trip-guide.ts'
 import { reviewSubscriptions } from './subscription-review.ts'
+import { depotState, imageFormat, importHoldings, recognizeDepot, removeHolding, removeSnapshot, saveHolding, searchInstruments, searchQuery, startRefresh } from './depot.ts'
 import { newsState, savePreferences, startNews } from './news.ts'
 import { previewTripChange, decideTripChange } from './trip-chat-change.ts'
 import { trips, trip, previewTrip, chatTripPreview, generateTripPreview, saveTrip, changeTrip, tripDateChange, readTripPreview, removeSavedTrip } from './trips.ts'
@@ -61,7 +62,7 @@ import { analyseMessage } from './message-analysis.ts'
 import { berlinInstant } from '../../agents/lifepilot/tools/validate.ts'
 import type { TaskPatch, Step } from './workspace.ts'
 import { bounded, dateInBerlin, isDate, mondayOf, shiftDay } from './values.ts'
-import { applicationHistory, applicationOverview, denyApplicationSource, saveApplication, scanApplicationMails } from './applications.ts'
+import { applicationHistory, deleteApplication, applicationOverview, denyApplicationSource, saveApplication, scanApplicationMails } from './applications.ts'
 import { uploadApplicationImage, uploadChatDocument } from '../connectors/application-ocr.ts'
 import { finishAppointmentChange, googleLifePilotCalendar, queueAppointmentChange, syncApprovedAppointment } from './google-appointment.ts'
 import { refreshInbox, planRefreshedInbox, readInboxFeed } from './refresh-inbox.ts'
@@ -672,6 +673,53 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     decideProjectMail(store,id(suggestion),acceptance?address:mailAccountKey(address),revision,approved)
     return reply(res,200,{ok:true,revision:approved?revision+1:revision})
   }
+  if (path === '/api/depot' && method === 'GET') return reply(res, 200, depotState(store,cloudModel===true))
+  if (path === '/api/depot/recognize' && method === 'POST') {
+    if (!imageApproval(req)) throw new Problem(400,'Bestätige, dass der Screenshot zur Erkennung an das Modell gesendet wird.')
+    const photo=await uploadOutfitPhoto(req,4*1024*1024)
+    const format=imageFormat(photo)
+    if (!format) throw new Problem(415,'Verwende einen Screenshot als PNG oder JPEG.')
+    const positions=await recognizeDepot(photo,format)
+    if (!positions.length) throw new Problem(422,'Im Bild wurden keine Depotpositionen erkannt. Du kannst sie auch über die Suche anlegen.')
+    return reply(res, 200, {positions})
+  }
+  if (path === '/api/depot/import' && method === 'POST') {
+    const input=await body(req,['positions','removeMissing','confirm'])
+    confirmLocalChange(input.confirm)
+    store.transaction(()=>importHoldings(store,input.positions,input.removeMissing===true))
+    return reply(res, 200, depotState(store,cloudModel===true))
+  }
+  if (path === '/api/depot/search' && method === 'POST') {
+    const input=await body(req,['query','confirm'])
+    confirmLocalChange(input.confirm)
+    if (!cloudModel) throw new Problem(423,'Die Suche mit Websuche ist in diesem Profil gesperrt. Du kannst Positionen von Hand anlegen.')
+    return reply(res, 200, {results:await searchInstruments(searchQuery(input.query))})
+  }
+  if (path === '/api/depot/holding' && method === 'POST') {
+    const input=await body(req,['holding','id','confirm'])
+    confirmLocalChange(input.confirm)
+    store.transaction(()=>saveHolding(store,input.holding,input.id))
+    return reply(res, 200, depotState(store,cloudModel===true))
+  }
+  if (path === '/api/depot/holding/remove' && method === 'POST') {
+    const input=await body(req,['id','confirm'])
+    confirmLocalChange(input.confirm)
+    store.transaction(()=>removeHolding(store,input.id))
+    return reply(res, 200, depotState(store,cloudModel===true))
+  }
+  if (path === '/api/depot/history/remove' && method === 'POST') {
+    const input=await body(req,['id','confirm'])
+    confirmLocalChange(input.confirm)
+    store.transaction(()=>removeSnapshot(store,input.id))
+    return reply(res, 200, depotState(store,cloudModel===true))
+  }
+  if (path === '/api/depot/refresh' && method === 'POST') {
+    const input=await body(req,['confirm'])
+    confirmLocalChange(input.confirm)
+    if (!cloudModel) throw new Problem(423,'Die Kursabfrage mit Websuche ist in diesem Profil gesperrt.')
+    startRefresh(store)
+    return reply(res, 202, depotState(store,cloudModel===true))
+  }
   if (path === '/api/news' && method === 'GET') return reply(res, 200, newsState(store))
   if (path === '/api/news/preferences' && method === 'POST') {
     const input=await body(req,['preferences','confirm'])
@@ -1138,6 +1186,12 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     return reply(res, 200, saveApplication(store, draft,
       existing === undefined ? undefined : { id: id(existing), revision: revision as number },
       source === undefined ? undefined : id(source)))
+  }
+  if (path === '/api/applications/delete' && method === 'POST') {
+    const { existing, revision, confirm } = await body(req, ['existing', 'revision', 'confirm'])
+    confirmLocalChange(confirm)
+    if (typeof revision !== 'number' || !Number.isSafeInteger(revision) || revision < 1) throw new Problem(400, 'Ungültiger Bewerbungsstand.')
+    return reply(res, 200, deleteApplication(store, id(existing), revision))
   }
   if (path === '/api/applications/deny' && method === 'POST') {
     const { source, confirm } = await body(req, ['source', 'confirm'])
