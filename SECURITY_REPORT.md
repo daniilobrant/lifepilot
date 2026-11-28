@@ -73,3 +73,22 @@ Es wurden keine Zugangsdaten, privaten Schlüssel, API-Tokens oder Passwörter i
     npm run security:check
 
 Der Befehl führt npm audit, Semgrep, Gitleaks (falls installiert), Python-Werkzeuge (nur bei Python-Code), die Mustersuche nach privaten Daten, die Prüfung der Autoren-Adressen und die Funktionstests aus. Er läuft nur lokal und versendet nichts.
+
+## 8. Wiederholung am 28. November 2026 (Version 1.4)
+
+Nach dem Depot-Release wurden alle Prüfungen erneut ausgeführt.
+
+| Prüfung | Ergebnis |
+|---|---|
+| Funktionstests | 283 bestanden, 0 fehlgeschlagen |
+| npm audit | 0 Schwachstellen (3 direkte Abhängigkeiten) |
+| Semgrep | 0 Funde (p/default, p/secrets, p/javascript, p/typescript, p/nodejs) |
+| Private Daten und Geheimnisse im Arbeitsstand | keine Funde; eine echt aussehende Gmail-Adresse in einem Test wurde durch eine Beispieladresse ersetzt |
+| Netzwerk | Der Server lauscht nur auf `127.0.0.1`; ausgehende Ziele wie im Bericht oben, neu nur die Modellaufrufe des Depots (Kurse, Suche, Meldungen) |
+| Zugang | Ohne Anmeldung antwortet jede Route mit 400, falscher Host und fremde Herkunft mit 403, Pfade mit `..` mit 400; CSP, `X-Frame-Options: DENY`, `nosniff` und `Referrer-Policy: no-referrer` gesetzt |
+| Dynamischer Code | Kein `eval`, `new Function`, `innerHTML`; Prozessstarts nur mit festen Programmen und Argumentlisten |
+| Depot-Daten im Modellaufruf | Nur Name, Kategorie, Branche, ISIN und Kürzel, nie Stückzahlen, Kaufkurse oder Beträge |
+| Profilangaben | Bleiben lokal, gehen nicht an das Modell |
+| Verlauf auf GitHub | 146 Commits in allen Branches und Tags, ausschließlich Noreply-Adressen und der Name `daniilobrant`; frische Kopie des Repositories geprüft. Dafür wurde der Verlauf erneut umgeschrieben (Autoren- und Committer-Adresse der früheren Commits, Tags und Release-Verweise neu gesetzt) |
+
+Weiterhin offen: Die 22 GitHub-eigenen Referenzen `refs/pull/*` zeigen auf die früheren Commit-Kennungen (siehe Abschnitt 5, Punkt 1). Sie lassen sich nur über den GitHub-Support entfernen.
