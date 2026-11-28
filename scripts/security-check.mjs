@@ -56,8 +56,8 @@ if (python) {
     if (found.stdout.trim()) { hits++; console.log(`  Fund (${label}) in: ${found.stdout.trim().split('\n').join(', ')}`) }
   }
   record('Private Daten und Geheimnisse im Arbeitsstand', hits === 0 ? 'ok' : 'fail', hits === 0 ? 'keine Funde' : hits + ' Muster getroffen')
-  const authors = run('git', ['log', '--all', '--format=%ae']).stdout.split('\n').filter(mail => mail && !/noreply\.github\.com$|^noreply@github\.com$/u.test(mail))
-  record('Autoren-E-Mail im Verlauf', authors.length === 0 ? 'ok' : 'fail', authors.length === 0 ? 'nur noreply-Adressen' : new Set(authors).size + ' private Adresse(n) in ' + authors.length + ' Commits')
+  const authors = run('git', ['log', '--all', '--format=%ae%n%ce']).stdout.split('\n').filter(mail => mail && !/noreply\.github\.com$|^noreply@github\.com$/u.test(mail))
+  record('Autoren- und Committer-E-Mail im Verlauf', authors.length === 0 ? 'ok' : 'fail', authors.length === 0 ? 'nur noreply-Adressen' : new Set(authors).size + ' private Adresse(n) in ' + authors.length + ' Einträgen')
 }
 
 // 5. Funktionstests

@@ -89,6 +89,12 @@ Nach dem Depot-Release wurden alle Prüfungen erneut ausgeführt.
 | Dynamischer Code | Kein `eval`, `new Function`, `innerHTML`; Prozessstarts nur mit festen Programmen und Argumentlisten |
 | Depot-Daten im Modellaufruf | Nur Name, Kategorie, Branche, ISIN und Kürzel, nie Stückzahlen, Kaufkurse oder Beträge |
 | Profilangaben | Bleiben lokal, gehen nicht an das Modell |
-| Verlauf auf GitHub | 146 Commits in allen Branches und Tags, ausschließlich Noreply-Adressen und der Name `daniilobrant`; frische Kopie des Repositories geprüft. Dafür wurde der Verlauf erneut umgeschrieben (Autoren- und Committer-Adresse der früheren Commits, Tags und Release-Verweise neu gesetzt) |
+| Verlauf auf GitHub | 147 Commits in allen Branches und Tags, ausschließlich Noreply-Adressen und der Name `daniilobrant`; frische Kopie des Repositories geprüft. Dafür wurde der Verlauf erneut umgeschrieben (Autoren- und Committer-Adresse der früheren Commits, Tags und Release-Verweise neu gesetzt) |
+| GitHub-Konto und Repository | Einziger Zugang ist der Eigentümer; keine Webhooks, Deploy-Keys, Actions-Workflows, Secrets, Environments oder offenen Einladungen; Secret Scanning und Push-Schutz aktiv, 0 Meldungen |
+| Gitleaks | 0 Funde in allen Commits der frischen GitHub-Kopie |
+| Abhängigkeiten | Alle 41 Pakete aus registry.npmjs.org; einziges Paket mit Installationsskript ist esbuild (nur Entwicklung) |
+| Laufende App | Alle Seiten und Reiter ohne Skript- oder Konsolenfehler aufgerufen |
+| Lokales Profil | Datenordner nur für den eigenen Benutzer lesbar; eine alte Testdatenbank mit zu offenen Rechten korrigiert |
+| Prüfbefehl | prüft jetzt neben der Autoren- auch die Committer-Adresse |
 
 Weiterhin offen: Die 22 GitHub-eigenen Referenzen `refs/pull/*` zeigen auf die früheren Commit-Kennungen (siehe Abschnitt 5, Punkt 1). Sie lassen sich nur über den GitHub-Support entfernen.
