@@ -108,3 +108,23 @@ test('Nur PNG und JPEG werden als Screenshot angenommen',()=>{
   assert.equal(imageFormat(Buffer.from([0xff,0xd8,0xff,0xe0])),'jpeg')
   assert.equal(imageFormat(Buffer.from('<svg></svg>')),null)
 })
+
+test('Depot-Überblick: Prompt ohne Beträge, Antwort wird streng geprüft',async()=>{
+  const { depotNewsPrompt, readDepotNews, collectDepotNews } = await import('../../../hub/runtime/depot-news.ts')
+  const prompt=depotNewsPrompt([{name:'Apple',category:'Aktie',sector:'Technologie'}],'2026-11-28')
+  assert.match(prompt,/Apple \(Aktie, Technologie\)/u)
+  assert.doesNotMatch(prompt,/€|Stück|Kaufkurs/u)
+  const raw={headlines:[
+    {position:'Apple',headline:'Apple legt Zahlen vor',summary:'Kurz [Quelle](https://x.de) gesagt.',source:'Handelsblatt',url:'https://example.com/a',published:'2026-11-27'},
+    {position:'Unbekannt',headline:'Fremde Position',summary:'x',source:'y',url:'https://example.com/b',published:null},
+    {position:'Apple',headline:'Unsicherer Link',summary:'x',source:'y',url:'http://example.com/c',published:null},
+  ],outlook:[{title:'Gesundheit',reason:'Streuung über Branchen, mit Risiken.'}]}
+  const news=readDepotNews(raw,['Apple'])
+  assert.equal(news.headlines.length,1)
+  assert.equal(news.headlines[0].summary,'Kurz Quelle gesagt.')
+  assert.equal(news.outlook.length,1)
+  assert.throws(()=>readDepotNews({headlines:[],outlook:[]},['Apple']),{status:422})
+  assert.throws(()=>readDepotNews('x',['Apple']),{status:422})
+  const run=(async()=>({result:null,error:'Anmeldung nötig',metrics:{}})) as never
+  await assert.rejects(collectDepotNews([{id:'1',name:'Apple',isin:'',symbol:'',category:'Aktie',sector:'Technologie',quantity:1,buyPrice:null,buyDate:null,price:null,priceAt:null,valueCents:100}],AbortSignal.timeout(1000),run),{status:502})
+})

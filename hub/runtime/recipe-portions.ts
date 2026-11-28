@@ -17,6 +17,17 @@ function parseQuantity(quantity:string|undefined){
     (fractions[match[2]||match[4]]??0)
   return Number.isFinite(amount)?{amount,unit:match[5].trim()}:null
 }
+/** Zerlegt „250 g“ oder „1,5 EL“ in Zahl und Einheit; ohne Zahl bleibt die Zahl leer und der Text die Einheit. */
+export function splitQuantity(quantity:string|undefined):{amount:number|null,unit:string}{
+  const parsed=parseQuantity(quantity)
+  if(!parsed)return {amount:null,unit:(quantity??'').trim()}
+  const unit=parsed.unit.trim()
+  return {amount:parsed.amount,unit:/^(?:stück|stk\.?|st\.?)?$/iu.test(unit)?'Stück':unit}
+}
+export function joinQuantity(amount:number,unit:string){
+  const number=portionsFormat.format(Math.round(amount*1000)/1000)
+  return unit==='Stück'?number+' Stück':number+' '+unit
+}
 export function scaleRecipeIngredients(items:GroceryInput[],base:number,servings:number){
   if(base===servings)return items
   return items.map(item=>{

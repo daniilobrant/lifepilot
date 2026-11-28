@@ -10,8 +10,12 @@ export type Holding = {
 }
 export type HoldingDraft = Omit<Holding,'id'|'valueCents'|'priceAt'> & {valueCents?:number}
 export type DepotHistoryPoint = {id:string, date:string, totalCents:number, investedCents:number}
+export type DepotHeadline = {position:string, headline:string, summary:string, source:string, url:string, published:string|null}
+export type DepotOutlook = {title:string, reason:string}
+export type DepotNews = {created:string, headlines:DepotHeadline[], outlook:DepotOutlook[]}
 export type DepotState = {
   holdings:Holding[], history:DepotHistoryPoint[], recognition:boolean,
+  news:DepotNews|null, newsJob:{running:boolean, error:string|null},
   job:{running:boolean, error:string|null, updatedAt:string|null, missing:number},
 }
 export type Candidate = {name:string, isin:string, symbol:string, category:DepotCategory, sector:DepotSector, price:number|null}

@@ -29,6 +29,7 @@ import { deleteFinance, financeMonth, financeOverview, saveFinance, saveFinanceS
 import { personalProfile, savePersonalProfile } from './personal-profile.ts'
 import { createTripGuide } from './trip-guide.ts'
 import { reviewSubscriptions } from './subscription-review.ts'
+import { startDepotNews } from './depot-news.ts'
 import { depotState, imageFormat, importHoldings, recognizeDepot, removeHolding, removeSnapshot, saveHolding, searchInstruments, searchQuery, startRefresh } from './depot.ts'
 import { newsState, savePreferences, startNews } from './news.ts'
 import { previewTripChange, decideTripChange } from './trip-chat-change.ts'
@@ -712,6 +713,13 @@ async function route(req: IncomingMessage, res: ServerResponse) {
     confirmLocalChange(input.confirm)
     store.transaction(()=>removeSnapshot(store,input.id))
     return reply(res, 200, depotState(store,cloudModel===true))
+  }
+  if (path === '/api/depot/news' && method === 'POST') {
+    const input=await body(req,['confirm'])
+    confirmLocalChange(input.confirm)
+    if (!cloudModel) throw new Problem(423,'Der Depot-Überblick mit Websuche ist in diesem Profil gesperrt.')
+    startDepotNews(store,depotState(store,true).holdings)
+    return reply(res, 202, depotState(store,cloudModel===true))
   }
   if (path === '/api/depot/refresh' && method === 'POST') {
     const input=await body(req,['confirm'])

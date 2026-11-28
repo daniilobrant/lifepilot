@@ -945,59 +945,6 @@ function RunDetail({ run, mutate, busy, onReply, actionError, modelName, googleW
 const formatter = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' })
 function formatDate(date: string) { return formatter.format(new Date(date)) }
 
-function MemoryPanel({ snapshot, mutate, busy }: { snapshot: Snapshot,
-  mutate: (path: string, payload: object) => Promise<unknown>, busy: boolean }) {
-  const [scope, setScope] = useState<'owner' | 'lifepilot'>('lifepilot')
-  const [content, setContent] = useState('')
-  const [query, setQuery] = useState('')
-  const [entries, setEntries] = useState<Entry[]>([])
-  const [error, setError] = useState('')
-  const [replaces, setReplaces] = useState<string | null>(null)
-  const [revision, setRevision] = useState(0)
-  useEffect(() => {
-    let current = true
-    api<Entry[]>('/memory?' + new URLSearchParams({ scope, q: query }))
-      .then(value => { if (current) { setEntries(value); setError('') } })
-      .catch(cause => { if (current) setError(cause.message) })
-    return () => { current = false }
-  }, [scope, query, revision])
-  async function save(event: FormEvent) {
-    event.preventDefault()
-    if (!await mutate('/memory', { scope, content, confirm: true, replaces, synthetic: snapshot.acceptance })) return
-    setContent('')
-    setReplaces(null)
-    setRevision(value => value + 1)
-  }
-  return <details className="card settings"><summary>Erinnerungen</summary>
-    <label>Bereich<select value={scope} onChange={event => {
-      setScope(event.target.value === 'owner' ? 'owner' : 'lifepilot'); setReplaces(null); setContent('')
-    }}><option value="lifepilot">Für LifePilot</option><option value="owner">Nur für mich</option></select></label>
-    <label>Erinnerung suchen<input value={query} onChange={event => setQuery(event.target.value)} /></label>
-    {error ? <p role="alert">{error}</p> : null}
-    <ul className="memory-list">{entries.map(entry => <li key={entry.id}>
-      <strong>{entry.content}</strong><small className="identifier">{entry.source} · {entry.id}</small>
-      <div className="actions">
-        <button onClick={() => { setContent(entry.content); setReplaces(entry.id) }}>Korrigieren</button>
-        <button onClick={async () => {
-          if (window.confirm('Diese Erinnerung widerrufen?') && await mutate(`/memory/${entry.id}/revoke`, { confirm: true })) setRevision(value => value + 1)
-        }}>Widerrufen</button>
-        <button onClick={async () => {
-          if (window.confirm('Den gespeicherten Memory-Text löschen?') && await mutate(`/memory/${entry.id}/erase`, { confirm: true })) setRevision(value => value + 1)
-        }}>Löschen</button>
-      </div>
-    </li>)}</ul>
-    <form onSubmit={save}>
-      <label>{replaces ? 'Korrigierte Erinnerung' : 'Neue bestätigte Erinnerung'}
-        <textarea value={content} onChange={event => setContent(event.target.value)} maxLength={1200} required />
-      </label>
-      <div className="actions">
-        {snapshot.fixtures && scope === 'lifepilot' ? <button type="button" onClick={() => setContent(snapshot.fixtures!.memory)}>Test-Erinnerung einfügen</button> : null}
-        <button className="primary" disabled={busy || !content.trim()}>{replaces ? 'Korrektur bestätigen' : 'Erinnerung bestätigen'}</button>
-        {replaces ? <button type="button" onClick={() => { setReplaces(null); setContent('') }}>Abbrechen</button> : null}
-      </div>
-    </form>
-  </details>
-}
 
 const ticket = location.hash.slice(1)
 const viewQuery=new URLSearchParams(location.search)
@@ -1888,7 +1835,7 @@ function App() {
                 className={settingsSection===item?'primary':undefined} aria-pressed={settingsSection===item}
                 onClick={()=>setSettingsSection(item)}>{item}</button>)}
             </nav>
-            {settingsSection==='Profil' ? <><ProfilePanel api={api} /><MemoryPanel snapshot={snapshot} mutate={mutate} busy={busy} /></> : null}
+            {settingsSection==='Profil' ? <><ProfilePanel api={api} /></> : null}
             {settingsSection==='Verbindungen' && !snapshot.acceptance ? <GoogleSettings onMailConnectionChange={clearInboxFeed} /> : null}
             {settingsSection==='Verbindungen' && snapshot.acceptance ? <p>Google-Verbindungen sind im persönlichen Profil verfügbar.</p> : null}
             {settingsSection==='Übersicht' ? <>

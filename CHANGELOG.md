@@ -2,6 +2,16 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.5.1 · 28. November 2026
+
+- **Depot vervollständigt:** „Überblick erstellen“ sucht aktuelle Meldungen zu den Positionen (höchstens sechs, mit Quelle) und drei Themen für den Ausblick. Gesendet werden nur Name, Kategorie und Branche, nie Stückzahlen, Kaufkurse oder Beträge. Ohne Positionen zeigen alle Bereiche „Noch keine Infos“ und „Position hinzufügen“.
+- News: Die Aktien-Kachel berücksichtigt die Namen deiner größten Depotpositionen (höchstens zehn, ohne Beträge).
+- **Rezepte:** Mengen-Editor mit Zahl und Einheit (Stück, g, kg, ml, l, EL, TL, Prise, Bund, Zehe, Dose, Scheibe), Umrechnung bei anderer Portionszahl, kleiner Button „Mengen bearbeiten“ neben den Portionen.
+- **Produkte:** Katalog um mehrere hundert Artikel erweitert; Synonyme (zum Beispiel Eier und Hühnereier) führen zur selben Produkt-ID, damit Vorrat, Einkaufsliste und Rezeptstatus übereinstimmen. Die Schnellsuche „Artikel schnell hinzufügen“ findet auch Zutaten eigener Rezepte.
+- **Profil überarbeitet:** Körpergröße als Auswahl, Wohnort und Studium mit Vorschlägen, Beruf als Auswahl plus Stellenbezeichnung, Interessen als anklickbare Chips nach Kategorien (eigene lassen sich ergänzen), neue Angaben zu Ernährung, Allergien, Haushalt, Tagesrhythmus, Verkehrsmitteln und Sprachen. Das einklappbare Erinnerungsfeld im Profil entfällt. Die Angaben bleiben lokal und gehen nicht an das Modell.
+- Neue Datenbankmigration 045 (depot_news). In docs/SICHERHEIT.md ist die Depot-Meldungssuche als vierte Nutzung der Websuche-Ausnahme beschrieben.
+- Dokumentation: Alle Aufnahmen zeigen jetzt die erkennbar fiktive Testperson Max Mustermann; Galerie um Sparplan, Depot, Depot-Meldungen, Rezept-Editor und Profil erweitert.
+
 ## v1.5.0 · 28. November 2026
 
 - **Depot** (Finanzen & Abos, Umschalter „Finanzen / Depot“): Positionen mit Stückzahl, Kaufkurs und Kaufdatum, Gewinn und Verlust je Position und gesamt, Depotwert und investierter Betrag.

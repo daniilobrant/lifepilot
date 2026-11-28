@@ -61,3 +61,10 @@ test('Themenwünsche: Auswahl wird geprüft, in den Auftrag übernommen und gesp
   assert.throws(()=>readPreferences({sport:{custom:'https://böse.de'}}),/Links/u)
   assert.throws(()=>readPreferences({sport:{custom:'x'.repeat(121)}}),/120/u)
 })
+
+test('Aktien-Kachel nennt Depotwerte nur namentlich',async()=>{
+  const { newsRules } = await import('../../../hub/runtime/news.ts')
+  const rules=newsRules('aktien','',undefined,'2026-11-28',['Apple','NVIDIA Corp.'])
+  assert.match(rules,/Apple, NVIDIA Corp\./u)
+  assert.doesNotMatch(newsRules('sport','',undefined,'2026-11-28',['Apple']),/Apple/u)
+})

@@ -1,4 +1,4 @@
-# LifePilot 1.5.0
+# LifePilot 1.5.1
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -6,7 +6,7 @@ LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, 
 
 ## LifePilot im Einsatz
 
-Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbilder für Kleidung und Düfte wurden für diese Demo erstellt. Klicke auf eine Aufnahme, um sie in voller Größe zu sehen.
+Die Aufnahmen zeigen die fiktive Testperson Max Mustermann in einem getrennten Testprofil; alle Namen, Mails, Beträge und Depotwerte sind erfunden (Beispielwerte, keine echten Konten). Die Produktbilder für Kleidung und Düfte wurden für diese Demo erstellt. Klicke auf eine Aufnahme, um sie in voller Größe zu sehen.
 
 ### Planung und Pilot
 
@@ -54,6 +54,14 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 <td width="50%" valign="top"><strong>Finanzen &amp; Abos</strong><br>Einnahmen, Ausgaben, Fixkosten und Abos im Monatsverlauf prüfen.<br><a href="docs/screenshots/07-finanzen.png"><img src="docs/screenshots/07-finanzen.png" alt="Finanzübersicht mit fiktiven Einnahmen und Ausgaben"></a></td>
 </tr>
 <tr>
+<td width="50%" valign="top"><strong>Sparplan</strong><br>In den Finanz-Einstellungen legst du eine monatliche Sparrate fest. Sie zählt wie Fixkosten, mindert Saldo und Restbudget und erscheint in der Fixkostenliste.<br><a href="docs/screenshots/07c-sparplan.png"><img src="docs/screenshots/07c-sparplan.png" alt="Finanz-Einstellungen mit Sparplan von 150 Euro und Fixkostenliste"></a></td>
+<td width="50%" valign="top"><strong>Depot</strong><br>Positionen mit Kaufkurs und Kaufdatum, Depotwert, Gewinn und Verlust, Kreisdiagramm nach Branche, Verlaufs-Chart mit Zeitraumwahl und Positionsliste. Aufnahme mit Beispielwerten.<br><a href="docs/screenshots/23-depot.png"><img src="docs/screenshots/23-depot.png" alt="Depot mit Kreisdiagramm, Verlaufs-Chart und sechs Positionen"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><strong>Depot: Schlagzeilen &amp; Ausblick</strong><br>Pilot sucht aktuelle Meldungen zu deinen Positionen (nur Namen werden gesendet, nie Beträge) und nennt Themen, die das Depot ergänzen könnten.<br><a href="docs/screenshots/23b-depot-news.png"><img src="docs/screenshots/23b-depot-news.png" alt="Schlagzeilen zu Depotpositionen mit Quelle und Ausblick"></a></td>
+<td width="50%"></td>
+</tr>
+<tr>
 <td width="50%" valign="top"><strong>Abo-Prüfung</strong><br>Pilot sucht im Web nach günstigeren Tarifen und sagt je Abo, ob es sich lohnt zu wechseln. Gekündigt oder gebucht wird nichts.<br><a href="docs/screenshots/07b-abo-pruefung.png"><img src="docs/screenshots/07b-abo-pruefung.png" alt="Abo-Prüfung mit Empfehlung Behalten oder Wechseln und einer Tarifalternative"></a></td>
 <td width="50%" valign="top"><strong>Bewerbungen</strong><br>Bewerbungen nach Status organisieren, Gespräche planen und Vorschläge aus Mails mit „Passt“ bestätigen.<br><a href="docs/screenshots/11-bewerbungen.png"><img src="docs/screenshots/11-bewerbungen.png" alt="Bewerbungsboard mit Bewerbungsvorschlag aus einer Mail"></a></td>
 </tr>
@@ -79,7 +87,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 <td width="50%" valign="top"><strong>Mein Vorrat</strong><br>Vorräte nach Kategorien durchsuchen und den Bestand pflegen.<br><a href="docs/screenshots/18-vorrat.png"><img src="docs/screenshots/18-vorrat.png" alt="Kategorisierte Vorratsverwaltung"></a></td>
 </tr>
 <tr>
-<td width="50%" valign="top"><strong>Meine Rezepte</strong><br>Aus vorhandenen Zutaten kochen oder bei Pilot nach Rezeptideen fragen; fehlende Zutaten wandern auf die Einkaufsliste.<br><a href="docs/screenshots/19-rezepte.png"><img src="docs/screenshots/19-rezepte.png" alt="Rezeptideen aus dem Vorrat mit fehlenden Zutaten"></a></td>
+<td width="50%" valign="top"><strong>Meine Rezepte</strong><br>Rezepte speichern, Portionen umstellen und Mengen mit Zahl und Einheit bearbeiten. Der Status je Zutat folgt live dem Vorrat; fehlende Zutaten wandern auf die Einkaufsliste.<br><a href="docs/screenshots/19-rezepte.png"><img src="docs/screenshots/19-rezepte.png" alt="Rezept mit geöffnetem Mengen-Editor, Zahl und Einheit je Zutat"></a></td>
 <td width="50%"></td>
 </tr>
 </table>
@@ -89,7 +97,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 <table>
 <tr>
 <td width="50%" valign="top"><strong>Skills</strong><br>Verfügbare Fähigkeiten und ihre Verknüpfungen mit den Modulen einsehen.<br><a href="docs/screenshots/12-skills.png"><img src="docs/screenshots/12-skills.png" alt="Skill-Übersicht mit verknüpften Modulen"></a></td>
-<td width="50%" valign="top"><strong>Einstellungen &amp; Profil</strong><br>Profil für persönliche Angaben, Studium und Beruf sowie optionale Verbindungen verwalten.<br><a href="docs/screenshots/13-einstellungen.png"><img src="docs/screenshots/13-einstellungen.png" alt="Einstellungen und Profilfelder im Testprofil"></a></td>
+<td width="50%" valign="top"><strong>Einstellungen &amp; Profil</strong><br>Profil der fiktiven Testperson: Angaben zu Person, Studium und Beruf, Interessen zum Anklicken nach Kategorien sowie Alltag, Allergien, Verkehrsmittel und Sprachen.<br><a href="docs/screenshots/13-einstellungen.png"><img src="docs/screenshots/13-einstellungen.png" alt="Profil mit Max Mustermann, Auswahlfeldern und anklickbaren Interessen"></a></td>
 </tr>
 </table>
 
@@ -179,10 +187,11 @@ Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das gekl
 | Posteingang | Relevante Nachrichten, per Klick nach Kategorie filterbar (falsche Zuordnung per Stift korrigierbar), gezielte Mail-Tiefenprüfung und Vorschläge für Folgeaktionen. Auf der Startseite stehen nur wichtige Nachrichten von echten Personen |
 | Terminvorschläge | Aus Mails abgeleitete Termine, Fristen und Aufgaben als aufklappbare Liste unter dem Kalender |
 | Bestellungstracker | Lieferungen, Retouren, Behalten und Rückerstattungen je Artikel. Behaltene Kleidung kann in den Kleiderschrank übernommen werden |
-| Finanzen & Abos | Umschalter Finanzen/Depot (Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Kreisdiagramm nach Branche, Verlaufs-Chart), Sparplan als monatliche Rate (zählt wie Fixkosten), Monatsübersicht mit festem Einkommen als Grundlage, Zahlungsliste zum Zuordnen, vereinheitlichte Ausgabenkategorien, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
+| Finanzen & Abos | Umschalter Finanzen/Depot (Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Kreisdiagramm nach Branche, Verlaufs-Chart, Schlagzeilen und Ausblick zu den Positionen; ohne Positionen bleiben alle Bereiche mit „Noch keine Infos“ sichtbar), Sparplan als monatliche Rate (zählt wie Fixkosten), Monatsübersicht mit festem Einkommen als Grundlage, Zahlungsliste zum Zuordnen, vereinheitlichte Ausgabenkategorien, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
 | Urlaubsplaner | Vorschau für Städte und Inseln, Reisezeiträume, Buchungen, Vorbereitung und Packlisten, Orte-Export für Google My Maps (CSV, ZIP, KML) und Outfit-Vorschlag während der Reise |
 | Outfit-Assistent | Styling, Kleiderschrank, Produktlink- und Fotoimport, Looks (auch im Bereich „Urlaub“), Urlaubsgarderobe, Verkauf und Parfüm; Sportkleidung wird nur für Training vorgeschlagen |
-| Vorrat & Einkauf | Vorratsverwaltung, kategorisierte Einkaufsliste, Belegscan und Rezeptideen |
+| Vorrat & Einkauf | Vorratsverwaltung, kategorisierte Einkaufsliste mit Schnellsuche (über 400 Artikel, auch Zutaten eigener Rezepte), Belegscan, Rezeptideen und eigene Rezepte. Mengen lassen sich mit Zahl und Einheit (Stück, g, kg, ml, l, EL, TL …) bearbeiten und rechnen sich bei anderer Portionszahl um. Jedes Produkt hat eine feste ID, daher stimmen Vorrat, Einkaufsliste und Rezeptstatus überein |
+| Profil | Anzeigename, Wohnort, Geburtstag, Körpergröße, Studium, Beruf und Stellenbezeichnung sowie Interessen zum Anklicken nach Kategorien (Sport, Musik, Essen, Reisen, Gaming …), Ernährung, Allergien, Haushalt, Tagesrhythmus, Verkehrsmittel und Sprachen. Alle Angaben sind freiwillig, bleiben lokal und fließen in Outfit- und Reisevorschläge ein |
 | Bewerbungen | Bewerbungsstatus, Verlauf, Gespräche und passende Vorschläge aus E-Mails |
 
 [Alle Skills und ihre Verknüpfungen](docs/SKILLS.md)
@@ -233,7 +242,7 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
 | **1.0.58–1.0.88 · 26./27. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. Die Finanzen bekamen ein festes Einkommen als Grundlage, eine Zahlungsliste und eine gekürzte, einheitliche Kategorienliste; behaltene Bestellartikel werden automatisch gebucht. |
 | **1.1.0–1.2.1 · 27. November 2026** | Urlaubsplaner: Export der Reiseorte für Google My Maps (CSV, ZIP, KML) mit sichtbarer Auswahl, Outfit-Vorschlag während der Reise mit eigenem Bereich „Urlaub“ bei den Looks. |
-| **1.4.0–1.5.0 · 28. November 2026** | Sparplan in den Finanz-Einstellungen (Monatsbetrag, zählt wie Fixkosten). Neues Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Branchen-Kreisdiagramm und Verlaufs-Chart. Außerdem Bewerbung löschen und Kartenexport im Aktionen-Menü. |
+| **1.4.0–1.5.1 · 28. November 2026** | Sparplan in den Finanz-Einstellungen (Monatsbetrag, zählt wie Fixkosten). Neues Depot: Positionen mit Kaufkurs, Suche, Screenshot-Erkennung, Kursaktualisierung, Branchen-Kreisdiagramm und Verlaufs-Chart. Außerdem Bewerbung löschen und Kartenexport im Aktionen-Menü. 1.5.1: Schlagzeilen und Ausblick zum Depot, Aktien-Kachel in den News aus den Depotwerten, Rezepte mit Mengen-Editor und Produkt-IDs, größere Schnellsuche, überarbeitetes Profil mit Interessen zum Anklicken. |
 | **1.3.0–1.3.6 · 27./28. November 2026** | Neuer Bereich „News“ mit sechs Kacheln, Hintergrund-Auftrag mit Websuche, Einstellungen für Themenwünsche und aktualisierter Screenshot-Galerie. Im Claude-Modus wird die Websuche nun korrekt freigegeben. |
 
 [Entwicklungsverlauf](docs/ENTWICKLUNG.md)

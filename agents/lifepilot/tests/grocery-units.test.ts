@@ -54,3 +54,16 @@ test('Recipe ideas vary between requests and meat requests offer several meat di
     for(const list of lists)assert.equal(list.split('|').length,4)
   }finally{store.db.close()}
 })
+
+test('Mengen lassen sich in Zahl und Einheit zerlegen und wieder zusammensetzen', async () => {
+  const {splitQuantity,joinQuantity}=await import('../../../hub/runtime/recipe-portions.ts')
+  assert.deepEqual(splitQuantity('250 g'),{amount:250,unit:'g'})
+  assert.deepEqual(splitQuantity('4'),{amount:4,unit:'Stück'})
+  assert.equal(splitQuantity('nach Geschmack').amount,null)
+  assert.equal(joinQuantity(1.5,'l'),'1,5 l')
+  assert.equal(joinQuantity(4,'Stück'),'4 Stück')
+})
+test('Synonyme führen zur selben Produkt-ID', async () => {
+  const {productId}=await import('../../../hub/runtime/grocery-catalog.ts')
+  assert.equal(productId('Hühnereier'),productId('Eier'))
+})

@@ -1,6 +1,6 @@
 # LifePilot im Testprofil
 
-Alle Aufnahmen zeigen die Version 1.3.6 mit vollständig fiktiven Daten (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen. Das News-Briefing entstand am 28. November 2026 mit dem echten Modell und Websuche für die fiktive Person (Wohnort Freiburg); die Meldungen sind echt und über die Quelle prüfbar.
+Alle Aufnahmen zeigen die Version 1.5.1 mit vollständig fiktiven Daten der Testperson Max Mustermann (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen. Das News-Briefing entstand am 28. November 2026 mit dem echten Modell und Websuche für die fiktive Person (Wohnort Freiburg); die Meldungen sind echt und über die Quelle prüfbar.
 
 ## Planung und Pilot
 
@@ -98,6 +98,24 @@ Einnahmen, Ausgaben, Fixkosten und Abos im Monatsverlauf prüfen.
 
 ![Finanzübersicht mit fiktiven Einnahmen und Ausgaben](screenshots/07-finanzen.png)
 
+### Sparplan
+
+In den Finanz-Einstellungen legst du eine monatliche Sparrate fest. Sie zählt wie Fixkosten und mindert Saldo und Restbudget.
+
+![Finanz-Einstellungen mit Sparplan](screenshots/07c-sparplan.png)
+
+### Depot
+
+Beispielwerte: Positionen mit Kaufkurs, Kreisdiagramm nach Branche, Verlaufs-Chart und Positionsliste. Kurse und Meldungen stammen aus einer Websuche über das Modell und können abweichen. Keine Anlageberatung.
+
+![Depot mit Kreisdiagramm und Verlauf](screenshots/23-depot.png)
+
+### Depot: Schlagzeilen & Ausblick
+
+Echte Meldungen vom 28. November 2026 zu den Beispielpositionen, mit Link zur Quelle.
+
+![Schlagzeilen und Ausblick zum Depot](screenshots/23b-depot-news.png)
+
 ### Abo-Prüfung
 
 Pilot sucht im Web nach günstigeren Tarifen und sagt je Abo, ob es sich lohnt zu wechseln. Gekündigt oder gebucht wird nichts.
@@ -164,7 +182,7 @@ Vorräte nach Kategorien durchsuchen und den Bestand pflegen.
 
 Aus vorhandenen Zutaten kochen oder bei Pilot nach Rezeptideen fragen; fehlende Zutaten wandern auf die Einkaufsliste.
 
-![Rezeptideen aus dem Vorrat mit fehlenden Zutaten](screenshots/19-rezepte.png)
+![Rezept mit geöffnetem Mengen-Editor](screenshots/19-rezepte.png)
 
 ## Skills und Einstellungen
 

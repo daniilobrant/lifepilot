@@ -25,6 +25,25 @@ export const groceryCatalog = [
   'Spülmaschinentabs','Weichspüler','Schwämme','Glasreiniger','Badreiniger','WC-Reiniger','Handtuchpapier','Frischhaltefolie','Rasierer','Rasierschaum','Bodylotion','Wattepads','Pflaster','Ibuprofen','Paracetamol',
 ]
 
+
+/** Weitere Alltagsartikel, damit die Schnellsuche möglichst viel direkt erkennt. */
+const moreCatalog = [
+  // Obst und Gemüse
+  'Kürbis','Hokkaido-Kürbis','Spargel','Grüner Spargel','Fenchel','Kohlrabi','Rosenkohl','Grünkohl','Chinakohl','Spitzkohl','Pak Choi','Mangold','Rote Bete','Pastinaken','Petersilienwurzel','Schalotten','Porree','Knollensellerie','Staudensellerie','Mini-Gurken','Cherrytomaten','Strauchtomaten','Romatomaten','Snackpaprika','Spitzpaprika','Jalapeños','Peperoni','Edamame','Zuckerschoten','Brechbohnen','Grüne Bohnen','Maiskolben','Auberginen','Okra','Artischocken','Oliven','Kapern','Frische Minze','Salbei','Lorbeerblätter','Zitronengras','Zitronenmelisse','Kresse','Sprossen','Babyspinat','Eichblattsalat','Romanasalat','Endivien','Radicchio','Chicorée','Wassermelone','Honigmelone','Kiwi','Pfirsiche','Nektarinen','Pflaumen','Kirschen','Aprikosen','Feigen','Datteln','Granatapfel','Passionsfrucht','Papaya','Litschi','Kokosnuss','Grapefruit','Mandarinen','Clementinen','Johannisbeeren','Brombeeren','Rhabarber','Rosinen','Cranberrys','Trockenfrüchte','Kokosraspeln',
+  // Fleisch, Fisch, Ersatzprodukte
+  'Hähnchenbrust','Hähnchenkeule','Hähnchenflügel','Putenschnitzel','Putenhack','Gehacktes gemischt','Schweineschnitzel','Schweinebauch','Nackensteak','Kasseler','Rinderfilet','Rindergulasch','Rinderbraten','Entrecôte','Lammkeule','Lammkoteletts','Leberwurst','Mettwurst','Cabanossi','Chorizo','Currywurst','Frikadellen','Hähnchenspieße','Lachsfilet','Forelle','Kabeljau','Seelachs','Thunfischsteak','Heringe','Räucherlachs','Matjes','Krabben','Muscheln','Tintenfisch','Sardinen','Makrele','Veganes Schnitzel','Vegane Burger','Seitan','Falafel','Räuchertofu','Haferbarista',
+  // Milch, Eier, Käse
+  'Laktosefreie Milch','Sojadrink','Mandeldrink','Kondensmilch','Schlagsahne','Kochsahne','Buttermilch','Kefir','Naturjoghurt','Griechischer Joghurt','Fruchtjoghurt','Pudding','Margarine','Eier Freiland','Camembert','Brie','Bergkäse','Raclettekäse','Gorgonzola','Ziegenkäse','Hirtenkäse','Scheibenkäse','Reibekäse','Ricotta','Burrata','Schafskäse',
+  // Backwaren und Frühstück
+  'Dinkelbrot','Roggenbrot','Mehrkornbrötchen','Laugenbrezeln','Laugenbrötchen','Ciabatta','Fladenbrot','Pita','Naan','Brioche','Toast','Zwieback','Reiswaffeln','Haferkekse','Pancake-Mix','Ahornsirup','Agavendicksaft','Frühstücksflocken','Granola','Overnight Oats','Chia-Samen','Leinsamen','Sonnenblumenkerne','Kürbiskerne','Sesam','Haselnüsse','Walnüsse','Cashewkerne','Erdnüsse','Pistazien','Pinienkerne','Nuss-Nougat-Creme',
+  // Vorrat und Konserven
+  'Dinkelnudeln','Vollkornnudeln','Reisnudeln','Glasnudeln','Soba-Nudeln','Udon-Nudeln','Ramen-Nudeln','Tagliatelle','Farfalle','Rigatoni','Tortellini','Ravioli','Spätzle','Semmelknödel','Kartoffelknödel','Kartoffelpüree','Vollkornreis','Risottoreis','Milchreis','Polenta','Hirse','Buchweizen','Graupen','Dinkel','Haferkleie','Weizenmehl','Vollkornmehl','Dinkelmehl','Maismehl','Kichererbsenmehl','Grieß','Kidneybohnen (Dose)','Schwarze Bohnen','Kichererbsen (Dose)','Linsen (Dose)','Gemüsemais','Erbsen und Möhren','Sauerkraut','Rotkohl (Glas)','Gewürzgurken','Essiggurken','Silberzwiebeln','Tomatensoße','Pizzasoße','Pastasoße','Currysoße','Erdnusssoße','Hoisinsoße','Teriyakisoße','Worcestersoße','Meerrettich','Sambal Oelek','Harissa','Tahini','Hummus','Kokosöl','Traubenkernöl','Leinöl','Walnussöl','Weißweinessig','Rotweinessig','Balsamicoessig','Himbeeressig','Zitronensaft','Limettensaft','Kokoswasser','Kokosblütenzucker','Rohrzucker','Brauner Zucker','Stevia','Süßstoff','Gelierzucker','Vanilleschote','Backaroma','Backkakao','Kuvertüre','Zartbitterschokolade','Vollmilchschokolade','Schokostreusel','Mürbeteig','Blätterteig','Pizzateig','Hefeteig','Tortillachips','Salzstangen','Erdnussflips','Cracker','Reiscracker','Studentenfutter','Fruchtgummi','Lakritz','Eis','Vanilleeis','Tiefkühlgemüse','Tiefkühlbeeren','Tiefkühlspinat','Pommes','Kroketten','Rösti','Fischstäbchen (TK)','Hähnchen-Nuggets','Tiefkühlpizza Salami','Blattspinat (TK)','Suppengemüse','Gemüsebrühe (Pulver)','Rinderbrühe','Fond','Instantnudeln','Fertigsuppe','Tütensuppe','Ketchup Tomate','Currypulver','Garam Masala','Ras el Hanout','Paprika geräuchert','Pfefferkörner','Meersalz','Knoblauchsalz','Italienische Kräuter','Kräuter der Provence','Majoran','Estragon','Salbei getrocknet','Lorbeer','Nelken','Kardamom','Anis','Fenchelsamen','Ingwerpulver','Safran','Vanillepulver','Muskatnuss','Wacholderbeeren',
+  // Getränke
+  'Apfelschorle','Orangensaft (frisch)','Multivitaminsaft','Traubensaft','Tomatensaft','Smoothie','Limonade','Fanta','Sprite','Ginger Ale','Tonic Water','Mate','Eiskaffee','Kaffeebohnen','Kaffeepads','Kaffeekapseln','Instantkaffee','Espresso','Früchtetee','Kräutertee','Grüner Tee','Schwarzer Tee','Kamillentee','Pfefferminztee','Kakaopulver','Hafer-Barista','Weißwein','Rotwein','Sekt','Prosecco','Rosé','Radler','Pils','Weizenbier','Alkoholfreies Bier','Gin','Wodka','Rum','Whisky','Likör','Saftschorle','Protein-Shake','Proteinpulver','Kreatin',
+  // Haushalt und Drogerie
+  'Geschirrspülmittel','Geschirrspülmaschinensalz','Klarspüler','Maschinenreiniger','Entkalker','Bodenreiniger','Fensterreiniger','Küchenreiniger','Desinfektionsspray','Putzlappen','Mikrofasertücher','Spülbürste','Müllsäcke','Biomüllbeutel','Gelbe Säcke','Kerzen','Streichhölzer','Feuerzeug','Batterien AA','Batterien AAA','Glühbirnen','Teelichter','Servietten','Küchenpapier','Frischhaltebeutel','Brotdose','Kaffeefilter','Teefilter','Backformen','Muffinförmchen','Zahnpasta Whitening','Mundspülung','Interdentalbürsten','Zungenreiniger','Handcreme','Gesichtscreme','Gesichtsreiniger','Make-up-Entferner','Tagescreme','Nachtcreme','Lippenpflege','Haargel','Haarspray','Spülung','Haarkur','Trockenshampoo','Haarbürste','Haargummis','Rasierklingen','Aftershave','Parfüm','Nagellack','Nagellackentferner','Nagelschere','Feuchttücher','Tampons','Binden','Slipeinlagen','Kondome','Tempos','Wattestäbchen','Sonnenmilch','After Sun','Insektenspray','Mückenschutz','Hustensaft','Halsschmerztabletten','Nasenspray','Vitamin D','Magnesium','Zink','Elektrolyte','Erkältungstee','Wärmepflaster','Fieberthermometer','Verbandszeug','Desinfektionsmittel','Kontaktlinsen','Brillenputztücher','Babynahrung','Windeln','Babytücher','Tierfutter','Vogelfutter','Hundeleckerli','Katzenleckerli','Futternapf',
+]
+
 export function grocerySearchKey(name:string) {
   return name.toLocaleLowerCase('de-DE').normalize('NFD').replace(/\p{M}/gu,'').replace(/ß/g,'ss')
     .replace(/[^\p{L}\p{N}]+/gu,' ').trim()
@@ -35,14 +54,45 @@ const aliases = new Map(Object.entries({
   krapsel:'rapsol',rapsoel:'rapsol',sojasosse:'sojasauce','soja sauce':'sojasauce','soja sosse':'sojasauce','frischer ingwer':'ingwer',mohren:'karotte',mohre:'karotte',karotten:'karotte',gurken:'gurke',zitronen:'zitrone',hafermilch:'haferdrink',
   'schwarzer pfeffer':'pfeffer', 'tomaten passiert':'passierte tomaten','passierte tomate':'passierte tomaten',
 }))
+/**
+ * Eindeutige Produkt-ID: Einkaufsliste, Vorrat und Rezepte vergleichen immer diese ID, nicht den Anzeigenamen.
+ * Die Gruppen fassen Schreibweisen, Mehrzahl und gleichwertige Bezeichnungen zusammen (erster Eintrag = ID).
+ */
+const productGroups:string[][]=[
+  ['ei','eier','huhnereier','freilandeier','bio eier','eier freiland'],['karotte','karotten','mohre','mohren','mohrruben','mohrrube','moehren'],
+  ['zwiebel','zwiebeln','speisezwiebel','speisezwiebeln','gemusezwiebel','gelbe zwiebel','rote zwiebel','rote zwiebeln'],
+  ['kartoffel','kartoffeln','speisekartoffeln','festkochende kartoffeln','mehligkochende kartoffeln'],
+  ['tomate','tomaten','strauchtomaten','strauchtomate','romatomaten','cherrytomaten','cocktailtomaten'],
+  ['gurke','gurken','salatgurke','salatgurken','schlangengurke'],['sahne','schlagsahne','kochsahne','rahm'],
+  ['joghurt','naturjoghurt','joghurt natur','griechischer joghurt'],['knoblauch','knoblauchzehe','knoblauchzehen','knoblauchknolle'],
+  ['zitrone','zitronen','bio zitrone'],['limette','limetten'],['milch','vollmilch','frischmilch','h milch','haltbare milch','laktosefreie milch'],
+  ['mehl','weizenmehl','mehl typ 405','mehl 405'],['zucker','haushaltszucker','kristallzucker','weisser zucker'],
+  ['fruhlingszwiebel','fruhlingszwiebeln','lauchzwiebel','lauchzwiebeln'],['spinat','blattspinat','babyspinat'],
+  ['champignon','champignons','braune champignons','weisse champignons'],['paprika','paprikaschote','paprikaschoten','rote paprika','gelbe paprika','grune paprika','spitzpaprika'],
+  ['hahnchen','hahnchenfleisch','hahnchenbrust','hahnchenbrustfilet','hahnchenfilet','putenbrust'],
+  ['hackfleisch','rinderhack','rinderhackfleisch','gemischtes hack','gehacktes','gehacktes gemischt','hack'],
+  ['spaghetti','spaghettini'],['nudeln','pasta','penne','fusilli','farfalle','tagliatelle','rigatoni','makkaroni','vollkornnudeln','dinkelnudeln'],
+  ['olivenol','natives olivenol','olivenol extra vergine'],['rapsol','speiseol','pflanzenol','sonnenblumenol'],
+  ['sojasauce','sojasosse','soja sauce','soja sosse'],['butter','susrahmbutter','sussrahmbutter','markenbutter'],
+  ['parmesan','parmigiano','parmigiano reggiano','grana padano'],['mozzarella','mozzarella kugel'],['feta','schafskase','hirtenkase'],
+  ['haferflocken','kernige haferflocken','zarte haferflocken'],['reis','basmatireis','basmati reis','jasminreis','jasmin reis','langkornreis','parboiled reis'],
+  ['passierte tomaten','tomaten passiert','passierte tomate','passata','tomatenpassata','stuckige tomaten','gehackte tomaten','dosentomaten'],
+  ['apfel','apfel','aepfel','aepfel'],['banane','bananen'],['erdbeere','erdbeeren'],['avocado','avocados'],['aubergine','auberginen'],['zucchini','zucchinis'],
+  ['salz','speisesalz','meersalz','jodsalz'],['pfeffer','schwarzer pfeffer','pfeffer schwarz','gemahlener pfeffer'],['ingwer','frischer ingwer','ingwerwurzel'],
+  ['petersilie','glatte petersilie','krause petersilie'],['basilikum','frisches basilikum'],['minze','frische minze','pfefferminze'],
+  ['thunfisch','thunfisch dose','thunfisch in wasser'],['lachs','lachsfilet'],['eisbergsalat','eisberg'],['brokkoli','broccoli'],
+]
+for(const [id,...names] of productGroups) for(const name of names) aliases.set(name,id)
 export function groceryKey(name:string) { const key=grocerySearchKey(name);return aliases.get(key)??key }
+/** Stabile Produkt-ID für Vorrat, Einkaufsliste und Rezepte. */
+export const productId=groceryKey
 
 const alternatives=new Map([
   ['chilis','Chili'],['thai chilis','Chili'],['thai chili','Chili'],['thaichilis','Chili'],['thaichili','Chili'],
   ['soja sosse','Sojasoße'],['soja sauce','Sojasoße'],['sojasauce','Sojasoße'],
   ['krapsel','Rapsöl'],['rapsoel','Rapsöl'],['haehnchen','Hähnchen'],['gefrierbeutel','Gefrierbeutel'],
 ])
-const catalog=new Map(groceryCatalog.map(name=>[grocerySearchKey(name),name]))
+const catalog=new Map([...groceryCatalog,...moreCatalog].map(name=>[grocerySearchKey(name),name]))
 
 function editDistance(a:string,b:string) {
   let prev=Array.from({length:b.length+1},(_,i)=>i), before=prev

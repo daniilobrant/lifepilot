@@ -4,6 +4,7 @@ import { runStructuredCodex } from '../adapters/codex.ts'
 import type { Store } from './store.ts'
 import { Problem } from './settings.ts'
 import { dateInBerlin, isDate } from './values.ts'
+import { loadDepotNews, depotNewsJob } from './depot-news.ts'
 import { depotCategories, depotSectors, investedCents, type Candidate, type DepotCategory, type DepotSector, type DepotState, type Holding } from './depot-types.ts'
 export * from './depot-types.ts'
 
@@ -234,5 +235,5 @@ export function startRefresh(store:Store, fetcher:typeof fetchPrices=fetchPrices
 export function depotState(store:Store, recognition:boolean):DepotState {
   const history=(store.db.prepare('SELECT id,taken_on,total_cents,invested_cents FROM depot_snapshots ORDER BY taken_on ASC LIMIT 800').all() as Record<string,unknown>[])
     .map(row=>({id:String(row.id),date:String(row.taken_on),totalCents:Number(row.total_cents),investedCents:Number(row.invested_cents)}))
-  return {holdings:listHoldings(store),history,recognition,job:depotJob()}
+  return {holdings:listHoldings(store),history,recognition,job:depotJob(),news:loadDepotNews(store),newsJob:depotNewsJob()}
 }

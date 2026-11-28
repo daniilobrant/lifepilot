@@ -1,7 +1,7 @@
 import { confirmImageTransfer } from './image-consent.ts'
 import {DateInput} from './presentation.tsx'
 import { GroceryIcon } from './grocery-icon.tsx'
-import {legacyRecipeServings,maxRecipeServings,scaleRecipeIngredients,ingredientStock,hasRecipeQuantity,measured,validRecipeServings,type RecipeStockStatus} from '../runtime/recipe-portions.ts'
+import {joinQuantity,splitQuantity,legacyRecipeServings,maxRecipeServings,scaleRecipeIngredients,ingredientStock,hasRecipeQuantity,measured,validRecipeServings,type RecipeStockStatus} from '../runtime/recipe-portions.ts'
 import { canonicalGroceryName, groceryCategory, groceryKey, grocerySuggestions } from '../runtime/grocery-catalog.ts'
 import { defaultUnit, formatQuantity, groceryUnits, parseQuantity } from '../runtime/grocery-units.ts'
 import { useEffect, useState, type FormEvent } from 'react'
@@ -53,6 +53,8 @@ export function GroceryAnswerCard({answer,hideTitle=false,statuses}:{answer:Groc
   </section>
 }
 
+const quantityUnits=['Stück','g','kg','ml','l','EL','TL','Prise','Bund','Zehe','Dose','Scheibe','nach Geschmack']
+const unitLabels:Record<string,string>={g:'Gramm (g)',kg:'Kilogramm (kg)',ml:'Milliliter (ml)',l:'Liter (l)',EL:'Esslöffel (EL)',TL:'Teelöffel (TL)'}
 function RecipePortions({value,onChange,disabled=false}:{value:number,onChange:(value:number)=>void,disabled?:boolean}){
   const [text,setText]=useState(String(value))
   return <label className="recipe-portions">Portionen<input type="number" min={1} max={maxRecipeServings} step={1} disabled={disabled}
@@ -282,7 +284,7 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
   const [portions,setPortions]=useState(1)
   const [recipePortions,setRecipePortions]=useState<Record<string,number>>({})
   const [ideaPortions,setIdeaPortions]=useState<Record<string,number>>({})
-  const [quantityEdit,setQuantityEdit]=useState<{id:string,values:string[]}>()
+  const [quantityEdit,setQuantityEdit]=useState<{id:string,rows:{amount:number|null,unit:string}[]}>()
   const [recipes,setRecipes]=useState<SavedRecipe[]>([])
   const [ideas,setIdeas]=useState<GroceryAnswer[]>([])
   const [busy,setBusy]=useState(false)
@@ -346,7 +348,12 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
       const checks=statuses.map((status,index)=>recipe.ingredientOverrides?.[index]??(status==='enough'))
       const edits=quantityEdit?.id===recipe.id?quantityEdit:undefined
       async function savePortions(){
-        if(await act({action:'portions',recipeId:recipe.id,servings,quantities:edits?.values},'Rezept aktualisiert.')){
+        let quantities:string[]|undefined
+        if(edits){
+          quantities=edits.rows.map(row=>row.unit==='nach Geschmack'?'nach Geschmack':row.amount===null||row.amount<=0?'':joinQuantity(row.amount,row.unit))
+          if(quantities.some(value=>!value)){setError('Gib für jede Zutat eine Menge größer 0 ein oder wähle „nach Geschmack“.');return}
+        }
+        if(await act({action:'portions',recipeId:recipe.id,servings,quantities},'Rezept aktualisiert.')){
           setQuantityEdit(undefined)
         }
       }
@@ -355,22 +362,31 @@ function RecipesPanel({api,onAsk,notice,changed,refreshKey,stock,shopping}:{api:
         <button type="button" className="quiet recipe-remove" aria-label={recipe.title+' entfernen'} title="Rezept entfernen" disabled={busy}
           onClick={event=>{event.preventDefault();event.stopPropagation();if(window.confirm('„'+recipe.title+'“ aus deinen Rezepten entfernen?'))void act({action:'remove',recipeId:recipe.id},'Rezept entfernt.')}}>×</button></summary>
       {recipe.sourceUrl?<p><a href={recipe.sourceUrl} target="_blank" rel="noreferrer">Originalrezept ansehen</a></p>:null}
-      <RecipePortions value={servings} disabled={busy} onChange={value=>setRecipePortions(previous=>({...previous,[recipe.id]:value}))}/>
+      <div className="recipe-head-row">
+        <RecipePortions value={servings} disabled={busy} onChange={value=>setRecipePortions(previous=>({...previous,[recipe.id]:value}))}/>
+        <button type="button" className="recipe-edit-button" disabled={busy} aria-pressed={Boolean(edits)} onClick={()=>setQuantityEdit(edits?undefined:{id:recipe.id,rows:originals.map(item=>{const part=splitQuantity(item.quantity);return {amount:part.amount,unit:part.amount===null&&!part.unit?'nach Geschmack':part.amount===null?'nach Geschmack':part.unit}})})}>Mengen bearbeiten</button>
+      </div>
       {edits?<div className="recipe-quantity-editor">
-        <p>Gib die Mengen für die Rezeptbasis von {base} {base===1?'Portion':'Portionen'} ein.</p>
-        <div className="profile-grid">{originals.map((item,index)=><label key={index}>{item.name}
-          <input value={edits.values[index]} maxLength={50} placeholder="z. B. 100 g" onChange={event=>{
-            const value=event.currentTarget.value
-            setQuantityEdit({...edits,values:edits.values.map((quantity,i)=>i===index?value:quantity)})
-          }}/></label>)}</div>
+        <p className="recipe-edit-hint">Mengen für {servings} {servings===1?'Portion':'Portionen'}. Änderst du die Portionen, rechnen sich die Zahlen mit.</p>
+        <ul className="recipe-edit-rows">{originals.map((item,index)=>{
+          const row=edits.rows[index]
+          const shown=row.amount===null?'':String(Math.round(row.amount*servings/base*1000)/1000).replace('.',',')
+          const options=[...new Set([...quantityUnits,row.unit])].filter(Boolean)
+          return <li key={index+':'+servings}><span>{item.name}</span>
+            {row.unit==='nach Geschmack'?<span className="recipe-edit-none">–</span>:
+              <input type="text" inputMode="decimal" aria-label={item.name+' Menge'} defaultValue={shown} onChange={event=>{
+                const value=Number(event.currentTarget.value.replace(',','.'))
+                const amount=event.currentTarget.value.trim()===''||!Number.isFinite(value)||value<0?null:value*base/servings
+                setQuantityEdit({...edits,rows:edits.rows.map((entry,i)=>i===index?{...entry,amount}:entry)})
+              }}/>}
+            <select aria-label={item.name+' Einheit'} value={row.unit} onChange={event=>setQuantityEdit({...edits,rows:edits.rows.map((entry,i)=>i===index?{...entry,unit:event.currentTarget.value}:entry)})}>
+              {options.map(unit=><option key={unit} value={unit}>{unitLabels[unit]??unit}</option>)}</select></li>})}</ul>
       </div>:null}
       <div className="actions recipe-submit">
         {servings!==(recipe.servings??base)||edits?<button type="button" className="primary" disabled={busy} onClick={()=>void savePortions()}>
           {edits?'Rezept speichern':'Portionen speichern'}
         </button>:null}
-        <button type="button" disabled={busy} onClick={()=>setQuantityEdit(edits?undefined:{id:recipe.id,values:originals.map(item=>item.quantity??'')})}>
-          {edits?'Abbrechen':'Zutatenmengen bearbeiten'}
-        </button>
+        {edits?<button type="button" disabled={busy} onClick={()=>setQuantityEdit(undefined)}>Abbrechen</button>:null}
       </div>
       <div className="grocery-recipe-checklists">
         <div><h3>Zutaten</h3><ul>{ingredients.map((item,index)=><li key={index}><label>
@@ -410,6 +426,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{a
   const [change,setChange]=useState(0)
   const [photowait,setPhotowait]=useState(false)
   const [photoRows,setPhotoRows]=useState<GroceryInput[]>([])
+  const [recipeNames,setRecipeNames]=useState<string[]>([])
   const isShopping=tab==='Einkaufsliste'
   const place=isShopping?'shopping':'stock'
   useEffect(()=>{
@@ -418,6 +435,11 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{a
       .catch(cause=>{if(current)setError(errorText(cause))}).finally(()=>{if(current)setLoading(false)})
     return ()=>{current=false}
   },[api,refreshKey,change,recipeVersion])
+  useEffect(()=>{
+    let current=true
+    void api<SavedRecipe[]>('/grocery/recipes').then(list=>{if(current)setRecipeNames([...new Set(list.flatMap(recipe=>(recipe.baseIngredients??recipe.ingredients).map(item=>item.name)))])}).catch(()=>{})
+    return ()=>{current=false}
+  },[api,refreshKey,recipeVersion])
   function chooseTab(next:GroceryTab) {
     setTab(next);setSearch('');setFilter('');setEditor(undefined);setShowScan(false)
     setChoosing(false);setPhotoRows([]);setError('');setNotice('');setQuickArticle('')
@@ -452,7 +474,7 @@ export function GroceryPanel({api,refreshKey,onAsk,recipeVersion,cloudImages}:{a
   const match=(item:ShoppingItem|StockItem)=>item.name.toLocaleLowerCase('de-DE').includes(search.trim().toLocaleLowerCase('de-DE'))
   const visible=view.stock.filter(item=>match(item)&&(!filter||(filter==='low'?item.status!=='stocked':item.location===filter)))
   const shownShopping=view.shopping.filter(match)
-  const suggestions=grocerySuggestions(quick,[...view.stock,...view.recent,...view.shopping].map(item=>item.name))
+  const suggestions=grocerySuggestions(quick,[...view.stock,...view.recent,...view.shopping].map(item=>item.name).concat(recipeNames))
   return <div className="grocery-page">
     <nav className="grocery-tabs" aria-label="Vorrat & Einkauf">
       {tabs.map(name=><button type="button" key={name} disabled={photowait} aria-pressed={tab===name} onClick={()=>chooseTab(name)}>{name}</button>)}

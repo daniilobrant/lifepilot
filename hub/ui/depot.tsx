@@ -182,7 +182,7 @@ export function DepotPage({api}:{api:Api}) {
   const load=()=>api<DepotState>('/depot',undefined,10_000).then(setState,reason=>setError(failure(reason,'Das Depot konnte nicht geladen werden.')))
   useEffect(()=>{void load()},[api])
   useEffect(()=>{
-    if(!state?.job.running) return
+    if(!state?.job.running&&!state?.newsJob.running) return
     const timer=setTimeout(()=>{void load()},3000)
     return ()=>clearTimeout(timer)
   },[state])
@@ -197,6 +197,12 @@ export function DepotPage({api}:{api:Api}) {
       setRecognized(value.positions);setForm(undefined)
     } catch(reason) { setError(failure(reason,'Die Erkennung ist fehlgeschlagen.')) }
     finally { setBusy(false) }
+  }
+  async function startNews() {
+    setError('')
+    if(!window.confirm('Für den Überblick werden nur die Namen, Kategorien und Branchen deiner Positionen per Websuche über das Modell abgefragt, keine Beträge oder Stückzahlen. Fortfahren?')) return
+    try { setState(await api<DepotState>('/depot/news',{confirm:true},15_000)) }
+    catch(reason){setError(failure(reason,'Der Überblick konnte nicht gestartet werden.'))}
   }
   async function refresh() {
     setError('')
@@ -231,21 +237,22 @@ export function DepotPage({api}:{api:Api}) {
     {state&&!state.job.running&&state.job.missing>0&&state.job.updatedAt?<p role="status">Für {state.job.missing} Position(en) wurde kein Kurs gefunden. Sie behalten ihren bisherigen Wert.</p>:null}
     {form?<HoldingForm api={api} form={form} setForm={setForm} done={applied} cancel={()=>setForm(undefined)}/>:null}
     {recognized?<ImportPreview api={api} items={recognized} setItems={setRecognized} done={applied} cancel={()=>setRecognized(undefined)}/>:null}
-    {!state?<p role="status">Depot wird geladen …</p>:!holdings.length?<section className="card settings"><h2>Noch keine Positionen</h2>
-      <p className="depot-hint">Lege Positionen über die Suche an (Aktie, ETF oder Krypto suchen, Kaufkurs und Stückzahl eintragen) oder lade einen Screenshot deines Depots hoch, zum Beispiel aus Trade Republic. LifePilot legt die Positionen dann automatisch an.</p></section>:<>
+    {!state?<p role="status">Depot wird geladen …</p>:<>
       <div className="depot-top">
-        <section className="card settings depot-total"><h2>Depotwert</h2><strong>{money(total)}</strong>
+        <section className="card settings depot-total"><h2>Depotwert</h2><strong>{holdings.length?money(total):'–'}</strong>
+          {!holdings.length?<small>Noch keine Infos. Lege eine Position an oder lade einen Screenshot hoch.</small>:null}
           {stale?<small>Kurse vom {day(stale)}</small>:null}
-          {withCost.length?<small className={gain>=0?'depot-up':'depot-down'}>{gain>=0?'+':'−'}{money(Math.abs(gain))}{invested>0?' · '+percent(gain/invested*100):''} seit Kauf</small>:<small>Trage Kaufkurs und Stückzahl ein, um den Gewinn zu sehen.</small>}
+          {holdings.length&&withCost.length?<small className={gain>=0?'depot-up':'depot-down'}>{gain>=0?'+':'−'}{money(Math.abs(gain))}{invested>0?' · '+percent(gain/invested*100):''} seit Kauf</small>:holdings.length?<small>Trage Kaufkurs und Stückzahl ein, um den Gewinn zu sehen.</small>:null}
           {withCost.length?<small>Investiert {money(invested)}{withCost.length<holdings.length?' (für '+withCost.length+' von '+holdings.length+' Positionen)':''}</small>:null}
         </section>
         <section className="card settings finance-distribution"><div className="editor-title"><h2>Aufteilung</h2>
           <div className="finance-tabs" role="group" aria-label="Aufteilung nach">{(['Branche','Kategorie','Position'] as const).map(name=><button key={name} type="button" aria-pressed={mode===name} onClick={()=>setMode(name)}>{name}</button>)}</div></div>
-          {total>0?<Ring items={slices} total={total} label={'Depot nach '+mode}/>:<p className="empty">Der Depotwert ist 0 €.</p>}
+          {total>0?<Ring items={slices} total={total} label={'Depot nach '+mode}/>:<p className="empty">{holdings.length?'Der Depotwert ist 0 €.':'Noch keine Infos. Sobald Positionen da sind, siehst du hier die Aufteilung nach Branche, Kategorie oder Position.'}</p>}
         </section>
       </div>
       <section className="card settings"><h2>Verlauf</h2><History history={state.history}/></section>
       <section className="card settings"><h2>Positionen</h2>
+        {!holdings.length?<div className="depot-empty"><p className="empty">Noch keine Positionen.</p><button type="button" className="primary" onClick={()=>{setForm(blank());setRecognized(undefined);setError('')}}>+ Position hinzufügen</button></div>:null}
         <ul className="finance-list depot-positions">{sorted.map(item=>{
           const cost=investedCents(item), diff=cost!==null?item.valueCents-cost:null
           return <li key={item.id}><div className="finance-entry">
@@ -258,6 +265,17 @@ export function DepotPage({api}:{api:Api}) {
               <div className="actions"><button type="button" className="quiet" onClick={()=>{setForm(toForm(item));setRecognized(undefined)}}>Bearbeiten</button>
                 <button type="button" className="quiet" aria-label={item.name+' entfernen'} onClick={()=>setRemoving(item.id)}>×</button></div>}
           </div></li>})}</ul>
+      </section>
+      <section className="card settings depot-news"><div className="editor-title"><h2>Schlagzeilen &amp; Ausblick</h2>
+        <button type="button" disabled={!state.recognition||state.newsJob.running||!holdings.length} onClick={()=>void startNews()}>{state.newsJob.running?'Überblick wird erstellt …':state.news?'Überblick aktualisieren':'Überblick erstellen'}</button></div>
+        {state.newsJob.error&&!state.newsJob.running?<p role="alert">{state.newsJob.error}</p>:null}
+        {!state.news?<p className="empty">{holdings.length?'Noch kein Überblick. ':'Noch keine Infos. Lege zuerst Positionen an. '}Er sucht aktuelle Meldungen zu deinen Positionen und zeigt Themen, die dein Depot ergänzen könnten.</p>:<>
+          <small className="depot-hint">Stand {new Date(state.news.created).toLocaleString('de-DE',{timeZone:'Europe/Berlin',dateStyle:'short',timeStyle:'short'})} Uhr</small>
+          {state.news.headlines.length?<ul className="depot-headlines">{state.news.headlines.map(item=><li key={item.url}>
+            <small>{item.position}</small><strong>{item.headline}</strong><span>{item.summary}</span>
+            <a href={item.url} target="_blank" rel="noreferrer">{item.source}{item.published?' · '+day(item.published):''} · Zur Quelle ↗</a></li>)}</ul>:<p className="empty">Keine aktuellen Meldungen zu deinen Positionen gefunden.</p>}
+          {state.news.outlook.length?<><h3>Ausblick: Das könntest du dir ansehen</h3><ul className="depot-outlook">{state.news.outlook.map(item=><li key={item.title}><strong>{item.title}</strong><span>{item.reason}</span></li>)}</ul></>:null}
+        </>}
       </section>
       <p className="depot-hint">Hinweis: Kurse stammen aus einer Websuche über das Modell und können abweichen. Das ist keine Anlageberatung.</p>
     </>}

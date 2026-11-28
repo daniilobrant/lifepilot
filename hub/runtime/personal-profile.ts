@@ -2,11 +2,13 @@ import { Problem } from './settings.ts'
 import type { Store } from './store.ts'
 import { dateInBerlin, isDate } from './values.ts'
 
-const limits = { name: 90, birthday: 10, height: 3, location: 100, study:160, occupation: 160, interests: 450, preferences: 600, glasses:3, contacts:3, travelCitizenship:5 }
+const limits = { name: 90, birthday: 10, height: 3, location: 100, study:160, occupation: 160, jobTitle:120, interests: 900, preferences: 600, glasses:3, contacts:3, travelCitizenship:5,
+  diet:14, allergies:240, household:2, transport:200, rhythm:12, languages:200 }
 export type ProfileFields = { [K in keyof typeof limits]: string }
 export type PersonalProfile = { fields: ProfileFields, revision: number }
 
-const empty = { name:'', birthday:'', height:'', location:'', study:'', occupation:'', interests:'', preferences:'', glasses:'', contacts:'', travelCitizenship:'' }
+const empty = { name:'', birthday:'', height:'', location:'', study:'', occupation:'', jobTitle:'', interests:'', preferences:'', glasses:'', contacts:'', travelCitizenship:'',
+  diet:'', allergies:'', household:'', transport:'', rhythm:'', languages:'' }
 
 export function personalProfile(store: Store): PersonalProfile {
   const row = store.db.prepare('SELECT details, revision FROM personal_profile WHERE singleton=1').get()
@@ -28,6 +30,9 @@ export function savePersonalProfile(store: Store, fields: unknown, revision: unk
   if (![profile.glasses,profile.contacts].every(value=>['','yes','no'].includes(value))) {
     throw new Problem(400,'Prüfe deine Angaben zu Brille und Kontaktlinsen.')
   }
+  if (!['','alles','vegetarisch','vegan','pescetarisch','halal','koscher'].includes(profile.diet)) throw new Problem(400,'Prüfe deine Angabe zur Ernährung.')
+  if (!['','frueh','normal','spaet'].includes(profile.rhythm)) throw new Problem(400,'Prüfe deine Angabe zum Tagesrhythmus.')
+  if (profile.household && (!/^\d{1,2}$/u.test(profile.household) || Number(profile.household) < 1 || Number(profile.household) > 12)) throw new Problem(400,'Prüfe die Haushaltsgröße.')
   if (!['','eu','other'].includes(profile.travelCitizenship)) {
     throw new Problem(400,'Prüfe deine Angabe für Einreisehinweise.')
   }
@@ -39,7 +44,7 @@ export function savePersonalProfile(store: Store, fields: unknown, revision: unk
   }
   return store.transaction(() => {
     const current = personalProfile(store)
-    for (const key of ['study','glasses','contacts','travelCitizenship'] as const) {
+    for (const key of ['study','jobTitle','glasses','contacts','travelCitizenship','diet','allergies','household','transport','rhythm','languages'] as const) {
       if (!Object.hasOwn(source,key)) profile[key]=current.fields[key]
     }
     if (current.revision !== revision) throw new Problem(409, 'Dein Profil wurde inzwischen geändert. Lade es neu.')

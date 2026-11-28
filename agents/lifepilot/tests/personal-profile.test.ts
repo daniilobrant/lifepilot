@@ -28,3 +28,16 @@ test('Clear contexts identify work, university and leisure while mixed contexts 
   assert.equal(suggestCategory('Job und Uni','Besprechen'), null)
   assert.equal(explicitCategory('Kategorie: Freizeit'), 'leisure')
 })
+
+test('Neue Profilfelder werden geprüft und bleiben beim Teilspeichern erhalten', () => {
+  const store = new Store(':memory:', 'private')
+  try {
+    const saved=savePersonalProfile(store,{name:'Max',jobTitle:'Werkstudent Datenanalyse',diet:'vegetarisch',household:'2',rhythm:'frueh',allergies:'Nüsse',interests:'Laufen, Kochen'},0)
+    assert.equal(saved.fields.diet,'vegetarisch')
+    assert.throws(()=>savePersonalProfile(store,{diet:'unbekannt'},1),{status:400})
+    assert.throws(()=>savePersonalProfile(store,{household:'40'},1),{status:400})
+    const again=savePersonalProfile(store,{location:'Freiburg'},1)
+    assert.equal(again.fields.jobTitle,'Werkstudent Datenanalyse')
+    assert.equal(again.fields.household,'2')
+  } finally {store.db.close()}
+})
