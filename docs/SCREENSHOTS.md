@@ -1,6 +1,6 @@
 # LifePilot im Testprofil
 
-Alle Aufnahmen zeigen die Version 1.2.1 mit vollständig fiktiven Daten (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen.
+Alle Aufnahmen zeigen die Version 1.3.6 mit vollständig fiktiven Daten (Person, Termine, Mails, Bestellungen, Finanzen, Bewerbungen). Sie entstanden in einem getrennten Testprofil. Pilot-Chat, Styling-Studio, Rezeptideen, Reiseplan und Abo-Prüfung wurden mit dem echten Modell erzeugt; die Mails und Bestellungen sind Musterdaten, kein Google-Konto war verbunden. Die Kleidungs- und Flakonbilder sind generierte Beispielmotive. Wetterdaten stammen von Open-Meteo, Tarifangaben der Abo-Prüfung aus einer Websuche und können abweichen. Das News-Briefing entstand am 28. November 2026 mit dem echten Modell und Websuche für die fiktive Person (Wohnort Freiburg); die Meldungen sind echt und über die Quelle prüfbar.
 
 ## Planung und Pilot
 
@@ -46,6 +46,32 @@ Checkliste und Packliste einer Reise lassen sich abhaken und nach Bedarf anpasse
 
 ![Checkliste und Packliste einer Reise nach Lissabon](screenshots/08b-reise-vorbereitung.png)
 
+### Kartenexport für Google My Maps
+
+Orte der Reise nach Kategorien auswählen, den Kartennamen kopieren und als CSV, ZIP oder KML für Google My Maps herunterladen.
+
+![Exportbereich mit Kartenname, Kategorien und ausgewählten Orten](screenshots/08c-reise-karten.png)
+
+### Outfit-Vorschlag im Urlaub
+
+Ab einem Tag vor der Abreise bis zum Reiseende: Datum und Tagesabschnitt wählen, Pilot stellt ein Outfit aus dem Kleiderschrank zusammen. Es landet im Styling-Studio und lässt sich unter „Urlaub“ speichern.
+
+![Auswahl von Datum und Tagesabschnitt für einen Outfit-Vorschlag](screenshots/08d-reise-outfit.png)
+
+## News
+
+### News-Briefing
+
+Auf Knopfdruck sammelt Pilot je Bereich drei bis fünf aktuelle Meldungen aus festen Quellen. Zugeklappt steht nur die Schlagzeile, aufgeklappt die Einordnung mit Link zur Quelle. Das Briefing bleibt bis zur nächsten Aktualisierung gespeichert.
+
+![News-Briefing mit sechs Kacheln für Wirtschaft, Technik, Politik, Aktien, Regional und Sport](screenshots/22-news.png)
+
+### News-Einstellungen
+
+Ein kleiner Fragebogen je Bereich: allgemeiner Überblick oder gezielte Schwerpunkte per Kästchen, dazu ein Freitextfeld für Vereine, Werte oder Begriffe.
+
+![Einstellungen mit Kästchen und Freitext für jede News-Kategorie](screenshots/22b-news-einstellungen.png)
+
 ## Posteingang, Bestellungen und Verwaltung
 
 ### Posteingang
@@ -56,7 +82,7 @@ Wichtige Nachrichten priorisieren und begründen, warum sie wichtig sind.
 
 ### Terminvorschläge
 
-Aus Mails abgeleitete Fristen und Aufgaben lassen sich einzeln oder gesammelt bestätigen.
+Aus Mails abgeleitete Termine, Fristen und Aufgaben stehen unter dem Kalender und lassen sich einzeln oder gesammelt übernehmen.
 
 ![Terminvorschlag für eine Aufgabe mit Bestätigen und Ablehnen](screenshots/05b-mailvorschlaege.png)
 

@@ -2,6 +2,12 @@
 
 Die Entwicklungsetappen stammen aus lokalen Versionsnotizen. Für frühe Stände dient die Versionsnummer als zeitliche Einordnung. Der öffentliche Git-Verlauf beginnt mit dem bereinigten Import.
 
+## v1.3.6 · 28. November 2026
+
+- Screenshot-Galerie vollständig aktualisiert (Version 1.3.6, neue Navigation) und um News, News-Einstellungen, Kartenexport für Google My Maps und den Outfit-Vorschlag im Urlaub erweitert.
+- News: Die Untertitel der Regional-Kachel nennen „Bundesland“ statt fest „Baden-Württemberg“, „Zur Quelle“ bricht in schmalen Kacheln nicht mehr um, Detailtexte im Auftrag sind auf etwa 500 Zeichen begrenzt.
+- README: Funktionstabelle und Versionsübersicht auf den aktuellen Stand gebracht.
+
 ## v1.3.5 · 27. November 2026
 
 - News: Die sechs Kacheln stehen von Anfang an da und zeigen „Noch keine Infos geladen.“, bis das erste Briefing vorliegt. Ein geladenes Briefing bleibt bis zur nächsten Aktualisierung bestehen.

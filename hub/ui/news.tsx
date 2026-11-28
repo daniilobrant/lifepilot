@@ -125,7 +125,7 @@ export function NewsPage({api}:{api:Api}) {
     {error&&!running?<p className="news-status news-error" role="alert">{error}</p>:null}
     <div className="news-grid">
       {newsCategories.map(id=><Category key={id} id={id} items={briefing?.categories[id]??[]} loaded={briefing!==null} missing={briefing?.missing?.includes(id)===true}
-        subtitle={id==='regional'?(briefing?.location?briefing.location+' · Landkreis · Baden-Württemberg':'Wohnort · Landkreis · Bundesland'):hint[id]}/>)}
+        subtitle={id==='regional'?(briefing?.location?briefing.location+' · Landkreis · Bundesland':'Wohnort · Landkreis · Bundesland'):hint[id]}/>)}
     </div>
     <p className="news-footnote">Zusammenfassungen werden von Pilot aus Websuche-Ergebnissen erstellt und können Fehler enthalten; maßgeblich ist die verlinkte Quelle. Es wird nur dein Wohnort übermittelt, keine weiteren Profildaten.</p>
   </div>

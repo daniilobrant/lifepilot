@@ -1,4 +1,4 @@
-# LifePilot 1.3.5
+# LifePilot 1.3.6
 
 LifePilot ist eine lokale macOS-App für persönliche Organisation. Startseite, Kalender, Aufgaben und Projekte greifen auf denselben SQLite-Datenbestand zu. Pilot hilft bei Rückfragen und bereitet Änderungsvorschläge vor.
 
@@ -25,7 +25,20 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 </tr>
 <tr>
 <td width="50%" valign="top"><strong>Reisevorbereitung</strong><br>Checkliste und Packliste einer Reise lassen sich abhaken und nach Bedarf anpassen.<br><a href="docs/screenshots/08b-reise-vorbereitung.png"><img src="docs/screenshots/08b-reise-vorbereitung.png" alt="Checkliste und Packliste einer Reise nach Lissabon"></a></td>
+<td width="50%" valign="top"><strong>Kartenexport für Google My Maps</strong><br>Orte der Reise nach Kategorien auswählen, den Kartennamen kopieren und als CSV, ZIP oder KML für Google My Maps herunterladen.<br><a href="docs/screenshots/08c-reise-karten.png"><img src="docs/screenshots/08c-reise-karten.png" alt="Exportbereich mit Kartenname, Kategorien und ausgewählten Orten"></a></td>
+</tr>
+<tr>
+<td width="50%" valign="top"><strong>Outfit-Vorschlag im Urlaub</strong><br>Ab einem Tag vor der Abreise bis zum Reiseende: Datum und Tagesabschnitt wählen, Pilot stellt ein Outfit aus dem Kleiderschrank zusammen. Es landet im Styling-Studio und lässt sich unter „Urlaub“ speichern.<br><a href="docs/screenshots/08d-reise-outfit.png"><img src="docs/screenshots/08d-reise-outfit.png" alt="Auswahl von Datum und Tagesabschnitt für einen Outfit-Vorschlag"></a></td>
 <td width="50%"></td>
+</tr>
+</table>
+
+### News
+
+<table>
+<tr>
+<td width="50%" valign="top"><strong>News-Briefing</strong><br>Auf Knopfdruck sammelt Pilot je Bereich drei bis fünf aktuelle Meldungen aus festen Quellen. Zugeklappt steht nur die Schlagzeile, aufgeklappt die Einordnung mit Link zur Quelle. Das Briefing bleibt bis zur nächsten Aktualisierung gespeichert.<br><a href="docs/screenshots/22-news.png"><img src="docs/screenshots/22-news.png" alt="News-Briefing mit sechs Kacheln für Wirtschaft, Technik, Politik, Aktien, Regional und Sport"></a></td>
+<td width="50%" valign="top"><strong>News-Einstellungen</strong><br>Ein kleiner Fragebogen je Bereich: allgemeiner Überblick oder gezielte Schwerpunkte per Kästchen, dazu ein Freitextfeld für Vereine, Werte oder Begriffe.<br><a href="docs/screenshots/22b-news-einstellungen.png"><img src="docs/screenshots/22b-news-einstellungen.png" alt="Einstellungen mit Kästchen und Freitext für jede News-Kategorie"></a></td>
 </tr>
 </table>
 
@@ -34,7 +47,7 @@ Die Aufnahmen zeigen fiktive Daten in einem getrennten Testprofil. Die Produktbi
 <table>
 <tr>
 <td width="50%" valign="top"><strong>Posteingang</strong><br>Wichtige Nachrichten priorisieren und begründen, warum sie wichtig sind.<br><a href="docs/screenshots/05-posteingang.png"><img src="docs/screenshots/05-posteingang.png" alt="Posteingang mit ausgewählten fiktiven Nachrichten"></a></td>
-<td width="50%" valign="top"><strong>Terminvorschläge</strong><br>Aus Mails abgeleitete Termine, Fristen und Aufgaben stehen unter dem Kalender und lassen sich einzeln oder gesammelt übernehmen.<br><a href="docs/screenshots/05b-mailvorschlaege.png"><img src="docs/screenshots/05b-mailvorschlaege.png" alt="Mailvorschlag für eine Aufgabe mit Bestätigen und Ablehnen"></a></td>
+<td width="50%" valign="top"><strong>Terminvorschläge</strong><br>Aus Mails abgeleitete Termine, Fristen und Aufgaben stehen unter dem Kalender und lassen sich einzeln oder gesammelt übernehmen.<br><a href="docs/screenshots/05b-mailvorschlaege.png"><img src="docs/screenshots/05b-mailvorschlaege.png" alt="Terminvorschlag für eine Aufgabe mit Bestätigen und Ablehnen"></a></td>
 </tr>
 <tr>
 <td width="50%" valign="top"><strong>Bestellungstracker</strong><br>Lieferstatus verfolgen und je Artikel entscheiden, was behalten oder retourniert wird.<br><a href="docs/screenshots/06-bestellungen.png"><img src="docs/screenshots/06-bestellungen.png" alt="Musterbestellung mit Lieferstatus und Artikelentscheidungen"></a></td>
@@ -162,12 +175,13 @@ Codex oder Claude Code können die Anbindung selbst übernehmen. Öffne das gekl
 | Kalender | Woche und Monat, Zeitfenster, Serientermine, Feiertage und gesonderte Bestätigung von Kollisionen |
 | Aufgaben & Fristen | Aufgaben und Abgaben in Uni, Privat und Arbeit, mit Priorität, Datum und Projektbezug |
 | Projekte | Projektkarten, Phasen, Unterpunkte, Checkpoints, Fortschritt, Archiv und Wiederherstellung |
+| News | Briefing mit Wirtschaft, Technik, Politik, Aktien, Regional (nach Wohnort) und Sport: 3 bis 5 Meldungen je Kachel, aufklappbar, mit Link zur Quelle. Läuft im Hintergrund, bleibt bis zur nächsten Aktualisierung gespeichert und richtet sich nach deinen Themenwünschen |
 | Posteingang | Relevante Nachrichten, per Klick nach Kategorie filterbar (falsche Zuordnung per Stift korrigierbar), gezielte Mail-Tiefenprüfung und Vorschläge für Folgeaktionen. Auf der Startseite stehen nur wichtige Nachrichten von echten Personen |
 | Terminvorschläge | Aus Mails abgeleitete Termine, Fristen und Aufgaben als aufklappbare Liste unter dem Kalender |
 | Bestellungstracker | Lieferungen, Retouren, Behalten und Rückerstattungen je Artikel. Behaltene Kleidung kann in den Kleiderschrank übernommen werden |
-| Finanzen & Abos | Monatsübersicht, Einnahmen und Ausgaben, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
-| Urlaubsplaner | Vorschau für Städte und Inseln, Reisezeiträume, Buchungen, Vorbereitung und Packlisten |
-| Outfit-Assistent | Styling, Kleiderschrank, Produktlink- und Fotoimport, Looks, Urlaubsgarderobe, Verkauf und Parfüm |
+| Finanzen & Abos | Monatsübersicht mit festem Einkommen als Grundlage, Zahlungsliste zum Zuordnen, vereinheitlichte Ausgabenkategorien, Abo-Vorschläge, PayPal-Absender und -Empfänger sowie Abgleich doppelter Buchungsvorschläge |
+| Urlaubsplaner | Vorschau für Städte und Inseln, Reisezeiträume, Buchungen, Vorbereitung und Packlisten, Orte-Export für Google My Maps (CSV, ZIP, KML) und Outfit-Vorschlag während der Reise |
+| Outfit-Assistent | Styling, Kleiderschrank, Produktlink- und Fotoimport, Looks (auch im Bereich „Urlaub“), Urlaubsgarderobe, Verkauf und Parfüm; Sportkleidung wird nur für Training vorgeschlagen |
 | Vorrat & Einkauf | Vorratsverwaltung, kategorisierte Einkaufsliste, Belegscan und Rezeptideen |
 | Bewerbungen | Bewerbungsstatus, Verlauf, Gespräche und passende Vorschläge aus E-Mails |
 
@@ -217,7 +231,9 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.0.36–1.0.42 · 25./26. November 2026** | Agent mit Verzeichnis aller Bereiche, Zerlegung langer und diktierter Nachrichten, Entscheidungstabelle der Skills, Bestellungen und Bewerbungen im Chat, umschaltbarer Modellanbieter (Codex oder Claude Code), Testsatz mit 48 Beispielsätzen. |
 | **1.0.43–1.0.52 · 26. November 2026** | Sicherheitsprüfung des Gesamtprojekts, Kalender ohne Doppeleinträge, Rezeptauswahl und Zutatenabgleich, Bestellmails mit Warenkorb-Blöcken, Outfits passend zum Anlass, Terminvorschläge aus Mails. |
 | **1.0.53–1.0.57 · 26. November 2026** | Tiefere Mailprüfung per Modell, Löschen von Mails mit Bestätigung, Wetterfragen am Standort, wichtige Mails der letzten sieben Tage, schonender Mailabruf. |
-| **1.0.58–1.3.5 · 26. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. |
+| **1.0.58–1.0.88 · 26./27. November 2026** | Weitergeleitete Kurs-Mails als Terminvorschlag, Sicherheitsaudit mit lokalem Prüfbefehl und Bereinigung privater Daten. Pilot versteht Themenwechsel mitten in einer Rückfrage und bietet Kurzantworten zum Anklicken an. Die Finanzen bekamen ein festes Einkommen als Grundlage, eine Zahlungsliste und eine gekürzte, einheitliche Kategorienliste; behaltene Bestellartikel werden automatisch gebucht. |
+| **1.1.0–1.2.1 · 27. November 2026** | Urlaubsplaner: Export der Reiseorte für Google My Maps (CSV, ZIP, KML) mit sichtbarer Auswahl, Outfit-Vorschlag während der Reise mit eigenem Bereich „Urlaub“ bei den Looks. |
+| **1.3.0–1.3.6 · 27./28. November 2026** | Neuer Bereich „News“ mit sechs Kacheln, Hintergrund-Auftrag mit Websuche, Einstellungen für Themenwünsche und aktualisierter Screenshot-Galerie. Im Claude-Modus wird die Websuche nun korrekt freigegeben. |
 
 [Entwicklungsverlauf](docs/ENTWICKLUNG.md)
 
