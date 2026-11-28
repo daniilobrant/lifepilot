@@ -245,7 +245,7 @@ LifePilot begann mit einem lokalen Kern und wurde anhand konkreter Abläufe geme
 | **1.3.0–1.3.6 · 27./28. November 2026** | Neuer Bereich „News“ mit sechs Kacheln, Hintergrund-Auftrag mit Websuche, Einstellungen für Themenwünsche und aktualisierter Screenshot-Galerie. Im Claude-Modus wird die Websuche nun korrekt freigegeben. |
 | **1.4 · 28. November 2026** | Depot und Sparplan. Finanzen & Abos hat einen Umschalter Finanzen/Depot: Positionen mit Kaufkurs und Kaufdatum, Suche nach Aktie, ETF oder Krypto, Screenshot-Erkennung, Kursaktualisierung (finanzen.net), Kreisdiagramm nach Branche, Verlaufs-Chart, Schlagzeilen und Ausblick zu den Positionen; die News-Kachel „Aktien“ richtet sich nach dem Depot. Der Sparplan zählt wie Fixkosten. Dazu: Rezepte mit Mengen-Editor (Zahl und Einheit) und Produkt-IDs, größere Schnellsuche, überarbeitetes Profil mit Interessen zum Anklicken, Bewerbung löschen, Kartenexport im Aktionen-Menü und eine Galerie mit der fiktiven Testperson Max Mustermann. |
 
-[Entwicklungsverlauf](docs/ENTWICKLUNG.md)
+[Entwicklungsverlauf](docs/ENTWICKLUNG.md) · [als HTML-Zeitleiste](docs/entwicklungsverlauf.html)
 
 ## Technik
 

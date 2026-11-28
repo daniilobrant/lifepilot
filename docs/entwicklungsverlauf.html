@@ -1,0 +1,257 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>LifePilot Entwicklungsverlauf</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap">
+<style>
+/* Layout: Kopfbereich, Schritt-für-Schritt-Leiste, filterbare Zeitleiste mit aufklappbaren Aufträgen */
+:root{
+  --bg:#f5f6f4; --surface:#ffffff; --fg:#1b2420; --muted:#5d6a63; --line:#dde3df;
+  --accent:#1e4d3b; --accent-soft:#e1eee7; --accent-fg:#ffffff;
+  --codex:#2b5f9e; --gemini:#8a4fb0; --claude:#b4601f; --prof:#5d6a63;
+  --font-display:'Fraunces',Georgia,'Times New Roman',serif;
+  --font-body:'Inter',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#121815; --surface:#1a221e; --fg:#e8eeea; --muted:#9baba2; --line:#2b3630;
+  --accent:#7cc4a0; --accent-soft:#1f322a; --accent-fg:#0f1a14;
+  --codex:#7fb0ea; --gemini:#c79be6; --claude:#e6a066; --prof:#9baba2; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#121815; --surface:#1a221e; --fg:#e8eeea; --muted:#9baba2; --line:#2b3630;
+  --accent:#7cc4a0; --accent-soft:#1f322a; --accent-fg:#0f1a14;
+  --codex:#7fb0ea; --gemini:#c79be6; --claude:#e6a066; --prof:#9baba2; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.55;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0}
+.wrap{max-width:900px;margin:0 auto;padding-block:40px 64px}
+h1,h2{font-family:var(--font-display);text-wrap:balance;margin:0}
+h1{font-size:clamp(1.9rem,5vw,2.8rem);line-height:1.1;letter-spacing:-.01em}
+h2{font-size:1.45rem;margin-bottom:14px}
+.lead{color:var(--muted);max-width:62ch;margin:14px 0 0}
+.facts{display:flex;flex-wrap:wrap;gap:10px 28px;margin:26px 0 0;padding:0;list-style:none}
+.facts li{display:grid;gap:0}
+.facts b{font-family:var(--font-display);font-size:1.6rem;line-height:1.1;font-variant-numeric:tabular-nums}
+.facts span{font-size:.78rem;color:var(--muted);letter-spacing:.04em;text-transform:uppercase}
+section{margin-top:48px}
+.steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;counter-reset:s;padding:0;list-style:none;margin:0}
+.steps li{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.9rem;counter-increment:s}
+.steps li::before{content:counter(s);display:inline-grid;place-items:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-fg);font-size:.78rem;font-weight:600;margin-bottom:6px}
+.steps b{display:block}
+.toolbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:22px}
+.chip{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:999px;padding:6px 14px;font:inherit;font-size:.86rem;cursor:pointer}
+.chip[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.chip:focus-visible,.open:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.spacer{flex:1}
+.tl{position:relative;margin:0;padding:0;list-style:none}
+.tl::before{content:"";position:absolute;left:95px;top:6px;bottom:6px;width:2px;background:var(--line)}
+.day{margin:26px 0 10px;padding-left:0;font-weight:600;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.item{display:grid;grid-template-columns:84px 1fr;gap:0 24px;position:relative;margin-bottom:14px}
+.when{font-size:.8rem;color:var(--muted);text-align:right;padding-top:15px;font-variant-numeric:tabular-nums;line-height:1.3}
+.when b{display:block;color:var(--fg);font-weight:600}
+.dot{position:absolute;left:90px;top:19px;width:12px;height:12px;border-radius:50%;background:var(--bg);border:3px solid var(--c,var(--accent))}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.meta{display:flex;flex-wrap:wrap;gap:8px;align-items:center;font-size:.78rem}
+.tag{font-weight:600;color:var(--c);display:inline-flex;gap:6px;align-items:center}
+.tag::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--c)}
+.ver{color:var(--muted);font-variant-numeric:tabular-nums}
+.card h3{margin:6px 0 4px;font-size:1.05rem;line-height:1.3}
+.card p{margin:0;color:var(--muted)}
+.hl{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-wrap:wrap;gap:6px}
+.hl li{background:var(--accent-soft);color:var(--fg);border-radius:6px;padding:2px 9px;font-size:.8rem}
+.open{margin-top:12px;border:1px solid var(--accent);background:transparent;color:var(--accent);border-radius:8px;padding:7px 14px;font:inherit;font-size:.86rem;font-weight:500;cursor:pointer}
+.open[aria-expanded="true"]{background:var(--accent);color:var(--accent-fg)}
+.detail{margin-top:12px;display:grid;gap:12px;border-top:1px solid var(--line);padding-top:12px}
+.detail h4{margin:0 0 2px;font-size:.74rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.detail p{color:var(--fg);max-width:68ch}
+.quote{border-left:3px solid var(--c);padding-left:12px;font-style:italic}
+.patterns{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px}
+.pat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.pat b{display:block;margin-bottom:2px}.pat span{color:var(--muted);font-size:.9rem}
+.note{margin-top:40px;padding:14px 16px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);font-size:.88rem}
+@media (max-width:560px){
+  .tl::before{left:7px}
+  .item{grid-template-columns:1fr;padding-left:26px}
+  .when{text-align:left;padding:0 0 4px}
+  .when b{display:inline;margin-right:6px}
+  .dot{left:0;top:6px}
+}
+@media (prefers-reduced-motion:no-preference){.detail{animation:in .18s ease-out}@keyframes in{from{opacity:0;transform:translateY(-4px)}}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Wie LifePilot entstanden ist</h1>
+    <p class="lead">Ein persönlicher Alltagsassistent, gebaut in kleinen Schritten gemeinsam mit KI-Assistenten. Diese Zeitleiste zeigt in der richtigen Reihenfolge, was wann passiert ist, was ich jeweils beauftragt habe und was dabei herauskam. Jeder Eintrag lässt sich über „Auftrag ansehen“ aufklappen.</p>
+    <ul class="facts">
+      <li><b>über 100</b><span>Versionen</span></li>
+      <li><b>14</b><span>Skills</span></li>
+      <li><b>45</b><span>Migrationen</span></li>
+      <li><b>283</b><span>Tests</span></li>
+      <li><b>2</b><span>Modellanbieter</span></li>
+    </ul>
+  </header>
+
+  <section aria-labelledby="ablauf">
+    <h2 id="ablauf">Der Ablauf bei jeder Version</h2>
+    <ol class="steps">
+      <li><b>Wunsch</b>Ich beschreibe ein Problem oder eine Idee, oft per Sprache und mit Bildschirmfoto.</li>
+      <li><b>Verstehen</b>Der Assistent fasst zusammen und legt bei großen Vorhaben einen Plan vor.</li>
+      <li><b>Bauen</b>Umsetzung mit Typprüfung, Tests und statischer Analyse.</li>
+      <li><b>Installieren</b>Die Version läuft in meinem privaten Profil und liegt auf GitHub.</li>
+      <li><b>Ausprobieren</b>Ich teste mit eigenen Daten. Die Rückmeldung ist der nächste Auftrag.</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="zeit">
+    <h2 id="zeit">Zeitleiste</h2>
+    <div class="toolbar">
+      <span class="spacer"></span>
+      <button class="chip" id="toggleAll" aria-pressed="false">Alle Aufträge öffnen</button>
+    </div>
+    <ol class="tl" id="tl"></ol>
+  </section>
+
+  <section aria-labelledby="muster">
+    <h2 id="muster">Wie ich die Assistenten gebrieft habe</h2>
+    <div class="patterns">
+      <div class="pat"><b>Fehler mit Bildschirmfoto</b><span>Ein Satz und ein Bild genügen. So entstand der neu geordnete Termineditor.</span></div>
+      <div class="pat"><b>Echtes Beispiel</b><span>Eine nicht erkannte Mail oder Bestellung als Vorlage. Der Assistent leitet die Regel ab und schreibt einen Test mit erfundenen Daten.</span></div>
+      <div class="pat"><b>Anforderungsliste</b><span>Mehrere Punkte in einer Nachricht, die nacheinander als eine Version umgesetzt werden.</span></div>
+      <div class="pat"><b>Markdown-Plan</b><span>Große Vorhaben als nummerierte Schritte, vorab mit Gemini und Antigravity ausgearbeitet und dann in Codex oder Claude Code abgearbeitet.</span></div>
+      <div class="pat"><b>Erst fragen, dann bauen</b><span>Der Assistent erklärt zuerst, was möglich ist und was fehlt. Erst danach gebe ich frei.</span></div>
+      <div class="pat"><b>Freigabe und Sparsamkeit</b><span>Ausdrückliche Freigaben für Versionen, Datenfreigaben und Löschungen. Wenig Modellkontingent heißt: Prüfungen ohne Modellaufruf.</span></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="regeln">
+    <h2 id="regeln">Leitlinien, die ich vorgegeben habe</h2>
+    <div class="patterns">
+      <div class="pat"><b>Funktion vor Oberfläche</b><span>Erst funktioniert es, dann wird es schön gemacht.</span></div>
+      <div class="pat"><b>Der Agent erkennt selbst</b><span>Auch bei Tippfehlern, Diktat und langen Nachrichten. Nachfragen nur bei echter Unklarheit.</span></div>
+      <div class="pat"><b>Ich bestätige, der Rest läuft</b><span>Einmalige Freigaben statt ständiger Rückfragen.</span></div>
+      <div class="pat"><b>Keine privaten Daten im Repository</b><span>Profil, Zugangsdaten und Datenbank bleiben lokal.</span></div>
+      <div class="pat"><b>Sicherheitsgrenzen nur nach Rückfrage</b><span>Der Assistent sagt direkt, wenn etwas nicht stimmt.</span></div>
+    </div>
+  </section>
+
+  <p class="note">Alle Daten in dieser Übersicht sind aus dem öffentlichen Entwicklungsverlauf des Projekts zusammengefasst. Zugangsdaten, private Netzwerkangaben und persönliche Inhalte sind nicht enthalten. Die frühen 0.x-Versionen sind im Arbeitsprotokoll nicht datiert und nach Reihenfolge eingeordnet.</p>
+</div>
+
+<script>
+var C={codex:'var(--codex)',gemini:'var(--gemini)',claude:'var(--claude)'};
+var N={codex:'ChatGPT und Codex',gemini:'Gemini und Antigravity',claude:'Claude Code'};
+var D=[
+{day:'Vor dem 24. November 2026',date:'Version',w:'codex',v:'0.1 bis 0.3',t:'Lokaler Hub und erster Agent',s:'Erst die Bestandsaufnahme des Rechners, dann Dienst, Datenbank, Freigaben, Kommandozeile und Weboberfläche.',
+ hl:['Hintergrunddienst','Migrationen','Freigaben','Echte Codex-Läufe'],
+ a:'Ich ließ zuerst prüfen, was auf dem Rechner vorhanden ist (Betriebssystem, Git, Node, Codex-Anmeldung) und gab das Oberflächenkonzept „Nocturne V7“ frei. Danach wollte ich einen lauffähigen Kern mit echter Modellausführung. Mein erster Skill-Wunsch: Der Agent soll aus unstrukturiertem Alltagstext prüfbare Aufgaben machen, Rechtschreibfehler verbessern und den Kontext verstehen.',
+ g:'Dienst, Datenbank mit Migrationen, Auftragsverwaltung mit Freigaben, CLI und Weboberfläche mit gemeinsamem Speicher. Aus meiner Rückmeldung folgten Rückfragen im selben Vorgang, Dialogtests, ein Rückweg bei fehlgeschlagenen Updates und eine Ansicht, die vor jeder Analyse zeigt, welche Daten ans Modell gehen.',
+ r:'Ein Hub mit Sicherung, Wiederherstellung, Sperren und erfolgreichen echten Modellläufen.'},
+{day:'Vor dem 24. November 2026',date:'Version',w:'codex',v:'0.4 bis 0.6',t:'Bedienbarkeit mit echten Daten',s:'Die erste Oberfläche war kaum benutzbar. Jetzt lassen sich Aufgaben und Termine anlegen und behalten.',
+ hl:['Texteingabe','Wochenplanung','Dauerhaft gespeichert'],
+ a:'Ich meldete zurück: Text lässt sich nicht einfügen, Ergebnisse werden nicht gespeichert. Dazu die Frage, warum der KI-Chat noch fehlt.',
+ g:'Texteingabe und freie Aufträge, Wochenplanung, bearbeitbare Aufgaben und Termine. Eine Prüfung gegen die Trinity-Anforderungen fand einen Fehler, der behoben wurde.',
+ r:'Aus dem Prüfstand wurde eine nutzbare Verwaltung. Meine Chat-Frage lenkte die Planung auf den Agenten als Kern.'},
+{day:'Vor dem 24. November 2026',date:'Version',w:'codex',v:'0.7 bis 0.13',t:'Google-Anbindung und Postfach',s:'Kalender und Gmail anbinden, Mails sortieren, wichtige Nachrichten hervorheben.',
+ hl:['Google Kalender','Gmail-Labels','Pilot-Chat','Bewerbungsmanager'],
+ a:'Der Agent sollte Kalender und Mails kennen, Termine eintragen und Mails sortieren, ohne dass ich Einrichtungsdateien bearbeite. Getestet wurde zunächst mit einem Testkonto, dann stellte ich das Projekt auf mein normales Konto um.',
+ g:'Getrennte Anmeldungen, vereinfachte Einrichtung (nur noch bestätigen), Gmail-Labels für sieben Kategorien, Aktualisieren-Knopf, Auswahl relevanter Nachrichten, Bewerbungsmanager und der persönliche Pilot-Chat, der Aufträge selbst erkennt.',
+ r:'Ein Postfach, das Mails kategorisiert und Vorschläge für Termine und Aufgaben macht. Jede Übernahme bleibt meine Entscheidung.'},
+{day:'Vor dem 24. November 2026',date:'Version',w:'gemini',v:'0.9 bis 0.25.3',t:'Design und Navigation',s:'Die Oberfläche wirkte überladen. Ein neues Design wurde erarbeitet und auf alle Bereiche übertragen.',
+ hl:['Helles Design','Feste Navigation','Einheitlicher Seitenkopf','Kalenderfarben'],
+ a:'Ich erarbeitete mit Gemini und Antigravity ein neues Design und ließ es Bereich für Bereich umsetzen: einheitliche Kacheln, deutlich unterscheidbare Farben für Arbeit, Uni und Freizeit, feste Plätze für Navigation und Pilot-Chat.',
+ g:'Die Entwürfe kamen als Markdown-Anleitung, der Assistent setzte sie schrittweise um. Die Startseite zeigt die Woche mit Aufgaben, Fristen und dem nächsten Termin.',
+ r:'Eine durchgängige Oberfläche. Spätere Versionen verfeinerten sie bereichsweise.'},
+{day:'Vor dem 24. November 2026',date:'Version',w:'gemini',v:'0.5 bis 0.25',t:'Fachbereiche mit Markdown-Plänen',s:'Finanzen, Vorrat und Einkauf, Bestellungen, Serien, Projekte und Fristen entstanden nach nummerierten Anleitungen.',
+ hl:['Finanz-Skill','Projektseite','Bestellungstracker','Serientermine'],
+ a:'Für große Bereiche ließ ich zuerst mit Gemini und Antigravity eine Markdown-Anleitung in nummerierten Schritten schreiben (Finanz-Skill, Projektseite, Kleiderschrank-Lebenszyklus, Sicherheitscheckliste). Diese Datei schickte ich dann an Codex und ließ sie Schritt für Schritt abarbeiten. Beispiele: Einkaufsliste ähnlich der App „Bring“, Bestellungstracker für „was kommt an, was geht zurück“, wiederkehrende Termine per Satz („Arbeit montags und freitags von 8 bis 16 Uhr“).',
+ g:'Pro Schritt umsetzen, testen, installieren, ich prüfe im Browser. Die Freigabe der Finanzversion 0.14 gab ich ausdrücklich.',
+ r:'Finanzen mit Vorschlägen aus Mails, Vorrat und Rezepte mit Mengenabgleich, Bestellungen mit Entscheidung je Artikel, Serientermine mit Feiertagen, Projekte mit Phasen und ein eigenes Fristenboard.'},
+{day:'Vor dem 24. November 2026',date:'Version',w:'codex',v:'0.9 bis 1.0.10',t:'Kleiderschrank, Outfit und Reisen',s:'Outfits nach Anlass, Wetter und Passform. Reisen per Formular oder Chat.',
+ hl:['Bild- und Linkimport','Lookbook','Parfümsammlung','Reisevorschau','Packliste'],
+ a:'Ein eigener Skill für Kleidung und Düfte, der Outfits nach Anlass, Wetter und Passform vorschlägt. Und der Urlaubsplaner mit Tagesplan, Karten-Verknüpfungen und Packliste, ohne Budgetrechner. Eine sehr lange Testreise scheiterte an der Länge der Anfrage, das war mein Fehlerbericht.',
+ g:'Import per Bild und Link, Schichtung und Jackenwahl nach Temperatur, Reisevorschau erst nach Annahme, abschnittsweises Lesen langer Reiseanfragen.',
+ r:'Looks aus dem Bestand, übernommene Käufe aus Bestellungen, Reisen aus kurzen oder sehr ausführlichen Eingaben.'},
+{day:'Vor dem 24. November 2026',date:'Version',w:'codex',v:'0.25.4 bis 0.25.6',t:'Mailverständnis',s:'Beispiele aus meinem echten Postfach, die nicht erkannt wurden, wurden zu Regeln.',
+ hl:['Tickets','PayPal-Abgleich','Weitergeleitete Hochschulmails'],
+ a:'Ich nannte echte Beispiele: eine Comedy-Show als Termin mit Ausgabe, Amazon-Bestellungen, wiederkehrende Abbuchungen, weitergeleitete Uni-Mails, Gutschriften. Der Assistent las sie und leitete die Regel ab.',
+ g:'Tiefenprüfung für Belege, getrennte Vorschläge für Termin und Ausgabe, Abgleich mit PayPal, Zuordnung zu Vorlesungen.',
+ r:'Aus Mails entstehen belegbare Vorschläge, die ich übernehme oder ablehne. Die Regeln stehen in den Skill-Dateien.'},
+{day:'24. November 2026',date:'24.11.',w:'codex',v:'1.0',t:'Sicherheitsprüfung und Veröffentlichung',s:'Vor dem Veröffentlichen wurde die ganze App auf Hintertüren geprüft. Das öffentliche Repository entstand.',
+ hl:['Checkliste','Pull Requests','Google an Konto gebunden','Prüfsummen'],
+ a:'Ich wollte vor der Veröffentlichung die gesamte App auf Hintertüren prüfen lassen. Der Professor sollte Stand und Verlauf einsehen können.',
+ g:'Prüfung nach Checkliste, Befunde als Pull Requests behoben und nach bestandenen Prüfungen zusammengeführt. Google-Anbindung ans bestätigte Konto gebunden, private Releases gegen Prüfsummen geprüft. Dazu Installationsanleitung, README, Screenshot-Galerie, Skill-Beschreibungen und Änderungsverlauf.',
+ r:'Version 1.0 als öffentlicher Quellstand mit dokumentierten Sicherheitsgrenzen. Ab jetzt wird jede Änderung im Profil installiert und nach GitHub übertragen.'},
+{day:'25. November 2026',date:'25.11.',w:'claude',v:'1.0.11 bis 1.0.35',t:'Weiterbau mit Claude Code',s:'Rund 25 Versionen an einem Tag, jede getestet, installiert und dokumentiert.',
+ hl:['Zahlungen und Erstattungen','Outfit-Palette','Amazon-Bestellungen','Reiseguide parallel','Fünf Mengeneinheiten'],
+ a:'Ich wechselte für den Weiterbau zu Claude Code und gab die Projektinformationen weiter. Aufträge kamen als kurze Wünsche und Listen, meist mit Bildschirmfoto: Händlererstattungen, Apple-Abos, Outfit mit Basisschicht und Farbpalette, Looks als Kacheln, Amazon-Bestellungen, Reiseguide mit Währungsrechner und Notrufnummer, Vorrat mit Einheiten.',
+ g:'Jede Liste wurde als eine Version umgesetzt. Die statische Analyse lief lokal, damit Prüfungen vor dem Hochladen bestehen, vor Änderungen an Daten gab es eine Sicherung.',
+ r:'Viele Bereiche wurden alltagstauglich: Zahlungserkennung, Bestellungen, Reisen, Vorrat und Outfit.'},
+{day:'25. und 26. November 2026',date:'25./26.11.',w:'claude',v:'1.0.34 bis 1.0.42',t:'Den Agenten verbessern',s:'Ziel: möglichst viele Anfragen verstehen, auch kombinierte und diktierte.',
+ hl:['Verzeichnis aller Bereiche','Nachrichten zerlegen','Entscheidungstabelle','48 Beispielsätze','Claude als zweiter Anbieter'],
+ a:'Der Agent sollte für die Bewertung durch den Professor viele Anfragen verstehen, auch kombinierte über mehrere Skills und mit Spracheingabe. Ich bat zuerst um eine Analyse: Was kann der Agent heute, was fehlt?',
+ g:'Analyse aus dem Code (wenig Aufgaben, kein Wissen über Projekte oder Finanzen, keine Verbindungen zwischen Skills). Daraus vier Schritte: Verzeichnis der Bereiche mit fehlertoleranter Suche, Zerlegung langer Nachrichten, Entscheidungstabelle der Skills, Testsatz mit 48 Beispielsätzen. Wegen knappen Kontingents kam Claude Code als umschaltbarer Anbieter dazu, ohne Werkzeuge im leeren Ordner.',
+ r:'47 von 48 Beispielsätzen bestanden, der Fehlfall wurde behoben. Die README beschreibt beide Anbieter.'},
+{day:'26. November 2026',date:'26.11.',w:'claude',v:'1.0.43 bis 1.0.59',t:'Sicherheit und Bereinigung',s:'Hintertüren- und Datenleck-Prüfung, ohne Funktionen einzuschränken.',
+ hl:['npm audit','Semgrep','Gitleaks','Sicherheitsbericht','Verlauf bereinigt'],
+ a:'Ich wollte das Gesamtprojekt auf Hintertüren und Datenlecks prüfen lassen, ohne Funktionen zu beschneiden, und ein Repository ohne interne Dokumente und private Daten.',
+ g:'Prüfung 1.0.43 fand keine Hintertüren, behob aber zu offene Dateirechte und einen Abruf mit Weiterleitungen. Aufgeräumt wurden interne Berichte und Prüfskripte. Danach der Audit nach Vorgabe des Professors mit Mustersuche nach privaten Daten. Der Git-Verlauf wurde nach Sicherung und meiner Freigabe bereinigt.',
+ r:'Ein Sicherheitsbericht und ein Befehl, der die Prüfung jederzeit lokal wiederholt.'},
+{day:'26. November 2026',date:'26.11.',w:'claude',v:'1.0.44 bis 1.0.88',t:'Feinschliff im Alltag',s:'Fehler und Wünsche aus dem täglichen Gebrauch.',
+ hl:['Terminvorschläge unter dem Kalender','Farbvorausschau im Outfit','Tiefere Mailprüfung','Wetterfragen'],
+ a:'Kleine Rückmeldungen per Bildschirmfoto: Aufgabe mit Uhrzeit erscheint doppelt, Zutaten gelten nicht als vorhanden, Bestellmails mit Warenkorb-Blöcken, Blau und Weinrot im Outfit.',
+ g:'Jede Rückmeldung wurde eine eigene kleine Version. Parallel lieferte Codex tiefere Mailprüfung, Löschen mit Bestätigung, Wetterfragen und schonenderen Mailabruf. In 1.0.58 liefen beide Stränge zusammen.',
+ r:'Nach einer Präsentation (1.2.1), in der Pilot ein neues Anliegen nach einer Terminfrage nicht erkannte, entstanden Dialogfälle, Kurzantworten zum Anklicken und eine einmalige Selbstkorrektur.'},
+{day:'27. November 2026',date:'27.11.',w:'claude',v:'1.1.0 bis 1.2.1',t:'Kartenexport für Google My Maps',s:'Orte einer Reise nach Kategorien auswählen und für My Maps herunterladen.',
+ hl:['CSV, ZIP, KML','Kartenname mit Flagge','Unterkunft nur mit Freigabe','Outfit im Urlaub'],
+ a:'Ich gab einen ausführlichen Umsetzungs-Prompt als Markdown-Datei: Button im Urlaubsplaner, feste Kategorien mit Emojis, Auswahl pro Ort, Exportformate, Hinweise zum Import. Wichtig war mir, dass private Unterkunftsadressen nur nach ausdrücklicher Freigabe exportiert werden.',
+ g:'Umsetzung nach der Datei, danach mehrere Korrekturen durch meinen Test mit dem echten Import. Außerdem Outfit-Vorschläge während der Reise und ein eigener Bereich „Urlaub“ bei den Looks.',
+ r:'Export, der sich in Google My Maps importieren lässt. Später zog ich den Button ins Aktionen-Menü.'},
+{day:'27. und 28. November 2026',date:'27./28.11.',w:'claude',v:'1.3.0 bis 1.3.6',t:'News-Briefing',s:'Sechs Kacheln mit aktuellen Meldungen und Link zur Quelle.',
+ hl:['Wirtschaft, Technik, Politik, Aktien, Regional, Sport','Hintergrund-Auftrag','Einstellungen je Bereich'],
+ a:'Ich wünschte ein kurzes tägliches Briefing im Programm, nach Bereichen getrennt, mit Einstellungen für Themen, Vereine und Werte.',
+ g:'Statt eines großen Suchauftrags laufen sechs kleine parallel, fällt eine Kachel aus, bleibt der letzte Stand sichtbar. Die Websuche wurde als zweite dokumentierte Ausnahme der Sicherheitsgrenze mit meiner ausdrücklichen Freigabe aufgenommen.',
+ r:'Ein Briefing, das bis zur nächsten Aktualisierung gespeichert bleibt. Zugeklappt nur die Schlagzeile, aufgeklappt Einordnung und Quelle.'},
+{day:'28. November 2026',date:'28.11.',w:'claude',v:'1.4',t:'Sparplan und Depot',s:'Monatliches Sparen einplanen und das Depot im Blick behalten.',
+ hl:['Sparplan','Positionen mit Kaufkurs','Screenshot-Erkennung','Kreisdiagramm und Verlauf','Schlagzeilen und Ausblick'],
+ a:'Ich beschrieb den Wunsch zuerst frei: Sparplan in den Einstellungen, der vom Budget abgeht, ein Depot-Bereich mit Screenshot-Upload, Kreisdiagramm, Verlauf, Aktualisieren-Knopf und später Empfehlungen. Dann bat ich, vor dem Bauen noch einmal nachzufragen, ob alles richtig verstanden wurde. Vier Rückfragen klärten Reihenfolge, Kursquelle, Empfehlungen und Sparplan. Während des Baus kamen weitere Wünsche: Position mit Suche und Kaufkurs eintragen, Einzelpositionen bearbeiten, Kreisdiagramm nach Branche, eine seriöse Kursquelle, Chart wie bei Trade Republic, aktives Testen mit Beispielwerten.',
+ g:'Kurs-Quellen wurden vorab getestet, nur finanzen.net lieferte für alle Werte Preise. Suche, Kursabruf, Screenshot-Erkennung und Meldungen liefen live gegen das echte Modell mit Beispielwerten, das Chart wurde im Browser geprüft. Dazu kleine Änderungen derselben Runde: Rezepte-Mengen-Editor, Profil mit anklickbaren Interessen, Bewerbung löschen.',
+ r:'Depot-Release 1.4 mit neuer Sicherheitsdokumentation für die Websuche. Reine Überarbeitungen vorhandener Bereiche laufen künftig als kleine Schritte, nur neue Bereiche springen eine Minor-Version weiter.'},
+{day:'28. November 2026',date:'28.11.',w:'claude',v:'1.4',t:'Sicherheitsrunde und saubere Doku',s:'Alle Prüfungen wiederholt, Verlauf bereinigt, Screenshots mit erfundener Testperson.',
+ hl:['0 Schwachstellen','Frische Kopie geprüft','Testperson Max Mustermann'],
+ a:'Ich bat darum, nach dem Release alle Sicherheits- und Hintertüren-Checks zu wiederholen, nachzusehen, dass keine privaten Daten das Gerät verlassen oder im Repository liegen, und die Dokumentation samt Screenshots mit einer erkennbar fiktiven Person zu aktualisieren.',
+ g:'Tests, npm audit, Semgrep, Mustersuche, Zugangsprüfung der laufenden App (ohne Anmeldung, falscher Host, fremde Herkunft, Pfadtricks) und ein Blick auf alle ausgehenden Verbindungen. Mit meiner Freigabe wurde der Git-Verlauf erneut umgeschrieben und in einer frischen Kopie geprüft. Die Galerie zeigt jetzt Max Mustermann.',
+ r:'README, Changelog, Entwicklungsverlauf, Sicherheitsbericht und Screenshots stehen auf dem Stand von 1.4.'}
+];
+var tl=document.getElementById('tl'),filter='all',all=false;
+function el(tag,cls,html){var e=document.createElement(tag);if(cls)e.className=cls;if(html!=null)e.innerHTML=html;return e}
+function build(){
+  tl.innerHTML='';var lastDay='';
+  D.forEach(function(d,i){
+    if(filter!=='all'&&d.w!==filter)return;
+    if(d.day!==lastDay){var h=el('li','day',d.day);h.setAttribute('aria-hidden','true');tl.appendChild(h);lastDay=d.day}
+    var li=el('li','item');li.style.setProperty('--c',C[d.w]);
+    li.appendChild(el('div','when','<b>'+d.date+'</b>'));
+    li.appendChild(el('span','dot'));
+    var card=el('div','card');
+    card.appendChild(el('div','meta','<span class="tag">'+N[d.w]+'</span><span class="ver">Version '+d.v+'</span>'));
+    card.appendChild(el('h3',null,d.t));card.appendChild(el('p',null,d.s));
+    var ul=el('ul','hl');d.hl.forEach(function(x){ul.appendChild(el('li',null,x))});card.appendChild(ul);
+    var b=el('button','open','Auftrag ansehen');b.type='button';b.setAttribute('aria-expanded','false');b.id='b'+i;
+    var det=el('div','detail');det.hidden=true;det.id='d'+i;b.setAttribute('aria-controls',det.id);
+    det.innerHTML='<div><h4>Mein Auftrag</h4><p class="quote">'+d.a+'</p></div><div><h4>Vorgehen</h4><p>'+d.g+'</p></div><div><h4>Ergebnis</h4><p>'+d.r+'</p></div>';
+    det.firstChild.firstChild.nextSibling.style.setProperty('--c',C[d.w]);
+    function setOpen(o){det.hidden=!o;b.setAttribute('aria-expanded',o);b.textContent=o?'Auftrag ausblenden':'Auftrag ansehen'}
+    b.addEventListener('click',function(){setOpen(det.hidden)});
+    if(all)setOpen(true);
+    card.appendChild(b);card.appendChild(det);li.appendChild(card);tl.appendChild(li);
+  });
+}
+var ta=document.getElementById('toggleAll');
+ta.addEventListener('click',function(){all=!all;ta.setAttribute('aria-pressed',all);ta.textContent=all?'Alle Aufträge schließen':'Alle Aufträge öffnen';build()});
+build();
+</script>
+</body>
+</html>
